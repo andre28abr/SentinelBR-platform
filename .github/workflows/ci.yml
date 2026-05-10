@@ -126,5 +126,5 @@ jobs:
         working-directory: agent
         run: |
           go version
-          go build -o /tmp/sentinel-agent ./cmd/sentinel-agent
+          go build -buildvcs=false -o /tmp/sentinel-agent ./cmd/sentinel-agent
           /tmp/sentinel-agent doctor
