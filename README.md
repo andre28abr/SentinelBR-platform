@@ -1,5 +1,8 @@
 # SentinelBR
 
+[![ci](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml)
+
+
 > Plataforma open-source de segurança para servidores Linux (e Windows na fase 4), com foco em SMBs brasileiras: SIEM + Firewall + SELinux/AppArmor + Resposta a Incidentes + Compliance LGPD.
 
 Monorepo. 3 componentes principais + docs + deploy.
