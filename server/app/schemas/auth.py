@@ -11,7 +11,7 @@ class LoginRequest(BaseModel):
 class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
+    token_type: str = "bearer"  # noqa: S105 (literal de OAuth2 bearer scheme, nao senha)
 
 
 class RefreshRequest(BaseModel):

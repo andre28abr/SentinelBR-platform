@@ -31,7 +31,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 def issue_token(subject: str, token_type: TokenType) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
-    if token_type == "access":
+    if token_type == "access":  # noqa: S105 (literal de discriminator, nao senha)
         exp = now + timedelta(minutes=settings.access_token_minutes)
     else:
         exp = now + timedelta(days=settings.refresh_token_days)
@@ -48,5 +48,6 @@ def decode_token(token: str, expected_type: TokenType) -> dict:
     settings = get_settings()
     payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     if payload.get("type") != expected_type:
-        raise jwt.InvalidTokenError(f"esperado token tipo {expected_type}, veio {payload.get('type')}")
+        got = payload.get("type")
+        raise jwt.InvalidTokenError(f"esperado token tipo {expected_type}, veio {got}")
     return payload
