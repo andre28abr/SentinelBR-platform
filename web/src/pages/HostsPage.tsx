@@ -27,7 +27,6 @@ export default function HostsPage() {
   const [creating, setCreating] = useState(false)
 
   async function refresh() {
-    setLoading(true)
     setError(null)
     try {
       const data = await api.get<Host[]>('/api/v1/hosts')
@@ -40,7 +39,21 @@ export default function HostsPage() {
   }
 
   useEffect(() => {
-    refresh()
+    let cancelled = false
+    api
+      .get<Host[]>('/api/v1/hosts')
+      .then((data) => {
+        if (!cancelled) setHosts(data)
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof ApiError ? String(err.detail) : 'erro ao carregar')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   async function onCreate(e: FormEvent) {
