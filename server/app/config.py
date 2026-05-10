@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_url: str = Field(
-        default="postgresql+asyncpg://sentinelbr:sentinelbr@localhost:5432/sentinelbr"
+        default="postgresql+asyncpg://sentinelbr:sentinelbr@localhost:5433/sentinelbr"
     )
     redis_url: str = Field(default="redis://localhost:6379/0")
     loki_url: str = Field(default="http://localhost:3100")

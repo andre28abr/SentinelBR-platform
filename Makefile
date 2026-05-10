@@ -61,7 +61,7 @@ dev: ## sobe stack de dev (postgres, redis, loki, minio, server)
 	@echo ""
 	@echo "Server:    http://localhost:8000/docs"
 	@echo "MinIO:     http://localhost:9001 (admin/minioadmin)"
-	@echo "Postgres:  localhost:5432 (sentinelbr/sentinelbr)"
+	@echo "Postgres:  localhost:5433 (sentinelbr/sentinelbr)"
 	@echo "Loki:      http://localhost:3100"
 
 .PHONY: dev-down
