@@ -112,7 +112,7 @@ jobs:
         shell: sh
         run: |
           if command -v apt-get >/dev/null; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar git; fi
-          if command -v dnf >/dev/null; then dnf install -y curl ca-certificates tar gzip git; fi
+          if command -v dnf >/dev/null; then dnf install -y --allowerasing curl ca-certificates tar gzip git; fi
       - uses: actions/checkout@v4
       - name: Install Go 1.23 from upstream
         shell: bash
