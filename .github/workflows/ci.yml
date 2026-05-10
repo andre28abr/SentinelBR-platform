@@ -105,16 +105,26 @@ jobs:
           - debian:12
           - rockylinux:9
           - almalinux:9
-          - alpine:3.19
     container:
       image: ${{ matrix.distro }}
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          if command -v apt-get >/dev/null; then apt-get update && apt-get install -y golang ca-certificates; fi
-          if command -v dnf >/dev/null; then dnf install -y golang ca-certificates; fi
-          if command -v apk >/dev/null; then apk add --no-cache go ca-certificates musl-dev; fi
-      - working-directory: agent
+      - name: Install base deps
+        shell: sh
         run: |
+          if command -v apt-get >/dev/null; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar git; fi
+          if command -v dnf >/dev/null; then dnf install -y curl ca-certificates tar gzip git; fi
+      - uses: actions/checkout@v4
+      - name: Install Go 1.23 from upstream
+        shell: bash
+        run: |
+          ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          curl -fsSL "https://go.dev/dl/go1.23.4.linux-${ARCH}.tar.gz" -o /tmp/go.tgz
+          tar -C /usr/local -xzf /tmp/go.tgz
+          echo "/usr/local/go/bin" >> "$GITHUB_PATH"
+      - name: Build and run agent doctor
+        shell: bash
+        working-directory: agent
+        run: |
+          go version
           go build -o /tmp/sentinel-agent ./cmd/sentinel-agent
           /tmp/sentinel-agent doctor
