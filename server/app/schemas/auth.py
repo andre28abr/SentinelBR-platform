@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr
+import uuid
+
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class LoginRequest(BaseModel):
@@ -17,7 +19,9 @@ class RefreshRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: str
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
     email: EmailStr
     name: str
     role: str

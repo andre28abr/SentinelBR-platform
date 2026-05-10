@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,7 +17,7 @@ class HostUpdate(BaseModel):
 class HostResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     name: str
     hostname: str
     os_family: str | None
