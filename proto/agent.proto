@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package sentinelbr.agent.v1;
+
+option go_package = "github.com/sentinelbr/agent/internal/grpc/pb;agentpb";
+
+import "google/protobuf/timestamp.proto";
+
+// AgentService — RPC bidirecional entre agente (host) e server.
+// mTLS obrigatório (ADR-005). Cada agente tem cert único.
+service AgentService {
+  // Enroll é a primeira chamada do agente após instalação.
+  // Retorna host_id e config inicial.
+  rpc Enroll(EnrollRequest) returns (EnrollResponse);
+
+  // Heartbeat — agente manda status a cada N segundos (default 30).
+  // Server pode mandar comandos no response (BlockIP, RunCheck, etc.).
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // StreamEvents — fluxo contínuo de eventos coletados (logs, alerts).
+  rpc StreamEvents(stream Event) returns (stream EventAck);
+}
+
+// ─── Enrollment ───────────────────────────────────────────────────────────────
+
+message EnrollRequest {
+  string enrollment_token = 1;  // token one-time gerado no server
+  OSInfo os = 2;
+  string agent_version = 3;
+  string hostname = 4;
+}
+
+message EnrollResponse {
+  string host_id = 1;        // UUID gerado pelo server
+  string client_cert_pem = 2;  // cert assinado pela CA do server
+  string client_key_pem = 3;
+  AgentConfig config = 4;
+}
+
+message OSInfo {
+  string family = 1;        // debian | redhat | suse | arch | alpine | windows | darwin
+  string distro = 2;
+  string version = 3;
+  string arch = 4;
+  string kernel = 5;
+  string package_manager = 6;
+  string init_system = 7;
+  string firewall_tool = 8;
+  string mac_system = 9;
+}
+
+message AgentConfig {
+  int32 heartbeat_seconds = 1;
+  bool collect_journald = 2;
+  bool collect_auditd = 3;
+  repeated string watch_paths = 4;
+}
+
+// ─── Heartbeat ────────────────────────────────────────────────────────────────
+
+message HeartbeatRequest {
+  string host_id = 1;
+  google.protobuf.Timestamp ts = 2;
+  HostStats stats = 3;
+}
+
+message HostStats {
+  double load_avg_1m = 1;
+  uint64 mem_used_bytes = 2;
+  uint64 mem_total_bytes = 3;
+  uint64 disk_used_bytes = 4;
+  uint64 disk_total_bytes = 5;
+  uint32 active_alerts = 6;
+}
+
+message HeartbeatResponse {
+  google.protobuf.Timestamp server_ts = 1;
+  repeated Command pending_commands = 2;
+}
+
+message Command {
+  string id = 1;
+  oneof payload {
+    BlockIPCommand block_ip = 2;
+    UnblockIPCommand unblock_ip = 3;
+    RunCheckCommand run_check = 4;
+  }
+}
+
+message BlockIPCommand {
+  string ip = 1;
+  int32 duration_seconds = 2;
+  string reason = 3;
+}
+
+message UnblockIPCommand {
+  string ip = 1;
+}
+
+message RunCheckCommand {
+  string check_id = 1;
+}
+
+// ─── Events (stream) ──────────────────────────────────────────────────────────
+
+message Event {
+  string event_id = 1;
+  string host_id = 2;
+  google.protobuf.Timestamp ts = 3;
+  string source = 4;     // sshd, auditd, nginx, ...
+  string severity = 5;   // debug, info, warn, error, critical
+  string raw = 6;
+  map<string, string> fields = 7;
+}
+
+message EventAck {
+  string event_id = 1;
+  bool stored = 2;
+}

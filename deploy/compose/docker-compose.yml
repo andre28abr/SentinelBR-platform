@@ -1,0 +1,68 @@
+# Stack de produção. Inclui o server containerizado.
+# Para dev (server roda local com hot reload), use docker-compose.dev.yml.
+
+name: sentinelbr
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinelbr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD obrigatório}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinelbr}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinelbr"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD obrigatório}
+    volumes:
+      - redis_data:/data
+
+  loki:
+    image: grafana/loki:3.2.0
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD obrigatório}
+    volumes:
+      - minio_data:/data
+
+  server:
+    build:
+      context: ../../server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SENTINELBR_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sentinelbr}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sentinelbr}
+      SENTINELBR_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SENTINELBR_LOKI_URL: http://loki:3100
+      SENTINELBR_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET obrigatório}
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
+  redis_data:
+  loki_data:
+  minio_data:

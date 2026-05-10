@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editores
+.idea/
+.vscode/*
+!.vscode/settings.json.example
+*.swp
+*.swo
+
+# Claude
+.claude/
+
+# Go (agent)
+agent/bin/
+agent/dist/
+agent/coverage.out
+agent/*.test
+
+# Python (server)
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+server/*.egg-info/
+server/.pytest_cache/
+server/.mypy_cache/
+server/.ruff_cache/
+server/htmlcov/
+server/.coverage
+*.pyc
+
+# Node / web
+web/node_modules/
+web/dist/
+web/.turbo/
+web/coverage/
+web/*.log
+
+# Deploy / runtime
+deploy/data/
+deploy/.env
+*.local.env
+
+# Protobuf gerado (regerar via `make proto`)
+proto/gen/
+
+# Logs
+*.log
+
+# Secrets
+*.pem
+*.key
+!*.example.key
+posts-linkedin/
