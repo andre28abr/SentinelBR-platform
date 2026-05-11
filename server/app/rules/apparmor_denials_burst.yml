@@ -1,0 +1,14 @@
+id: apparmor_denials_burst
+name: Burst de denials AppArmor do mesmo profile
+description: |
+  5 ou mais denials AppArmor do mesmo profile em 5 minutos.
+  Indica processo tentando acessar recursos fora do permitido — investigar
+  se eh bug do app ou tentativa de abuso.
+severity: medium
+source: apparmor
+filter:
+  event.action: apparmor_denied
+window_seconds: 300
+aggregate:
+  group_by: [apparmor.profile]
+  threshold: 5

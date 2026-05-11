@@ -167,6 +167,8 @@ func runCmd() *cobra.Command {
 			level, _ := cmd.Flags().GetString("log-level")
 			sshSourceFile, _ := cmd.Flags().GetString("ssh-source-file")
 			sshSourceOnce, _ := cmd.Flags().GetBool("ssh-source-once")
+			macSourceFile, _ := cmd.Flags().GetString("mac-source-file")
+			macSourceOnce, _ := cmd.Flags().GetBool("mac-source-once")
 			firewallDryRun, _ := cmd.Flags().GetBool("firewall-dry-run")
 
 			log := logging.New(level)
@@ -247,6 +249,36 @@ func runCmd() *cobra.Command {
 				log.Info("nenhum collector sshd configurado (use --ssh-source-file pra dev)")
 			}
 
+			// MAC collector (SELinux ou AppArmor) baseado no MAC system detectado.
+			macSource := pickMACSource(macSourceFile, macSourceOnce)
+			if macSource != nil {
+				kind := pickMACKind(info)
+				if kind == "" {
+					log.Warn("MAC source configurado mas OS sem SELinux/AppArmor — descartando")
+				} else {
+					col := collectors.NewMACCollector(kind, st.HostID, macSource)
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						if err := col.Run(ctx); err != nil {
+							log.Error("collector mac parou", "err", err, "kind", string(kind))
+						}
+					}()
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for ev := range col.Events() {
+							select {
+							case <-ctx.Done():
+								return
+							case eventBus <- ev:
+							}
+						}
+					}()
+					log.Info("collector mac ativo", "kind", string(kind), "source", macSource.Name())
+				}
+			}
+
 			// Quando todos os collectors fecharem, fecha o eventBus pra terminar o stream.
 			go func() {
 				wg.Wait()
@@ -267,6 +299,8 @@ func runCmd() *cobra.Command {
 	}
 	cmd.Flags().String("ssh-source-file", "", "le eventos sshd desse arquivo (vazio = desabilitado). Em prod: /var/log/auth.log")
 	cmd.Flags().Bool("ssh-source-once", false, "le o arquivo do --ssh-source-file ate EOF e sai (modo replay). Default: tail -F")
+	cmd.Flags().String("mac-source-file", "", "le eventos SELinux/AppArmor desse arquivo. Em prod: /var/log/audit/audit.log (selinux) ou /var/log/syslog (apparmor)")
+	cmd.Flags().Bool("mac-source-once", false, "modo replay pro --mac-source-file. Default: tail -F")
 	cmd.Flags().Bool("firewall-dry-run", false, "loga BlockIP/UnblockIP em vez de executar (uso em dev, ou Mac sem nft/firewall-cmd)")
 	return cmd
 }
@@ -276,6 +310,29 @@ func pickSSHSource(fileFlag string, once bool) collectors.Source {
 		return collectors.NewFileSource(fileFlag, once)
 	}
 	return nil
+}
+
+func pickMACSource(fileFlag string, once bool) collectors.Source {
+	if fileFlag != "" {
+		return collectors.NewFileSource(fileFlag, once)
+	}
+	return nil
+}
+
+func pickMACKind(info *osdetect.OSInfo) collectors.MACKind {
+	if info == nil {
+		return ""
+	}
+	switch info.MACSystem {
+	case "selinux":
+		return collectors.MACKindSELinux
+	case "apparmor":
+		return collectors.MACKindAppArmor
+	}
+	// Em Mac dev (info.MACSystem="none"), assume SELinux pra fixture testing
+	// — o usuario pode passar uma fixture de qualquer formato e o parser certo
+	// vai casar/silenciar conforme o conteudo.
+	return collectors.MACKindSELinux
 }
 
 func orDefault(v, d string) string {

@@ -44,6 +44,8 @@ def test_default_rules_load_all_files() -> None:
         "ssh_brute_force_user",
         "ssh_user_enumeration",
         "ssh_root_login_failure",
+        "selinux_denials_burst",
+        "apparmor_denials_burst",
     }
 
 

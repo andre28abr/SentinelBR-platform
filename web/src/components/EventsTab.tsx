@@ -15,16 +15,25 @@ const REFRESH_MS = 5_000
 const HOURS = 24
 const LIMIT = 100
 
+const SOURCES = ['todos', 'sshd', 'selinux', 'apparmor'] as const
+type SourceFilter = (typeof SOURCES)[number]
+
 export default function EventsTab({ hostId }: { hostId: string }) {
   const [events, setEvents] = useState<EventItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState<SourceFilter>('todos')
 
   useEffect(() => {
     let cancelled = false
 
     function load() {
-      const url = `/api/v1/hosts/${hostId}/events?hours=${HOURS}&limit=${LIMIT}`
+      const params = new URLSearchParams({
+        hours: String(HOURS),
+        limit: String(LIMIT),
+      })
+      if (source !== 'todos') params.set('source', source)
+      const url = `/api/v1/hosts/${hostId}/events?${params}`
       api
         .get<EventItem[]>(url)
         .then((data) => {
@@ -47,37 +56,64 @@ export default function EventsTab({ hostId }: { hostId: string }) {
       cancelled = true
       clearInterval(t)
     }
-  }, [hostId])
+  }, [hostId, source])
 
-  if (loading) return <p className="text-sm text-zinc-500">Carregando eventos…</p>
+  const sourceFilter = (
+    <div className="flex gap-1 mb-3">
+      {SOURCES.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => setSource(s)}
+          className={`text-xs px-2 py-1 rounded ${
+            source === s
+              ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900'
+              : 'border border-zinc-200 dark:border-zinc-800'
+          }`}
+        >
+          {s}
+        </button>
+      ))}
+    </div>
+  )
+
+  if (loading) {
+    return (
+      <>
+        {sourceFilter}
+        <p className="text-sm text-zinc-500">Carregando eventos…</p>
+      </>
+    )
+  }
 
   if (error) {
     return (
-      <div className="text-sm text-red-600 dark:text-red-400">
-        {error}
-        <p className="text-xs text-zinc-500 mt-1">
-          Verifique se Loki está rodando (<code>make dev</code>).
-        </p>
-      </div>
+      <>
+        {sourceFilter}
+        <div className="text-sm text-red-600 dark:text-red-400">
+          {error}
+          <p className="text-xs text-zinc-500 mt-1">
+            Verifique se Loki está rodando (<code>make dev</code>).
+          </p>
+        </div>
+      </>
     )
   }
 
   if (events.length === 0) {
     return (
-      <div className="text-sm text-zinc-500 space-y-2">
-        <p>Nenhum evento nas últimas {HOURS}h.</p>
-        <p className="text-xs">
-          Pra testar: rode o agente com{' '}
-          <code className="bg-zinc-100 dark:bg-zinc-900 px-1 rounded">
-            sentinel-agent run --ssh-source-file=samples/sshd-fixtures.log --ssh-source-once
-          </code>
+      <>
+        {sourceFilter}
+        <p className="text-sm text-zinc-500">
+          Nenhum evento {source !== 'todos' ? `de ${source}` : ''} nas últimas {HOURS}h.
         </p>
-      </div>
+      </>
     )
   }
 
   return (
     <div className="space-y-2">
+      {sourceFilter}
       <p className="text-xs text-zinc-500">
         {events.length} eventos · últimas {HOURS}h · auto-refresh a cada {REFRESH_MS / 1000}s
       </p>
@@ -117,27 +153,34 @@ export default function EventsTab({ hostId }: { hostId: string }) {
 }
 
 function EventDetail({ ev }: { ev: EventItem }) {
-  const action = ev.fields['event.action']
-  const outcome = ev.fields['event.outcome']
-  const user = ev.fields['user.name']
-  const ip = ev.fields['source.ip']
-  const reason = ev.fields['event.reason']
+  const f = ev.fields
+  const action = f['event.action']
+  const outcome = f['event.outcome']
+  const reason = f['event.reason']
 
-  if (action || user || ip) {
-    return (
-      <div>
-        <p className="font-medium">
-          {action ?? 'evento'} {outcome && <span className="text-zinc-500">· {outcome}</span>}
-          {reason && <span className="text-zinc-500"> ({reason})</span>}
-        </p>
-        <p className="text-zinc-500 mt-0.5">
-          {user && <span>user=<code>{user}</code> </span>}
-          {ip && <span>from=<code>{ip}</code> </span>}
-        </p>
-      </div>
-    )
-  }
-  return <p className="text-zinc-500 truncate max-w-md font-mono">{ev.raw}</p>
+  return (
+    <div>
+      <p className="font-medium">
+        {action ?? 'evento'} {outcome && <span className="text-zinc-500">· {outcome}</span>}
+        {reason && <span className="text-zinc-500"> ({reason})</span>}
+      </p>
+      <p className="text-zinc-500 mt-0.5 text-[11px]">
+        {f['user.name'] && <span>user=<code>{f['user.name']}</code> </span>}
+        {f['source.ip'] && <span>from=<code>{f['source.ip']}</code> </span>}
+        {f['process.name'] && <span>proc=<code>{f['process.name']}</code> </span>}
+        {f['selinux.source_type'] && (
+          <span>
+            {f['selinux.source_type']} → {f['selinux.target_type']}
+            {f['selinux.permission'] && ` (${f['selinux.permission']})`}{' '}
+          </span>
+        )}
+        {f['apparmor.profile'] && (
+          <span>profile=<code>{f['apparmor.profile']}</code> </span>
+        )}
+        {f['file.name'] && <span>file=<code>{f['file.name']}</code></span>}
+      </p>
+    </div>
+  )
 }
 
 function SeverityBadge({ severity }: { severity: string }) {

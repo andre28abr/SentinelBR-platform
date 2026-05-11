@@ -1,0 +1,14 @@
+id: selinux_denials_burst
+name: Burst de denials SELinux do mesmo processo
+description: |
+  5 ou mais denials AVC do mesmo source_type SELinux em 5 minutos.
+  Pode indicar processo malformado, configuracao errada de policy, ou
+  comprometimento (atacante tentando acessar arquivos fora do contexto).
+severity: medium
+source: selinux
+filter:
+  event.action: selinux_denied
+window_seconds: 300
+aggregate:
+  group_by: [selinux.source_type]
+  threshold: 5
