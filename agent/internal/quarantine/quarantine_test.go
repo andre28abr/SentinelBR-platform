@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -28,13 +29,20 @@ func TestQuarantine_MovesFileAndWritesSidecar(t *testing.T) {
 		t.Errorf("original ainda existe (%v)", err)
 	}
 
-	// destino existe com perm 0400
+	// destino existe e nao eh writable (perm exata depende do OS — Windows so honra read-only)
 	st, err := os.Stat(side.QuarantinePath)
 	if err != nil {
 		t.Fatalf("dest nao existe: %v", err)
 	}
-	if st.Mode().Perm() != FileMode {
-		t.Errorf("perm dest = %o, esperava %o", st.Mode().Perm(), FileMode)
+	if runtime.GOOS == "windows" {
+		// Windows: Chmod(0400) -> 0444 (apenas o bit read-only e respeitado)
+		if st.Mode().Perm()&0o222 != 0 {
+			t.Errorf("dest deveria ser read-only no Windows, perm=%o", st.Mode().Perm())
+		}
+	} else {
+		if st.Mode().Perm() != FileMode {
+			t.Errorf("perm dest = %o, esperava %o", st.Mode().Perm(), FileMode)
+		}
 	}
 
 	// sidecar tem campos esperados
