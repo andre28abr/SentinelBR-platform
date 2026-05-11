@@ -539,8 +539,14 @@ type HostStats struct {
 	ClamavInstalled bool   `protobuf:"varint,10,opt,name=clamav_installed,json=clamavInstalled,proto3" json:"clamav_installed,omitempty"`
 	ClamavVersion   string `protobuf:"bytes,11,opt,name=clamav_version,json=clamavVersion,proto3" json:"clamav_version,omitempty"`            // ex: "1.0.4/27295/Wed Mar 6 04:09:31 2024"
 	ClamavDbAgeDays uint32 `protobuf:"varint,12,opt,name=clamav_db_age_days,json=clamavDbAgeDays,proto3" json:"clamav_db_age_days,omitempty"` // idade do signature DB em dias
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Admin panel counts (Fase C)
+	ServicesRunning    uint32 `protobuf:"varint,13,opt,name=services_running,json=servicesRunning,proto3" json:"services_running,omitempty"`
+	ServicesFailed     uint32 `protobuf:"varint,14,opt,name=services_failed,json=servicesFailed,proto3" json:"services_failed,omitempty"`
+	PackagesUpgradable uint32 `protobuf:"varint,15,opt,name=packages_upgradable,json=packagesUpgradable,proto3" json:"packages_upgradable,omitempty"`
+	ListeningPorts     uint32 `protobuf:"varint,16,opt,name=listening_ports,json=listeningPorts,proto3" json:"listening_ports,omitempty"`
+	CronJobs           uint32 `protobuf:"varint,17,opt,name=cron_jobs,json=cronJobs,proto3" json:"cron_jobs,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *HostStats) Reset() {
@@ -653,6 +659,41 @@ func (x *HostStats) GetClamavVersion() string {
 func (x *HostStats) GetClamavDbAgeDays() uint32 {
 	if x != nil {
 		return x.ClamavDbAgeDays
+	}
+	return 0
+}
+
+func (x *HostStats) GetServicesRunning() uint32 {
+	if x != nil {
+		return x.ServicesRunning
+	}
+	return 0
+}
+
+func (x *HostStats) GetServicesFailed() uint32 {
+	if x != nil {
+		return x.ServicesFailed
+	}
+	return 0
+}
+
+func (x *HostStats) GetPackagesUpgradable() uint32 {
+	if x != nil {
+		return x.PackagesUpgradable
+	}
+	return 0
+}
+
+func (x *HostStats) GetListeningPorts() uint32 {
+	if x != nil {
+		return x.ListeningPorts
+	}
+	return 0
+}
+
+func (x *HostStats) GetCronJobs() uint32 {
+	if x != nil {
+		return x.CronJobs
 	}
 	return 0
 }
@@ -1535,7 +1576,7 @@ const file_agent_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\".sentinelbr.agent.v1.CommandStatusR\x06status\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12;\n" +
 	"\vexecuted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"executedAt\"\xd2\x03\n" +
+	"executedAt\"\x9d\x05\n" +
 	"\tHostStats\x12\x1e\n" +
 	"\vload_avg_1m\x18\x01 \x01(\x01R\tloadAvg1m\x12$\n" +
 	"\x0emem_used_bytes\x18\x02 \x01(\x04R\fmemUsedBytes\x12&\n" +
@@ -1550,7 +1591,12 @@ const file_agent_proto_rawDesc = "" +
 	"\x10clamav_installed\x18\n" +
 	" \x01(\bR\x0fclamavInstalled\x12%\n" +
 	"\x0eclamav_version\x18\v \x01(\tR\rclamavVersion\x12+\n" +
-	"\x12clamav_db_age_days\x18\f \x01(\rR\x0fclamavDbAgeDays\"\x95\x01\n" +
+	"\x12clamav_db_age_days\x18\f \x01(\rR\x0fclamavDbAgeDays\x12)\n" +
+	"\x10services_running\x18\r \x01(\rR\x0fservicesRunning\x12'\n" +
+	"\x0fservices_failed\x18\x0e \x01(\rR\x0eservicesFailed\x12/\n" +
+	"\x13packages_upgradable\x18\x0f \x01(\rR\x12packagesUpgradable\x12'\n" +
+	"\x0flistening_ports\x18\x10 \x01(\rR\x0elisteningPorts\x12\x1b\n" +
+	"\tcron_jobs\x18\x11 \x01(\rR\bcronJobs\"\x95\x01\n" +
 	"\x11HeartbeatResponse\x127\n" +
 	"\tserver_ts\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bserverTs\x12G\n" +
 	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\xee\x03\n" +

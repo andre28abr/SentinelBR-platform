@@ -49,6 +49,13 @@ class Host(Base):
     clamav_version: Mapped[str | None] = mapped_column(String(255))
     clamav_db_age_days: Mapped[int | None] = mapped_column(Integer)
 
+    # Admin panel counts (Fase C)
+    services_running: Mapped[int | None] = mapped_column(Integer)
+    services_failed: Mapped[int | None] = mapped_column(Integer)
+    packages_upgradable: Mapped[int | None] = mapped_column(Integer)
+    listening_ports: Mapped[int | None] = mapped_column(Integer)
+    cron_jobs: Mapped[int | None] = mapped_column(Integer)
+
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

@@ -16,6 +16,7 @@ import (
 
 	"github.com/sentinelbr/agent/internal/clamavdetect"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
+	"github.com/sentinelbr/agent/internal/sysadmin"
 )
 
 // Collect retorna um snapshot atual. Erros sao silenciados (campo fica zero).
@@ -51,6 +52,12 @@ func Collect() *pb.HostStats {
 	stats.ClamavInstalled = clam.Installed
 	stats.ClamavVersion = clam.Version
 	stats.ClamavDbAgeDays = clam.DBAgeDays
+
+	// Admin panel counts (Fase C) — best-effort, retornam 0 em macOS/erros.
+	stats.ServicesRunning, stats.ServicesFailed = sysadmin.CountServices()
+	stats.PackagesUpgradable = sysadmin.CountPackagesUpgradable()
+	stats.ListeningPorts = sysadmin.CountListeningPorts()
+	stats.CronJobs = sysadmin.CountCronJobs()
 
 	return stats
 }

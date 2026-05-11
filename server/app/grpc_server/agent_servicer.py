@@ -142,6 +142,12 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                     host.clamav_version = stats.clamav_version
                 if stats.clamav_db_age_days:
                     host.clamav_db_age_days = stats.clamav_db_age_days
+                # Admin counts — sempre persiste (0 eh valor valido)
+                host.services_running = stats.services_running
+                host.services_failed = stats.services_failed
+                host.packages_upgradable = stats.packages_upgradable
+                host.listening_ports = stats.listening_ports
+                host.cron_jobs = stats.cron_jobs
 
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)

@@ -42,3 +42,8 @@ class HostResponse(BaseModel):
     clamav_installed: bool | None = None
     clamav_version: str | None = None
     clamav_db_age_days: int | None = None
+    services_running: int | None = None
+    services_failed: int | None = None
+    packages_upgradable: int | None = None
+    listening_ports: int | None = None
+    cron_jobs: int | None = None

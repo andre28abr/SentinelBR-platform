@@ -100,6 +100,12 @@ message HostStats {
   bool clamav_installed = 10;
   string clamav_version = 11;        // ex: "1.0.4/27295/Wed Mar 6 04:09:31 2024"
   uint32 clamav_db_age_days = 12;    // idade do signature DB em dias
+  // Admin panel counts (Fase C)
+  uint32 services_running = 13;
+  uint32 services_failed = 14;
+  uint32 packages_upgradable = 15;
+  uint32 listening_ports = 16;
+  uint32 cron_jobs = 17;
 }
 
 message HeartbeatResponse {

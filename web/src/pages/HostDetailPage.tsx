@@ -6,6 +6,7 @@ import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import ClamavPanel from '@/components/ClamavPanel'
 import EventsTab from '@/components/EventsTab'
+import Tooltip from '@/components/Tooltip'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
 import { ApiError, api } from '@/lib/api'
@@ -26,6 +27,11 @@ interface Host {
   clamav_installed: boolean | null
   clamav_version: string | null
   clamav_db_age_days: number | null
+  services_running: number | null
+  services_failed: number | null
+  packages_upgradable: number | null
+  listening_ports: number | null
+  cron_jobs: number | null
 }
 
 interface EnrollmentToken {
@@ -194,6 +200,15 @@ export default function HostDetailPage() {
         {id && <VulnerabilitiesTab hostId={id} />}
       </section>
 
+      {(host.services_running !== null || host.packages_upgradable !== null) && (
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
+            Painel do sistema
+          </h2>
+          <SystemPanel host={host} />
+        </section>
+      )}
+
       <section className="mb-6">
         <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
           Anti-malware (YARA)
@@ -315,6 +330,85 @@ function LocationEditor({
       </div>
       {err && <p className="text-xs text-red-600">{err}</p>}
     </div>
+  )
+}
+
+function SystemPanel({ host }: { host: Host }) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <SystemCard
+        label="Serviços rodando"
+        value={host.services_running}
+        tooltip="Serviços systemd ativos (systemctl list-units --type=service). Conta unidades em estado 'running'."
+        color="green"
+        cliHint="systemctl list-units --type=service"
+      />
+      <SystemCard
+        label="Serviços falhos"
+        value={host.services_failed}
+        tooltip="Serviços systemd em estado 'failed'. Cada falha indica algo que travou ou crash-looped. Investigar com journalctl -u <service>."
+        color={host.services_failed && host.services_failed > 0 ? 'red' : 'zinc'}
+        cliHint="systemctl --failed"
+      />
+      <SystemCard
+        label="Atualizações"
+        value={host.packages_upgradable}
+        tooltip="Pacotes com versão mais nova disponível (apt list --upgradable / dnf check-update). Inclui patches de segurança."
+        color={
+          host.packages_upgradable && host.packages_upgradable > 50
+            ? 'red'
+            : host.packages_upgradable && host.packages_upgradable > 10
+              ? 'orange'
+              : 'green'
+        }
+        cliHint="apt update && apt list --upgradable"
+      />
+      <SystemCard
+        label="Portas em LISTEN"
+        value={host.listening_ports}
+        tooltip="Quantidade de portas TCP em estado LISTEN (ss -tlnH). Cada porta exposta é potencial superfície de ataque."
+        color="zinc"
+        cliHint="ss -tlnp"
+      />
+      <SystemCard
+        label="Cron jobs"
+        value={host.cron_jobs}
+        tooltip="Tarefas agendadas em /etc/cron.d, /etc/cron.{hourly,daily,weekly,monthly} e /var/spool/cron. Backdoors costumam se esconder aqui."
+        color="zinc"
+        cliHint="crontab -l && ls /etc/cron.d/"
+      />
+    </div>
+  )
+}
+
+function SystemCard({
+  label,
+  value,
+  tooltip,
+  color,
+  cliHint,
+}: {
+  label: string
+  value: number | null
+  tooltip: string
+  color: 'red' | 'orange' | 'green' | 'zinc'
+  cliHint: string
+}) {
+  const cls = {
+    red: 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300',
+    orange:
+      'border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-300',
+    green:
+      'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300',
+    zinc: 'border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300',
+  }[color]
+  return (
+    <Tooltip content={`${tooltip}\n\nNo host: ${cliHint}`}>
+      <div className={`p-3 rounded-lg border cursor-help ${cls}`}>
+        <p className="text-[10px] uppercase opacity-70 tracking-wide">{label}</p>
+        <p className="text-2xl font-bold mt-1">{value ?? '—'}</p>
+      </div>
+    </Tooltip>
   )
 }
 
