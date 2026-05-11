@@ -149,6 +149,10 @@ vm::push_agent() {
   echo "  + push do binario sentinel-agent + regras YARA pra $name"
   orbctl push -m "$name" "$AGENT_BIN" /tmp/sentinel-agent
   orb -m "$name" -u root bash -c 'mv /tmp/sentinel-agent /usr/local/bin/sentinel-agent && chmod +x /usr/local/bin/sentinel-agent'
+  # Se o serviço já está rodando (re-provision), reinicia pra usar o binário novo.
+  # Em primeiro provision o systemctl unit ainda nao existe — silencia falha.
+  orb -m "$name" -u root bash -c \
+    '(systemctl restart sentinelbr-agent.service 2>/dev/null || true)'
   orb -m "$name" -u root mkdir -p /etc/sentinelbr/yara-rules
   for rule in "$YARA_RULES_DIR"/*.yar; do
     orbctl push -m "$name" "$rule" "/tmp/$(basename "$rule")"
