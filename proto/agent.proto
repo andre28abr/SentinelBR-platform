@@ -19,6 +19,10 @@ service AgentService {
 
   // StreamEvents — fluxo contínuo de eventos coletados (logs, alerts).
   rpc StreamEvents(stream Event) returns (stream EventAck);
+
+  // SubmitInventory — agente envia lista de pacotes instalados pra cross-ref
+  // com base de vulnerabilidades (OSV/NVD).
+  rpc SubmitInventory(InventoryReport) returns (InventoryAck);
 }
 
 // ─── Enrollment ───────────────────────────────────────────────────────────────
@@ -134,4 +138,24 @@ message Event {
 message EventAck {
   string event_id = 1;
   bool stored = 2;
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+message InventoryReport {
+  string host_id = 1;
+  string source = 2;        // apt | dnf | zypper | pacman | apk
+  google.protobuf.Timestamp collected_at = 3;
+  repeated PackageInfo packages = 4;
+}
+
+message PackageInfo {
+  string name = 1;
+  string version = 2;
+  string arch = 3;          // amd64 | arm64 | noarch
+}
+
+message InventoryAck {
+  int32 packages_received = 1;
+  bool scan_scheduled = 2;
 }

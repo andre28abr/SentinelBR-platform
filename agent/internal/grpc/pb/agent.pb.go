@@ -1058,6 +1058,186 @@ func (x *EventAck) GetStored() bool {
 	return false
 }
 
+type InventoryReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HostId        string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"` // apt | dnf | zypper | pacman | apk
+	CollectedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=collected_at,json=collectedAt,proto3" json:"collected_at,omitempty"`
+	Packages      []*PackageInfo         `protobuf:"bytes,4,rep,name=packages,proto3" json:"packages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InventoryReport) Reset() {
+	*x = InventoryReport{}
+	mi := &file_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InventoryReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InventoryReport) ProtoMessage() {}
+
+func (x *InventoryReport) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InventoryReport.ProtoReflect.Descriptor instead.
+func (*InventoryReport) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *InventoryReport) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *InventoryReport) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *InventoryReport) GetCollectedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CollectedAt
+	}
+	return nil
+}
+
+func (x *InventoryReport) GetPackages() []*PackageInfo {
+	if x != nil {
+		return x.Packages
+	}
+	return nil
+}
+
+type PackageInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Arch          string                 `protobuf:"bytes,3,opt,name=arch,proto3" json:"arch,omitempty"` // amd64 | arm64 | noarch
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackageInfo) Reset() {
+	*x = PackageInfo{}
+	mi := &file_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackageInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackageInfo) ProtoMessage() {}
+
+func (x *PackageInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackageInfo.ProtoReflect.Descriptor instead.
+func (*PackageInfo) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *PackageInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PackageInfo) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *PackageInfo) GetArch() string {
+	if x != nil {
+		return x.Arch
+	}
+	return ""
+}
+
+type InventoryAck struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	PackagesReceived int32                  `protobuf:"varint,1,opt,name=packages_received,json=packagesReceived,proto3" json:"packages_received,omitempty"`
+	ScanScheduled    bool                   `protobuf:"varint,2,opt,name=scan_scheduled,json=scanScheduled,proto3" json:"scan_scheduled,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *InventoryAck) Reset() {
+	*x = InventoryAck{}
+	mi := &file_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InventoryAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InventoryAck) ProtoMessage() {}
+
+func (x *InventoryAck) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InventoryAck.ProtoReflect.Descriptor instead.
+func (*InventoryAck) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *InventoryAck) GetPackagesReceived() int32 {
+	if x != nil {
+		return x.PackagesReceived
+	}
+	return 0
+}
+
+func (x *InventoryAck) GetScanScheduled() bool {
+	if x != nil {
+		return x.ScanScheduled
+	}
+	return false
+}
+
 var File_agent_proto protoreflect.FileDescriptor
 
 const file_agent_proto_rawDesc = "" +
@@ -1141,16 +1321,29 @@ const file_agent_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"=\n" +
 	"\bEventAck\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x16\n" +
-	"\x06stored\x18\x02 \x01(\bR\x06stored*\x81\x01\n" +
+	"\x06stored\x18\x02 \x01(\bR\x06stored\"\xbf\x01\n" +
+	"\x0fInventoryReport\x12\x17\n" +
+	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x12=\n" +
+	"\fcollected_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\vcollectedAt\x12<\n" +
+	"\bpackages\x18\x04 \x03(\v2 .sentinelbr.agent.v1.PackageInfoR\bpackages\"O\n" +
+	"\vPackageInfo\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12\x12\n" +
+	"\x04arch\x18\x03 \x01(\tR\x04arch\"b\n" +
+	"\fInventoryAck\x12+\n" +
+	"\x11packages_received\x18\x01 \x01(\x05R\x10packagesReceived\x12%\n" +
+	"\x0escan_scheduled\x18\x02 \x01(\bR\rscanScheduled*\x81\x01\n" +
 	"\rCommandStatus\x12\x1e\n" +
 	"\x1aCOMMAND_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11COMMAND_STATUS_OK\x10\x01\x12\x19\n" +
 	"\x15COMMAND_STATUS_FAILED\x10\x02\x12\x1e\n" +
-	"\x1aCOMMAND_STATUS_UNSUPPORTED\x10\x032\x8c\x02\n" +
+	"\x1aCOMMAND_STATUS_UNSUPPORTED\x10\x032\xe8\x02\n" +
 	"\fAgentService\x12Q\n" +
 	"\x06Enroll\x12\".sentinelbr.agent.v1.EnrollRequest\x1a#.sentinelbr.agent.v1.EnrollResponse\x12Z\n" +
 	"\tHeartbeat\x12%.sentinelbr.agent.v1.HeartbeatRequest\x1a&.sentinelbr.agent.v1.HeartbeatResponse\x12M\n" +
-	"\fStreamEvents\x12\x1a.sentinelbr.agent.v1.Event\x1a\x1d.sentinelbr.agent.v1.EventAck(\x010\x01B6Z4github.com/sentinelbr/agent/internal/grpc/pb;agentpbb\x06proto3"
+	"\fStreamEvents\x12\x1a.sentinelbr.agent.v1.Event\x1a\x1d.sentinelbr.agent.v1.EventAck(\x010\x01\x12Z\n" +
+	"\x0fSubmitInventory\x12$.sentinelbr.agent.v1.InventoryReport\x1a!.sentinelbr.agent.v1.InventoryAckB6Z4github.com/sentinelbr/agent/internal/grpc/pb;agentpbb\x06proto3"
 
 var (
 	file_agent_proto_rawDescOnce sync.Once
@@ -1165,7 +1358,7 @@ func file_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_agent_proto_goTypes = []any{
 	(CommandStatus)(0),            // 0: sentinelbr.agent.v1.CommandStatus
 	(*EnrollRequest)(nil),         // 1: sentinelbr.agent.v1.EnrollRequest
@@ -1182,35 +1375,42 @@ var file_agent_proto_goTypes = []any{
 	(*RunCheckCommand)(nil),       // 12: sentinelbr.agent.v1.RunCheckCommand
 	(*Event)(nil),                 // 13: sentinelbr.agent.v1.Event
 	(*EventAck)(nil),              // 14: sentinelbr.agent.v1.EventAck
-	nil,                           // 15: sentinelbr.agent.v1.Event.FieldsEntry
-	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp
+	(*InventoryReport)(nil),       // 15: sentinelbr.agent.v1.InventoryReport
+	(*PackageInfo)(nil),           // 16: sentinelbr.agent.v1.PackageInfo
+	(*InventoryAck)(nil),          // 17: sentinelbr.agent.v1.InventoryAck
+	nil,                           // 18: sentinelbr.agent.v1.Event.FieldsEntry
+	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
 }
 var file_agent_proto_depIdxs = []int32{
 	3,  // 0: sentinelbr.agent.v1.EnrollRequest.os:type_name -> sentinelbr.agent.v1.OSInfo
 	4,  // 1: sentinelbr.agent.v1.EnrollResponse.config:type_name -> sentinelbr.agent.v1.AgentConfig
-	16, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
+	19, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
 	7,  // 3: sentinelbr.agent.v1.HeartbeatRequest.stats:type_name -> sentinelbr.agent.v1.HostStats
 	6,  // 4: sentinelbr.agent.v1.HeartbeatRequest.command_results:type_name -> sentinelbr.agent.v1.CommandResult
 	0,  // 5: sentinelbr.agent.v1.CommandResult.status:type_name -> sentinelbr.agent.v1.CommandStatus
-	16, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
-	16, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
+	19, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
+	19, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
 	9,  // 8: sentinelbr.agent.v1.HeartbeatResponse.pending_commands:type_name -> sentinelbr.agent.v1.Command
 	10, // 9: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
 	11, // 10: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
 	12, // 11: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
-	16, // 12: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
-	15, // 13: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
-	1,  // 14: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
-	5,  // 15: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
-	13, // 16: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
-	2,  // 17: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
-	8,  // 18: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
-	14, // 19: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
-	17, // [17:20] is the sub-list for method output_type
-	14, // [14:17] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	19, // 12: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
+	18, // 13: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
+	19, // 14: sentinelbr.agent.v1.InventoryReport.collected_at:type_name -> google.protobuf.Timestamp
+	16, // 15: sentinelbr.agent.v1.InventoryReport.packages:type_name -> sentinelbr.agent.v1.PackageInfo
+	1,  // 16: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
+	5,  // 17: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
+	13, // 18: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
+	15, // 19: sentinelbr.agent.v1.AgentService.SubmitInventory:input_type -> sentinelbr.agent.v1.InventoryReport
+	2,  // 20: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
+	8,  // 21: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
+	14, // 22: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
+	17, // 23: sentinelbr.agent.v1.AgentService.SubmitInventory:output_type -> sentinelbr.agent.v1.InventoryAck
+	20, // [20:24] is the sub-list for method output_type
+	16, // [16:20] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -1229,7 +1429,7 @@ func file_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   15,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

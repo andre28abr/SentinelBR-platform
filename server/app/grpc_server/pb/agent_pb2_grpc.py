@@ -51,6 +51,11 @@ class AgentServiceStub(object):
                 request_serializer=agent__pb2.Event.SerializeToString,
                 response_deserializer=agent__pb2.EventAck.FromString,
                 _registered_method=True)
+        self.SubmitInventory = channel.unary_unary(
+                '/sentinelbr.agent.v1.AgentService/SubmitInventory',
+                request_serializer=agent__pb2.InventoryReport.SerializeToString,
+                response_deserializer=agent__pb2.InventoryAck.FromString,
+                _registered_method=True)
 
 
 class AgentServiceServicer(object):
@@ -81,6 +86,14 @@ class AgentServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SubmitInventory(self, request, context):
+        """SubmitInventory — agente envia lista de pacotes instalados pra cross-ref
+        com base de vulnerabilidades (OSV/NVD).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -98,6 +111,11 @@ def add_AgentServiceServicer_to_server(servicer, server):
                     servicer.StreamEvents,
                     request_deserializer=agent__pb2.Event.FromString,
                     response_serializer=agent__pb2.EventAck.SerializeToString,
+            ),
+            'SubmitInventory': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitInventory,
+                    request_deserializer=agent__pb2.InventoryReport.FromString,
+                    response_serializer=agent__pb2.InventoryAck.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -183,6 +201,33 @@ class AgentService(object):
             '/sentinelbr.agent.v1.AgentService/StreamEvents',
             agent__pb2.Event.SerializeToString,
             agent__pb2.EventAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SubmitInventory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/sentinelbr.agent.v1.AgentService/SubmitInventory',
+            agent__pb2.InventoryReport.SerializeToString,
+            agent__pb2.InventoryAck.FromString,
             options,
             channel_credentials,
             insecure,

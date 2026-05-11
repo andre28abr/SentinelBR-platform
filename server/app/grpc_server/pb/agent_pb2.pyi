@@ -193,3 +193,33 @@ class EventAck(_message.Message):
     event_id: str
     stored: bool
     def __init__(self, event_id: _Optional[str] = ..., stored: bool = ...) -> None: ...
+
+class InventoryReport(_message.Message):
+    __slots__ = ("host_id", "source", "collected_at", "packages")
+    HOST_ID_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTED_AT_FIELD_NUMBER: _ClassVar[int]
+    PACKAGES_FIELD_NUMBER: _ClassVar[int]
+    host_id: str
+    source: str
+    collected_at: _timestamp_pb2.Timestamp
+    packages: _containers.RepeatedCompositeFieldContainer[PackageInfo]
+    def __init__(self, host_id: _Optional[str] = ..., source: _Optional[str] = ..., collected_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., packages: _Optional[_Iterable[_Union[PackageInfo, _Mapping]]] = ...) -> None: ...
+
+class PackageInfo(_message.Message):
+    __slots__ = ("name", "version", "arch")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    ARCH_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    version: str
+    arch: str
+    def __init__(self, name: _Optional[str] = ..., version: _Optional[str] = ..., arch: _Optional[str] = ...) -> None: ...
+
+class InventoryAck(_message.Message):
+    __slots__ = ("packages_received", "scan_scheduled")
+    PACKAGES_RECEIVED_FIELD_NUMBER: _ClassVar[int]
+    SCAN_SCHEDULED_FIELD_NUMBER: _ClassVar[int]
+    packages_received: int
+    scan_scheduled: bool
+    def __init__(self, packages_received: _Optional[int] = ..., scan_scheduled: bool = ...) -> None: ...

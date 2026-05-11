@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentService_Enroll_FullMethodName       = "/sentinelbr.agent.v1.AgentService/Enroll"
-	AgentService_Heartbeat_FullMethodName    = "/sentinelbr.agent.v1.AgentService/Heartbeat"
-	AgentService_StreamEvents_FullMethodName = "/sentinelbr.agent.v1.AgentService/StreamEvents"
+	AgentService_Enroll_FullMethodName          = "/sentinelbr.agent.v1.AgentService/Enroll"
+	AgentService_Heartbeat_FullMethodName       = "/sentinelbr.agent.v1.AgentService/Heartbeat"
+	AgentService_StreamEvents_FullMethodName    = "/sentinelbr.agent.v1.AgentService/StreamEvents"
+	AgentService_SubmitInventory_FullMethodName = "/sentinelbr.agent.v1.AgentService/SubmitInventory"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -39,6 +40,9 @@ type AgentServiceClient interface {
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 	// StreamEvents — fluxo contínuo de eventos coletados (logs, alerts).
 	StreamEvents(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Event, EventAck], error)
+	// SubmitInventory — agente envia lista de pacotes instalados pra cross-ref
+	// com base de vulnerabilidades (OSV/NVD).
+	SubmitInventory(ctx context.Context, in *InventoryReport, opts ...grpc.CallOption) (*InventoryAck, error)
 }
 
 type agentServiceClient struct {
@@ -82,6 +86,16 @@ func (c *agentServiceClient) StreamEvents(ctx context.Context, opts ...grpc.Call
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentService_StreamEventsClient = grpc.BidiStreamingClient[Event, EventAck]
 
+func (c *agentServiceClient) SubmitInventory(ctx context.Context, in *InventoryReport, opts ...grpc.CallOption) (*InventoryAck, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InventoryAck)
+	err := c.cc.Invoke(ctx, AgentService_SubmitInventory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
@@ -97,6 +111,9 @@ type AgentServiceServer interface {
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	// StreamEvents — fluxo contínuo de eventos coletados (logs, alerts).
 	StreamEvents(grpc.BidiStreamingServer[Event, EventAck]) error
+	// SubmitInventory — agente envia lista de pacotes instalados pra cross-ref
+	// com base de vulnerabilidades (OSV/NVD).
+	SubmitInventory(context.Context, *InventoryReport) (*InventoryAck, error)
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -115,6 +132,9 @@ func (UnimplementedAgentServiceServer) Heartbeat(context.Context, *HeartbeatRequ
 }
 func (UnimplementedAgentServiceServer) StreamEvents(grpc.BidiStreamingServer[Event, EventAck]) error {
 	return status.Error(codes.Unimplemented, "method StreamEvents not implemented")
+}
+func (UnimplementedAgentServiceServer) SubmitInventory(context.Context, *InventoryReport) (*InventoryAck, error) {
+	return nil, status.Error(codes.Unimplemented, "method SubmitInventory not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -180,6 +200,24 @@ func _AgentService_StreamEvents_Handler(srv interface{}, stream grpc.ServerStrea
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentService_StreamEventsServer = grpc.BidiStreamingServer[Event, EventAck]
 
+func _AgentService_SubmitInventory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InventoryReport)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).SubmitInventory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_SubmitInventory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).SubmitInventory(ctx, req.(*InventoryReport))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,6 +232,10 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Heartbeat",
 			Handler:    _AgentService_Heartbeat_Handler,
+		},
+		{
+			MethodName: "SubmitInventory",
+			Handler:    _AgentService_SubmitInventory_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

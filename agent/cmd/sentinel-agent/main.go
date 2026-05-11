@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/sentinelbr/agent/internal/agentstate"
 	"github.com/sentinelbr/agent/internal/cmddispatcher"
@@ -21,6 +22,7 @@ import (
 	"github.com/sentinelbr/agent/internal/eventstream"
 	"github.com/sentinelbr/agent/internal/events"
 	"github.com/sentinelbr/agent/internal/firewall"
+	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 	"github.com/sentinelbr/agent/internal/grpcclient"
 	"github.com/sentinelbr/agent/internal/heartbeat"
 	"github.com/sentinelbr/agent/internal/logging"
@@ -46,6 +48,7 @@ func main() {
 	root.AddCommand(doctorCmd())
 	root.AddCommand(enrollCmd())
 	root.AddCommand(runCmd())
+	root.AddCommand(inventoryCmd())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
@@ -310,6 +313,71 @@ func pickSSHSource(fileFlag string, once bool) collectors.Source {
 		return collectors.NewFileSource(fileFlag, once)
 	}
 	return nil
+}
+
+func inventoryCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "inventory",
+		Short: "envia lista de pacotes instalados pro server (cross-ref com OSV)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			level, _ := cmd.Flags().GetString("log-level")
+			log := logging.New(level)
+
+			info, err := osdetect.Detect()
+			if err != nil {
+				return fmt.Errorf("osdetect: %w", err)
+			}
+
+			pm := packagemgr.New(info)
+			log.Info("listando pacotes", "package_mgr", pm.Name())
+			pkgs, err := pm.ListInstalled()
+			if err != nil {
+				return fmt.Errorf("listar pacotes (%s): %w", pm.Name(), err)
+			}
+			if len(pkgs) == 0 {
+				return fmt.Errorf("nenhum pacote retornado — package mgr suportado nesse OS?")
+			}
+
+			dir, err := agentstate.DefaultDir()
+			if err != nil {
+				return err
+			}
+			st, paths, err := agentstate.Load(dir)
+			if err != nil {
+				return err
+			}
+
+			conn, client, err := grpcclient.Dial(st.GRPCEndpoint, paths.CACert, paths.ClientCert, paths.ClientKey)
+			if err != nil {
+				return fmt.Errorf("dial gRPC: %w", err)
+			}
+			defer conn.Close()
+
+			pbPackages := make([]*pb.PackageInfo, 0, len(pkgs))
+			for _, p := range pkgs {
+				pbPackages = append(pbPackages, &pb.PackageInfo{
+					Name: p.Name, Version: p.Version, Arch: p.Arch,
+				})
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			resp, err := client.SubmitInventory(ctx, &pb.InventoryReport{
+				HostId:      st.HostID,
+				Source:      pkgs[0].Source,
+				CollectedAt: timestamppb.Now(),
+				Packages:    pbPackages,
+			})
+			if err != nil {
+				return fmt.Errorf("SubmitInventory RPC: %w", err)
+			}
+
+			fmt.Printf("✓ inventory enviado: %d pacotes (scan agendado: %v)\n",
+				resp.PackagesReceived, resp.ScanScheduled)
+			return nil
+		},
+	}
 }
 
 func pickMACSource(fileFlag string, once bool) collectors.Source {

@@ -3,7 +3,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import actions, agents, alerts, audit, auth, events, health, hosts
+from app.api import (
+    actions,
+    agents,
+    alerts,
+    audit,
+    auth,
+    events,
+    health,
+    hosts,
+    vulnerabilities,
+)
 from app.config import get_settings
 
 
@@ -34,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(alerts.router)
     app.include_router(actions.router)
     app.include_router(audit.router)
+    app.include_router(vulnerabilities.router)
     return app
 
 

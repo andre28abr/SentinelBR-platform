@@ -20,7 +20,7 @@ celery_app = Celery(
     "sentinelbr",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.workers.detect", "app.workers.retention"],
+    include=["app.workers.detect", "app.workers.retention", "app.workers.vuln"],
 )
 
 celery_app.conf.update(
