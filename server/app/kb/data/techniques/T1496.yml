@@ -30,4 +30,4 @@ mitigation:
 
 references:
   - https://attack.mitre.org/techniques/T1496/
-  - https://github.com/xmrig/xmrig (oficial — útil pra entender o setup do atacante)
+  - https://github.com/xmrig/xmrig

@@ -34,4 +34,4 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1486/
   - https://www.cisa.gov/stopransomware
-  - https://www.gov.br/gsi/pt-br/composicao/dsi/incidentes-em-redes (CTIR.gov.br)
+  - https://www.gov.br/gsi/pt-br/composicao/dsi/incidentes-em-redes

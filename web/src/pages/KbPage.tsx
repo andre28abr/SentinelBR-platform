@@ -138,7 +138,7 @@ function TechniqueDetail({ t }: { t: Technique }) {
                   href={r}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline break-all"
+                  className="text-blue-600 dark:text-blue-400 hover:underline break-all"
                 >
                   {r}
                 </a>

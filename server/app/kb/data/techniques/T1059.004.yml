@@ -35,4 +35,4 @@ mitigation:
 
 references:
   - https://attack.mitre.org/techniques/T1059/004/
-  - https://gtfobins.github.io (catalogo de binarios usados pra abuse)
+  - https://gtfobins.github.io
