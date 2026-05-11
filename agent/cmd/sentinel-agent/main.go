@@ -2,17 +2,23 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/sentinelbr/agent/internal/agentstate"
+	"github.com/sentinelbr/agent/internal/collectors"
 	"github.com/sentinelbr/agent/internal/config"
 	"github.com/sentinelbr/agent/internal/enrollclient"
+	"github.com/sentinelbr/agent/internal/eventstream"
+	"github.com/sentinelbr/agent/internal/events"
 	"github.com/sentinelbr/agent/internal/firewall"
 	"github.com/sentinelbr/agent/internal/grpcclient"
 	"github.com/sentinelbr/agent/internal/heartbeat"
@@ -152,12 +158,14 @@ func enrollCmd() *cobra.Command {
 }
 
 func runCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "roda o loop do agente (heartbeat + coletores)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfgPath, _ := cmd.Flags().GetString("config")
 			level, _ := cmd.Flags().GetString("log-level")
+			sshSourceFile, _ := cmd.Flags().GetString("ssh-source-file")
+			sshSourceOnce, _ := cmd.Flags().GetBool("ssh-source-once")
 
 			log := logging.New(level)
 
@@ -186,17 +194,71 @@ func runCmd() *cobra.Command {
 			defer cancel()
 
 			interval := time.Duration(cfg.HeartbeatSeconds) * time.Second
-			loop := &heartbeat.Loop{
+			hbLoop := &heartbeat.Loop{
 				Client:   client,
 				HostID:   st.HostID,
 				Interval: interval,
 				Log:      log,
 			}
 
+			// fan-in: todos os collectors emitem em `eventBus` que vira o input do stream.
+			eventBus := make(chan *events.Event, 256)
+			var wg sync.WaitGroup
+
+			sshSource := pickSSHSource(sshSourceFile, sshSourceOnce)
+			if sshSource != nil {
+				col := collectors.NewSSHDCollector(st.HostID, sshSource)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err := col.Run(ctx); err != nil {
+						log.Error("collector sshd parou", "err", err)
+					}
+				}()
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for ev := range col.Events() {
+						select {
+						case <-ctx.Done():
+							return
+						case eventBus <- ev:
+						}
+					}
+				}()
+				log.Info("collector sshd ativo", "source", sshSource.Name())
+			} else {
+				log.Info("nenhum collector sshd configurado (use --ssh-source-file pra dev)")
+			}
+
+			// Quando todos os collectors fecharem, fecha o eventBus pra terminar o stream.
+			go func() {
+				wg.Wait()
+				close(eventBus)
+			}()
+
+			sender := &eventstream.Sender{Client: client, Log: log}
+			g, gctx := errgroup.WithContext(ctx)
+			g.Go(func() error { return hbLoop.Run(gctx) })
+			g.Go(func() error { return sender.Run(gctx, eventBus) })
+
 			log.Info("agente rodando — Ctrl+C para parar", "interval", interval.String())
-			return loop.Run(ctx)
+			if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
+				return err
+			}
+			return nil
 		},
 	}
+	cmd.Flags().String("ssh-source-file", "", "le eventos sshd desse arquivo (vazio = desabilitado). Em prod: /var/log/auth.log")
+	cmd.Flags().Bool("ssh-source-once", false, "le o arquivo do --ssh-source-file ate EOF e sai (modo replay). Default: tail -F")
+	return cmd
+}
+
+func pickSSHSource(fileFlag string, once bool) collectors.Source {
+	if fileFlag != "" {
+		return collectors.NewFileSource(fileFlag, once)
+	}
+	return nil
 }
 
 func orDefault(v, d string) string {

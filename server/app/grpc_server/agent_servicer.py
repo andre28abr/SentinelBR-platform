@@ -16,6 +16,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from app.db import SessionLocal
 from app.grpc_server.pb import agent_pb2, agent_pb2_grpc
 from app.models import Host
+from app.services import loki
 
 log = logging.getLogger(__name__)
 
@@ -80,5 +81,50 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
         request_iterator,
         context: grpc.aio.ServicerContext,
     ):
-        # Implementado em fase futura (stream de logs).
-        await context.abort(grpc.StatusCode.UNIMPLEMENTED, "fase futura")
+        peer_id = _peer_host_id(context)
+        if peer_id is None:
+            await context.abort(grpc.StatusCode.UNAUTHENTICATED, "mTLS obrigatorio")
+        log.info("StreamEvents aberto", extra={"host_id": str(peer_id)})
+
+        batch: list[loki.IngestEvent] = []
+        batch_size = 50
+
+        async def flush() -> None:
+            if not batch:
+                return
+            try:
+                await loki.push(batch)
+            except Exception as e:  # noqa: BLE001
+                log.warning("falha push Loki: %s", e)
+            batch.clear()
+
+        async for event in request_iterator:
+            event_host_id = uuid.UUID(event.host_id)
+            if peer_id is not None and peer_id != event_host_id:
+                await context.abort(
+                    grpc.StatusCode.PERMISSION_DENIED,
+                    "host_id no evento difere do CN do cert",
+                )
+
+            has_ts = event.ts.seconds or event.ts.nanos
+            ts = event.ts.ToDatetime() if has_ts else dt.datetime.now(dt.UTC)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=dt.UTC)
+
+            batch.append(loki.IngestEvent(
+                event_id=event.event_id,
+                host_id=event.host_id,
+                timestamp=ts,
+                source=event.source,
+                severity=event.severity or "info",
+                raw=event.raw,
+                fields=dict(event.fields),
+            ))
+
+            yield agent_pb2.EventAck(event_id=event.event_id, stored=True)
+
+            if len(batch) >= batch_size:
+                await flush()
+
+        await flush()
+        log.info("StreamEvents fechado", extra={"host_id": str(peer_id)})

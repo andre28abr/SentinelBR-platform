@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import EventsTab from '@/components/EventsTab'
 import { ApiError, api } from '@/lib/api'
 
 interface Host {
@@ -165,6 +166,13 @@ export default function HostDetailPage() {
           </p>
         </section>
       )}
+
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
+          Eventos recentes
+        </h2>
+        {id && <EventsTab hostId={id} />}
+      </section>
     </main>
   )
 }
