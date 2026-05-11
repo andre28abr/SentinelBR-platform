@@ -13,11 +13,14 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import re
 
 import httpx
+from cvss import CVSS3
 
 OSV_BATCH_URL = "https://api.osv.dev/v1/querybatch"
 OSV_QUERY_URL = "https://api.osv.dev/v1/query"
+OSV_VULN_URL = "https://api.osv.dev/v1/vulns"  # GET /vulns/{id} pra detalhes
 
 log = logging.getLogger(__name__)
 
@@ -85,33 +88,43 @@ def _pick_severity(cvss_score: float | None) -> str:
     return "low"
 
 
+_CVE_RE = re.compile(r"CVE-\d{4}-\d{4,}")
+
+
 def _pick_cvss(vuln_obj: dict) -> float | None:
-    """Pega o maior CVSS v3.x score da lista de severities, se houver."""
+    """Pega o maior CVSS v3.x score. OSV armazena como vetor string
+    (CVSS:3.1/AV:N/AC:L/...), entao precisamos calcular."""
     best: float | None = None
     for sev in vuln_obj.get("severity", []) or []:
-        if sev.get("type", "").startswith("CVSS_V3"):
-            try:
-                # OSV format: score eh string tipo "CVSS:3.1/AV:N/AC:L/.../I:H/A:H" — precisa parse
-                # mas alguns ja vem como float. Tenta float direto primeiro.
-                score_str = sev.get("score", "")
-                if "/" in score_str:
-                    # vetor — pula, complexo demais. Fallback: cvss-via-rating em database_specific.
-                    continue
+        if not sev.get("type", "").startswith("CVSS_V3"):
+            continue
+        score_str = sev.get("score", "")
+        if not score_str:
+            continue
+        try:
+            if "/" in score_str:
+                v = float(CVSS3(score_str).base_score)
+            else:
                 v = float(score_str)
-                if best is None or v > best:
-                    best = v
-            except (ValueError, TypeError):
-                continue
+        except Exception as e:  # noqa: BLE001 (CVSS3 lanca varias excecoes)
+            log.debug("cvss parse falhou %r: %s", score_str, e)
+            continue
+        if best is None or v > best:
+            best = v
     return best
 
 
 def _normalize_id(vuln_obj: dict) -> str:
-    """Prefere CVE-XXXX se existir nos aliases; senao usa o ID primario."""
-    main_id = vuln_obj.get("id", "")
+    """Prefere CVE-XXXX-NNNN. Tenta nos aliases primeiro, depois extrai do ID."""
     aliases = vuln_obj.get("aliases", []) or []
     for a in aliases:
         if a.startswith("CVE-"):
             return a
+    # Tenta extrair do proprio ID (ex: "DEBIAN-CVE-2021-23239" -> "CVE-2021-23239")
+    main_id = vuln_obj.get("id", "")
+    m = _CVE_RE.search(main_id)
+    if m:
+        return m.group(0)
     return main_id
 
 
@@ -173,14 +186,19 @@ async def query_batch(queries: list[PackageQuery]) -> dict[str, list[Vulnerabili
 
     async with httpx.AsyncClient(timeout=30.0) as cli:
         import asyncio
+        # OSV nao tem batch pra detalhes — eh GET /v1/vulns/{id} um por um.
+        # Limitamos concorrencia pra nao tomar rate limit.
+        sem = asyncio.Semaphore(8)
+
         async def fetch(pkg: str, vid: str):
-            try:
-                r = await cli.post(OSV_QUERY_URL, json={"id": vid})
-                r.raise_for_status()
-                return pkg, _normalize_vuln(r.json())
-            except httpx.HTTPError as e:
-                log.warning("OSV detail fetch falhou %s: %s", vid, e)
-                return pkg, None
+            async with sem:
+                try:
+                    r = await cli.get(f"{OSV_VULN_URL}/{vid}")
+                    r.raise_for_status()
+                    return pkg, _normalize_vuln(r.json())
+                except httpx.HTTPError as e:
+                    log.warning("OSV detail fetch falhou %s: %s", vid, e)
+                    return pkg, None
 
         results_with_detail = await asyncio.gather(*(fetch(p, v) for p, v in pending))
 
