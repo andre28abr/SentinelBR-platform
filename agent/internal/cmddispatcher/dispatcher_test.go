@@ -97,3 +97,59 @@ func TestDispatcher_ExecuteAll_PreservesOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestDispatcher_YaraScan_NoRulesPath_Unsupported(t *testing.T) {
+	d := &Dispatcher{DryRun: false, Log: newLogger()}
+	cmd := &pb.Command{
+		Id: "y1",
+		Payload: &pb.Command_RunYaraScan{
+			RunYaraScan: &pb.RunYaraScanCommand{Path: "/tmp/x"},
+		},
+	}
+	res := d.Execute(cmd)
+	if res.Status != pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED {
+		t.Errorf("sem rules-path deveria ser UNSUPPORTED, veio %s", StatusString(res.Status))
+	}
+}
+
+func TestDispatcher_YaraScan_EmptyPath_Failed(t *testing.T) {
+	d := &Dispatcher{Log: newLogger(), YaraRulesPath: "/tmp/rules"}
+	cmd := &pb.Command{
+		Id: "y2",
+		Payload: &pb.Command_RunYaraScan{
+			RunYaraScan: &pb.RunYaraScanCommand{Path: ""},
+		},
+	}
+	res := d.Execute(cmd)
+	if res.Status != pb.CommandStatus_COMMAND_STATUS_FAILED {
+		t.Errorf("path vazio deveria ser FAILED, veio %s", StatusString(res.Status))
+	}
+}
+
+func TestDispatcher_Quarantine_NoQuarantiner_Unsupported(t *testing.T) {
+	d := &Dispatcher{DryRun: false, Log: newLogger()}
+	cmd := &pb.Command{
+		Id: "q1",
+		Payload: &pb.Command_QuarantineFile{
+			QuarantineFile: &pb.QuarantineFileCommand{FilePath: "/tmp/evil"},
+		},
+	}
+	res := d.Execute(cmd)
+	if res.Status != pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED {
+		t.Errorf("sem quarantiner deveria ser UNSUPPORTED, veio %s", StatusString(res.Status))
+	}
+}
+
+func TestDispatcher_Quarantine_DryRun_OK(t *testing.T) {
+	d := &Dispatcher{DryRun: true, Log: newLogger()}
+	cmd := &pb.Command{
+		Id: "q2",
+		Payload: &pb.Command_QuarantineFile{
+			QuarantineFile: &pb.QuarantineFileCommand{FilePath: "/tmp/evil"},
+		},
+	}
+	res := d.Execute(cmd)
+	if res.Status != pb.CommandStatus_COMMAND_STATUS_OK {
+		t.Errorf("dry-run deveria ser OK, veio %s", StatusString(res.Status))
+	}
+}

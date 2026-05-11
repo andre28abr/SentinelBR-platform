@@ -128,16 +128,20 @@ class HeartbeatResponse(_message.Message):
     def __init__(self, server_ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pending_commands: _Optional[_Iterable[_Union[Command, _Mapping]]] = ...) -> None: ...
 
 class Command(_message.Message):
-    __slots__ = ("id", "block_ip", "unblock_ip", "run_check")
+    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file")
     ID_FIELD_NUMBER: _ClassVar[int]
     BLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     UNBLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     RUN_CHECK_FIELD_NUMBER: _ClassVar[int]
+    RUN_YARA_SCAN_FIELD_NUMBER: _ClassVar[int]
+    QUARANTINE_FILE_FIELD_NUMBER: _ClassVar[int]
     id: str
     block_ip: BlockIPCommand
     unblock_ip: UnblockIPCommand
     run_check: RunCheckCommand
-    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ...) -> None: ...
+    run_yara_scan: RunYaraScanCommand
+    quarantine_file: QuarantineFileCommand
+    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ...) -> None: ...
 
 class BlockIPCommand(_message.Message):
     __slots__ = ("ip", "duration_seconds", "reason")
@@ -160,6 +164,22 @@ class RunCheckCommand(_message.Message):
     CHECK_ID_FIELD_NUMBER: _ClassVar[int]
     check_id: str
     def __init__(self, check_id: _Optional[str] = ...) -> None: ...
+
+class RunYaraScanCommand(_message.Message):
+    __slots__ = ("path", "reason")
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    reason: str
+    def __init__(self, path: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class QuarantineFileCommand(_message.Message):
+    __slots__ = ("file_path", "reason")
+    FILE_PATH_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    file_path: str
+    reason: str
+    def __init__(self, file_path: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class Event(_message.Message):
     __slots__ = ("event_id", "host_id", "ts", "source", "severity", "raw", "fields")

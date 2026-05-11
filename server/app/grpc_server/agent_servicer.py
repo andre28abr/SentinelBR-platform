@@ -47,6 +47,16 @@ def _action_to_command(action: Action) -> agent_pb2.Command:
         ))
     elif action.action_type == "unblock_ip":
         cmd.unblock_ip.CopyFrom(agent_pb2.UnblockIPCommand(ip=action.target))
+    elif action.action_type == "run_yara_scan":
+        cmd.run_yara_scan.CopyFrom(agent_pb2.RunYaraScanCommand(
+            path=action.target,
+            reason=action.reason,
+        ))
+    elif action.action_type == "quarantine_file":
+        cmd.quarantine_file.CopyFrom(agent_pb2.QuarantineFileCommand(
+            file_path=action.target,
+            reason=action.reason,
+        ))
     return cmd
 
 

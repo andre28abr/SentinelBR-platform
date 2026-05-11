@@ -668,6 +668,8 @@ type Command struct {
 	//	*Command_BlockIp
 	//	*Command_UnblockIp
 	//	*Command_RunCheck
+	//	*Command_RunYaraScan
+	//	*Command_QuarantineFile
 	Payload       isCommand_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -744,6 +746,24 @@ func (x *Command) GetRunCheck() *RunCheckCommand {
 	return nil
 }
 
+func (x *Command) GetRunYaraScan() *RunYaraScanCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_RunYaraScan); ok {
+			return x.RunYaraScan
+		}
+	}
+	return nil
+}
+
+func (x *Command) GetQuarantineFile() *QuarantineFileCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_QuarantineFile); ok {
+			return x.QuarantineFile
+		}
+	}
+	return nil
+}
+
 type isCommand_Payload interface {
 	isCommand_Payload()
 }
@@ -760,11 +780,23 @@ type Command_RunCheck struct {
 	RunCheck *RunCheckCommand `protobuf:"bytes,4,opt,name=run_check,json=runCheck,proto3,oneof"`
 }
 
+type Command_RunYaraScan struct {
+	RunYaraScan *RunYaraScanCommand `protobuf:"bytes,5,opt,name=run_yara_scan,json=runYaraScan,proto3,oneof"`
+}
+
+type Command_QuarantineFile struct {
+	QuarantineFile *QuarantineFileCommand `protobuf:"bytes,6,opt,name=quarantine_file,json=quarantineFile,proto3,oneof"`
+}
+
 func (*Command_BlockIp) isCommand_Payload() {}
 
 func (*Command_UnblockIp) isCommand_Payload() {}
 
 func (*Command_RunCheck) isCommand_Payload() {}
+
+func (*Command_RunYaraScan) isCommand_Payload() {}
+
+func (*Command_QuarantineFile) isCommand_Payload() {}
 
 type BlockIPCommand struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -914,6 +946,110 @@ func (x *RunCheckCommand) GetCheckId() string {
 	return ""
 }
 
+type RunYaraScanCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`     // diretorio ou arquivo a escanear
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"` // ex: "manual_ui", "scheduled", "incident_response"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunYaraScanCommand) Reset() {
+	*x = RunYaraScanCommand{}
+	mi := &file_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunYaraScanCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunYaraScanCommand) ProtoMessage() {}
+
+func (x *RunYaraScanCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunYaraScanCommand.ProtoReflect.Descriptor instead.
+func (*RunYaraScanCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RunYaraScanCommand) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *RunYaraScanCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type QuarantineFileCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FilePath      string                 `protobuf:"bytes,1,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"` // caminho absoluto do arquivo malicioso
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`                     // ex: "yara_critical_match:WebshellPHP"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QuarantineFileCommand) Reset() {
+	*x = QuarantineFileCommand{}
+	mi := &file_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QuarantineFileCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuarantineFileCommand) ProtoMessage() {}
+
+func (x *QuarantineFileCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QuarantineFileCommand.ProtoReflect.Descriptor instead.
+func (*QuarantineFileCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *QuarantineFileCommand) GetFilePath() string {
+	if x != nil {
+		return x.FilePath
+	}
+	return ""
+}
+
+func (x *QuarantineFileCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 type Event struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
@@ -929,7 +1065,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -941,7 +1077,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -954,7 +1090,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{12}
+	return file_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Event) GetEventId() string {
@@ -1016,7 +1152,7 @@ type EventAck struct {
 
 func (x *EventAck) Reset() {
 	*x = EventAck{}
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1164,7 @@ func (x *EventAck) String() string {
 func (*EventAck) ProtoMessage() {}
 
 func (x *EventAck) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1177,7 @@ func (x *EventAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventAck.ProtoReflect.Descriptor instead.
 func (*EventAck) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{13}
+	return file_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *EventAck) GetEventId() string {
@@ -1070,7 +1206,7 @@ type InventoryReport struct {
 
 func (x *InventoryReport) Reset() {
 	*x = InventoryReport{}
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1082,7 +1218,7 @@ func (x *InventoryReport) String() string {
 func (*InventoryReport) ProtoMessage() {}
 
 func (x *InventoryReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1095,7 +1231,7 @@ func (x *InventoryReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryReport.ProtoReflect.Descriptor instead.
 func (*InventoryReport) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{14}
+	return file_agent_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *InventoryReport) GetHostId() string {
@@ -1137,7 +1273,7 @@ type PackageInfo struct {
 
 func (x *PackageInfo) Reset() {
 	*x = PackageInfo{}
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1149,7 +1285,7 @@ func (x *PackageInfo) String() string {
 func (*PackageInfo) ProtoMessage() {}
 
 func (x *PackageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1162,7 +1298,7 @@ func (x *PackageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageInfo.ProtoReflect.Descriptor instead.
 func (*PackageInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{15}
+	return file_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PackageInfo) GetName() string {
@@ -1196,7 +1332,7 @@ type InventoryAck struct {
 
 func (x *InventoryAck) Reset() {
 	*x = InventoryAck{}
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1208,7 +1344,7 @@ func (x *InventoryAck) String() string {
 func (*InventoryAck) ProtoMessage() {}
 
 func (x *InventoryAck) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1221,7 +1357,7 @@ func (x *InventoryAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryAck.ProtoReflect.Descriptor instead.
 func (*InventoryAck) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{16}
+	return file_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *InventoryAck) GetPackagesReceived() int32 {
@@ -1292,13 +1428,15 @@ const file_agent_proto_rawDesc = "" +
 	"\ractive_alerts\x18\x06 \x01(\rR\factiveAlerts\"\x95\x01\n" +
 	"\x11HeartbeatResponse\x127\n" +
 	"\tserver_ts\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bserverTs\x12G\n" +
-	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\xf3\x01\n" +
+	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\x99\x03\n" +
 	"\aCommand\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\bblock_ip\x18\x02 \x01(\v2#.sentinelbr.agent.v1.BlockIPCommandH\x00R\ablockIp\x12F\n" +
 	"\n" +
 	"unblock_ip\x18\x03 \x01(\v2%.sentinelbr.agent.v1.UnblockIPCommandH\x00R\tunblockIp\x12C\n" +
-	"\trun_check\x18\x04 \x01(\v2$.sentinelbr.agent.v1.RunCheckCommandH\x00R\brunCheckB\t\n" +
+	"\trun_check\x18\x04 \x01(\v2$.sentinelbr.agent.v1.RunCheckCommandH\x00R\brunCheck\x12M\n" +
+	"\rrun_yara_scan\x18\x05 \x01(\v2'.sentinelbr.agent.v1.RunYaraScanCommandH\x00R\vrunYaraScan\x12U\n" +
+	"\x0fquarantine_file\x18\x06 \x01(\v2*.sentinelbr.agent.v1.QuarantineFileCommandH\x00R\x0equarantineFileB\t\n" +
 	"\apayload\"c\n" +
 	"\x0eBlockIPCommand\x12\x0e\n" +
 	"\x02ip\x18\x01 \x01(\tR\x02ip\x12)\n" +
@@ -1307,7 +1445,13 @@ const file_agent_proto_rawDesc = "" +
 	"\x10UnblockIPCommand\x12\x0e\n" +
 	"\x02ip\x18\x01 \x01(\tR\x02ip\",\n" +
 	"\x0fRunCheckCommand\x12\x19\n" +
-	"\bcheck_id\x18\x01 \x01(\tR\acheckId\"\xa8\x02\n" +
+	"\bcheck_id\x18\x01 \x01(\tR\acheckId\"@\n" +
+	"\x12RunYaraScanCommand\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"L\n" +
+	"\x15QuarantineFileCommand\x12\x1b\n" +
+	"\tfile_path\x18\x01 \x01(\tR\bfilePath\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xa8\x02\n" +
 	"\x05Event\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x17\n" +
 	"\ahost_id\x18\x02 \x01(\tR\x06hostId\x12*\n" +
@@ -1358,7 +1502,7 @@ func file_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_agent_proto_goTypes = []any{
 	(CommandStatus)(0),            // 0: sentinelbr.agent.v1.CommandStatus
 	(*EnrollRequest)(nil),         // 1: sentinelbr.agent.v1.EnrollRequest
@@ -1373,44 +1517,48 @@ var file_agent_proto_goTypes = []any{
 	(*BlockIPCommand)(nil),        // 10: sentinelbr.agent.v1.BlockIPCommand
 	(*UnblockIPCommand)(nil),      // 11: sentinelbr.agent.v1.UnblockIPCommand
 	(*RunCheckCommand)(nil),       // 12: sentinelbr.agent.v1.RunCheckCommand
-	(*Event)(nil),                 // 13: sentinelbr.agent.v1.Event
-	(*EventAck)(nil),              // 14: sentinelbr.agent.v1.EventAck
-	(*InventoryReport)(nil),       // 15: sentinelbr.agent.v1.InventoryReport
-	(*PackageInfo)(nil),           // 16: sentinelbr.agent.v1.PackageInfo
-	(*InventoryAck)(nil),          // 17: sentinelbr.agent.v1.InventoryAck
-	nil,                           // 18: sentinelbr.agent.v1.Event.FieldsEntry
-	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
+	(*RunYaraScanCommand)(nil),    // 13: sentinelbr.agent.v1.RunYaraScanCommand
+	(*QuarantineFileCommand)(nil), // 14: sentinelbr.agent.v1.QuarantineFileCommand
+	(*Event)(nil),                 // 15: sentinelbr.agent.v1.Event
+	(*EventAck)(nil),              // 16: sentinelbr.agent.v1.EventAck
+	(*InventoryReport)(nil),       // 17: sentinelbr.agent.v1.InventoryReport
+	(*PackageInfo)(nil),           // 18: sentinelbr.agent.v1.PackageInfo
+	(*InventoryAck)(nil),          // 19: sentinelbr.agent.v1.InventoryAck
+	nil,                           // 20: sentinelbr.agent.v1.Event.FieldsEntry
+	(*timestamppb.Timestamp)(nil), // 21: google.protobuf.Timestamp
 }
 var file_agent_proto_depIdxs = []int32{
 	3,  // 0: sentinelbr.agent.v1.EnrollRequest.os:type_name -> sentinelbr.agent.v1.OSInfo
 	4,  // 1: sentinelbr.agent.v1.EnrollResponse.config:type_name -> sentinelbr.agent.v1.AgentConfig
-	19, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
+	21, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
 	7,  // 3: sentinelbr.agent.v1.HeartbeatRequest.stats:type_name -> sentinelbr.agent.v1.HostStats
 	6,  // 4: sentinelbr.agent.v1.HeartbeatRequest.command_results:type_name -> sentinelbr.agent.v1.CommandResult
 	0,  // 5: sentinelbr.agent.v1.CommandResult.status:type_name -> sentinelbr.agent.v1.CommandStatus
-	19, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
-	19, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
+	21, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
+	21, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
 	9,  // 8: sentinelbr.agent.v1.HeartbeatResponse.pending_commands:type_name -> sentinelbr.agent.v1.Command
 	10, // 9: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
 	11, // 10: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
 	12, // 11: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
-	19, // 12: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
-	18, // 13: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
-	19, // 14: sentinelbr.agent.v1.InventoryReport.collected_at:type_name -> google.protobuf.Timestamp
-	16, // 15: sentinelbr.agent.v1.InventoryReport.packages:type_name -> sentinelbr.agent.v1.PackageInfo
-	1,  // 16: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
-	5,  // 17: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
-	13, // 18: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
-	15, // 19: sentinelbr.agent.v1.AgentService.SubmitInventory:input_type -> sentinelbr.agent.v1.InventoryReport
-	2,  // 20: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
-	8,  // 21: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
-	14, // 22: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
-	17, // 23: sentinelbr.agent.v1.AgentService.SubmitInventory:output_type -> sentinelbr.agent.v1.InventoryAck
-	20, // [20:24] is the sub-list for method output_type
-	16, // [16:20] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	13, // 12: sentinelbr.agent.v1.Command.run_yara_scan:type_name -> sentinelbr.agent.v1.RunYaraScanCommand
+	14, // 13: sentinelbr.agent.v1.Command.quarantine_file:type_name -> sentinelbr.agent.v1.QuarantineFileCommand
+	21, // 14: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
+	20, // 15: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
+	21, // 16: sentinelbr.agent.v1.InventoryReport.collected_at:type_name -> google.protobuf.Timestamp
+	18, // 17: sentinelbr.agent.v1.InventoryReport.packages:type_name -> sentinelbr.agent.v1.PackageInfo
+	1,  // 18: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
+	5,  // 19: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
+	15, // 20: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
+	17, // 21: sentinelbr.agent.v1.AgentService.SubmitInventory:input_type -> sentinelbr.agent.v1.InventoryReport
+	2,  // 22: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
+	8,  // 23: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
+	16, // 24: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
+	19, // 25: sentinelbr.agent.v1.AgentService.SubmitInventory:output_type -> sentinelbr.agent.v1.InventoryAck
+	22, // [22:26] is the sub-list for method output_type
+	18, // [18:22] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -1422,6 +1570,8 @@ func file_agent_proto_init() {
 		(*Command_BlockIp)(nil),
 		(*Command_UnblockIp)(nil),
 		(*Command_RunCheck)(nil),
+		(*Command_RunYaraScan)(nil),
+		(*Command_QuarantineFile)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -1429,7 +1579,7 @@ func file_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

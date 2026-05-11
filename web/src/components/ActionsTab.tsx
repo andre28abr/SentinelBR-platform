@@ -67,7 +67,8 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
     return (
       <p className="text-sm text-zinc-500">
         Nenhuma ação de resposta nesse host. Quando um alerta de brute-force disparar,
-        o IP será bloqueado automaticamente e aparecerá aqui.
+        o IP será bloqueado automaticamente e aparecerá aqui. Scans YARA agendados
+        também aparecem aqui.
       </p>
     )
   }

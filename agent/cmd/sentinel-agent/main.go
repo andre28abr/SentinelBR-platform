@@ -21,6 +21,7 @@ import (
 	"github.com/sentinelbr/agent/internal/enrollclient"
 	"github.com/sentinelbr/agent/internal/eventstream"
 	"github.com/sentinelbr/agent/internal/events"
+	"github.com/sentinelbr/agent/internal/filewatcher"
 	"github.com/sentinelbr/agent/internal/firewall"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 	"github.com/sentinelbr/agent/internal/grpcclient"
@@ -29,6 +30,7 @@ import (
 	"github.com/sentinelbr/agent/internal/mac"
 	"github.com/sentinelbr/agent/internal/osdetect"
 	"github.com/sentinelbr/agent/internal/packagemgr"
+	"github.com/sentinelbr/agent/internal/quarantine"
 	"github.com/sentinelbr/agent/internal/yarascanner"
 )
 
@@ -175,6 +177,10 @@ func runCmd() *cobra.Command {
 			macSourceFile, _ := cmd.Flags().GetString("mac-source-file")
 			macSourceOnce, _ := cmd.Flags().GetBool("mac-source-once")
 			firewallDryRun, _ := cmd.Flags().GetBool("firewall-dry-run")
+			yaraRulesPath, _ := cmd.Flags().GetString("yara-rules-path")
+			yaraWatchDirs, _ := cmd.Flags().GetStringSlice("yara-watch-dir")
+			quarantineDir, _ := cmd.Flags().GetString("quarantine-dir")
+			quarantineDryRun, _ := cmd.Flags().GetBool("quarantine-dry-run")
 
 			log := logging.New(level)
 
@@ -205,15 +211,35 @@ func runCmd() *cobra.Command {
 			interval := time.Duration(cfg.HeartbeatSeconds) * time.Second
 			info, _ := osdetect.Detect()
 			fw := firewall.New(info)
+
+			// fan-in: todos os collectors emitem em `eventBus` que vira o input do stream.
+			eventBus := make(chan *events.Event, 256)
+			var wg sync.WaitGroup
+
+			var quar *quarantine.Quarantiner
+			if !quarantineDryRun {
+				quar = quarantine.New(quarantineDir)
+			}
+
 			dispatcher := &cmddispatcher.Dispatcher{
-				Firewall: fw,
-				DryRun:   firewallDryRun,
-				Log:      log,
+				Firewall:      fw,
+				DryRun:        firewallDryRun,
+				Log:           log,
+				HostID:        st.HostID,
+				YaraRulesPath: yaraRulesPath,
+				EventBus:      eventBus,
+				Quarantiner:   quar,
 			}
 			if firewallDryRun {
 				log.Info("firewall em modo DRY-RUN — nada sera executado de verdade")
 			} else {
 				log.Info("firewall configurado", "backend", fw.Backend())
+			}
+			if yaraRulesPath != "" {
+				log.Info("yara habilitado", "rules", yaraRulesPath)
+			}
+			if quarantineDryRun {
+				log.Info("quarantine em modo DRY-RUN — nada sera movido")
 			}
 
 			hbLoop := &heartbeat.Loop{
@@ -223,10 +249,6 @@ func runCmd() *cobra.Command {
 				Interval:   interval,
 				Log:        log,
 			}
-
-			// fan-in: todos os collectors emitem em `eventBus` que vira o input do stream.
-			eventBus := make(chan *events.Event, 256)
-			var wg sync.WaitGroup
 
 			sshSource := pickSSHSource(sshSourceFile, sshSourceOnce)
 			if sshSource != nil {
@@ -284,6 +306,28 @@ func runCmd() *cobra.Command {
 				}
 			}
 
+			// File watcher (YARA on-write). So liga se -yara-watch-dir e -yara-rules-path setados.
+			if len(yaraWatchDirs) > 0 && yaraRulesPath != "" {
+				fw := &filewatcher.Watcher{
+					HostID:         st.HostID,
+					Dirs:           yaraWatchDirs,
+					RulesPath:      yaraRulesPath,
+					EventBus:       eventBus,
+					Log:            log,
+					IgnoreSuffixes: []string{".swp", ".tmp", "~"},
+				}
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err := fw.Run(ctx); err != nil {
+						log.Error("filewatcher parou", "err", err)
+					}
+				}()
+				log.Info("filewatcher YARA ativo", "dirs", yaraWatchDirs)
+			} else if len(yaraWatchDirs) > 0 && yaraRulesPath == "" {
+				log.Warn("--yara-watch-dir ignorado: --yara-rules-path obrigatorio")
+			}
+
 			// Quando todos os collectors fecharem, fecha o eventBus pra terminar o stream.
 			go func() {
 				wg.Wait()
@@ -307,6 +351,10 @@ func runCmd() *cobra.Command {
 	cmd.Flags().String("mac-source-file", "", "le eventos SELinux/AppArmor desse arquivo. Em prod: /var/log/audit/audit.log (selinux) ou /var/log/syslog (apparmor)")
 	cmd.Flags().Bool("mac-source-once", false, "modo replay pro --mac-source-file. Default: tail -F")
 	cmd.Flags().Bool("firewall-dry-run", false, "loga BlockIP/UnblockIP em vez de executar (uso em dev, ou Mac sem nft/firewall-cmd)")
+	cmd.Flags().String("yara-rules-path", "", "diretorio ou arquivo .yar (habilita run_yara_scan e filewatcher)")
+	cmd.Flags().StringSlice("yara-watch-dir", nil, "diretorio a monitorar para scan YARA on-write (repetivel; requer --yara-rules-path)")
+	cmd.Flags().String("quarantine-dir", "", "destino dos arquivos em quarentena (default: /var/sentinelbr/quarantine)")
+	cmd.Flags().Bool("quarantine-dry-run", false, "loga quarantine em vez de mover arquivos (uso em dev)")
 	return cmd
 }
 

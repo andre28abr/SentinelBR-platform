@@ -129,6 +129,122 @@ async def test_list_actions_for_host(
 
 
 @pytest.mark.asyncio
+async def test_policy_creates_quarantine_for_yara_critical(
+    db_session: AsyncSession,
+) -> None:
+    host = await _seed_host(db_session)
+    now = dt.datetime.now(dt.UTC)
+    a = Alert(
+        host_id=host.id,
+        rule_id="yara_critical_match",
+        rule_name="YARA critical",
+        severity="critical",
+        description="webshell detectada",
+        count=1,
+        first_event_at=now,
+        last_event_at=now,
+        status="open",
+        context={"yara.rule_name": "WebshellPHP", "file.path": "/var/www/x.php"},
+        dedup_key="WebshellPHP|/var/www/x.php",
+    )
+    db_session.add(a)
+    await db_session.commit()
+    await db_session.refresh(a)
+
+    action = await policy.maybe_create_action(db_session, a)
+    await db_session.commit()
+
+    assert action is not None
+    assert action.action_type == "quarantine_file"
+    assert action.target == "/var/www/x.php"
+    assert "WebshellPHP" in action.reason
+
+
+@pytest.mark.asyncio
+async def test_policy_quarantine_idempotent(db_session: AsyncSession) -> None:
+    host = await _seed_host(db_session)
+    now = dt.datetime.now(dt.UTC)
+    a = Alert(
+        host_id=host.id,
+        rule_id="yara_critical_match",
+        rule_name="YARA critical",
+        severity="critical",
+        description="x",
+        count=1,
+        first_event_at=now,
+        last_event_at=now,
+        status="open",
+        context={"yara.rule_name": "Miner", "file.path": "/var/tmp/xmrig"},  # noqa: S108
+        dedup_key="Miner|/var/tmp/xmrig",
+    )
+    db_session.add(a)
+    await db_session.commit()
+    await db_session.refresh(a)
+
+    a1 = await policy.maybe_create_action(db_session, a)
+    await db_session.commit()
+    a2 = await policy.maybe_create_action(db_session, a)
+    await db_session.commit()
+
+    assert a1 is not None
+    assert a2 is None  # ja tem pending
+
+
+@pytest.mark.asyncio
+async def test_yara_scan_endpoint_creates_action(
+    client: AsyncClient, admin_user: User, db_session: AsyncSession
+) -> None:
+    host = await _seed_host(db_session)
+    token = await _login(client, admin_user)
+
+    r = await client.post(
+        f"/api/v1/hosts/{host.id}/yara-scan",
+        json={"path": "/var/www", "reason": "manual_ui"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 202, r.text
+    body = r.json()
+    assert body["action_type"] == "run_yara_scan"
+    assert body["target"] == "/var/www"
+    assert body["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_yara_scan_endpoint_idempotent(
+    client: AsyncClient, admin_user: User, db_session: AsyncSession
+) -> None:
+    host = await _seed_host(db_session)
+    token = await _login(client, admin_user)
+
+    r1 = await client.post(
+        f"/api/v1/hosts/{host.id}/yara-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r1.status_code == 202
+
+    r2 = await client.post(
+        f"/api/v1/hosts/{host.id}/yara-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_yara_scan_endpoint_404_unknown_host(
+    client: AsyncClient, admin_user: User
+) -> None:
+    token = await _login(client, admin_user)
+    r = await client.post(
+        "/api/v1/hosts/00000000-0000-0000-0000-000000000000/yara-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_revert_executed_creates_unblock(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:

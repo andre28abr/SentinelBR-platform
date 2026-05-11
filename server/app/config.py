@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     # LGPD: retencao de audit logs em dias. Default 180 (~6 meses).
     audit_retention_days: int = Field(default=180)
 
+    # YARA scheduled scan: paths default a escanear em todos hosts ativos (1x/dia).
+    # Pode ser sobrescrito via env: SENTINELBR_YARA_SCHEDULED_PATHS="/var/www,/tmp"
+    yara_scheduled_paths: str = Field(default="/var/www,/tmp,/home")
+    yara_scheduled_interval_seconds: int = Field(default=86400)  # 24h
+
 
 @lru_cache
 def get_settings() -> Settings:

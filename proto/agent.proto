@@ -106,6 +106,8 @@ message Command {
     BlockIPCommand block_ip = 2;
     UnblockIPCommand unblock_ip = 3;
     RunCheckCommand run_check = 4;
+    RunYaraScanCommand run_yara_scan = 5;
+    QuarantineFileCommand quarantine_file = 6;
   }
 }
 
@@ -121,6 +123,16 @@ message UnblockIPCommand {
 
 message RunCheckCommand {
   string check_id = 1;
+}
+
+message RunYaraScanCommand {
+  string path = 1;        // diretorio ou arquivo a escanear
+  string reason = 2;      // ex: "manual_ui", "scheduled", "incident_response"
+}
+
+message QuarantineFileCommand {
+  string file_path = 1;   // caminho absoluto do arquivo malicioso
+  string reason = 2;      // ex: "yara_critical_match:WebshellPHP"
 }
 
 // ─── Events (stream) ──────────────────────────────────────────────────────────

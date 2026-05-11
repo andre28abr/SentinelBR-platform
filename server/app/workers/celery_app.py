@@ -20,7 +20,12 @@ celery_app = Celery(
     "sentinelbr",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.workers.detect", "app.workers.retention", "app.workers.vuln"],
+    include=[
+        "app.workers.detect",
+        "app.workers.retention",
+        "app.workers.vuln",
+        "app.workers.yara_schedule",
+    ],
 )
 
 celery_app.conf.update(
@@ -40,6 +45,11 @@ celery_app.conf.update(
         "retention-daily": {
             "task": "app.workers.retention.cleanup_audit_logs",
             "schedule": schedule(run_every=86400.0),
+        },
+        # YARA scheduled scan: 1x por dia em todos hosts ativos (paths via env).
+        "yara-scheduled-scan": {
+            "task": "app.workers.yara_schedule.schedule_yara_scans",
+            "schedule": schedule(run_every=float(settings.yara_scheduled_interval_seconds)),
         },
     },
 )

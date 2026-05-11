@@ -13,6 +13,7 @@ from app.api import (
     health,
     hosts,
     vulnerabilities,
+    yara,
 )
 from app.config import get_settings
 
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(actions.router)
     app.include_router(audit.router)
     app.include_router(vulnerabilities.router)
+    app.include_router(yara.router)
     return app
 
 
