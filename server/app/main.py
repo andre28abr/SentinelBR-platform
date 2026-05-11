@@ -33,9 +33,10 @@ def create_app() -> FastAPI:
         description="SentinelBR — plataforma de segurança para servidores Linux",
         lifespan=lifespan,
     )
+    origins = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )

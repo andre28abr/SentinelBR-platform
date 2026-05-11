@@ -42,3 +42,13 @@ def test_client_cert_has_host_id_in_cn():
 def test_get_ca_cert_pem_starts_with_pem_marker():
     pem = get_ca_cert_pem()
     assert pem.startswith(b"-----BEGIN CERTIFICATE-----")
+
+
+def test_server_cert_has_configured_san():
+    """SAN do server cert deve cobrir pelo menos 'sentinelbr-server' (SNI usado
+    pelo agent.grpcclient.Dial). Mudar SAN em prod requer regenerar o cert."""
+    bundle = load_or_create_server_cert()
+    cert = x509.load_pem_x509_certificate(bundle.cert_pem)
+    san_ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+    dns_names = san_ext.value.get_values_for_type(x509.DNSName)
+    assert "sentinelbr-server" in dns_names
