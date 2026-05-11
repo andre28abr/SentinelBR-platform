@@ -43,9 +43,23 @@ echo "→ Subindo stack docker..."
 make dev | tail -8
 echo
 
-# 2. abre mprocs com os 3 dev servers
-echo "→ Iniciando server + gRPC + web no mprocs..."
-echo "  (pra sair: tecla 'q' dentro do mprocs — mata os 3)"
+# 2. abre browser automaticamente quando Vite estiver pronto (espera ate 30s).
+#    Roda em background pra nao travar o mprocs que vem em seguida.
+(
+    for i in $(seq 1 60); do
+        if lsof -nP -iTCP:5173 -sTCP:LISTEN >/dev/null 2>&1; then
+            sleep 1   # vite escutando, aguarda servir o HTML
+            open http://localhost:5173
+            break
+        fi
+        sleep 0.5
+    done
+) &
+
+# 3. abre mprocs com server + gRPC + web + worker + beat
+echo "→ Iniciando server + gRPC + web + worker + beat no mprocs..."
+echo "  Browser vai abrir sozinho em ~5s, no http://localhost:5173"
+echo "  Pra sair: tecla 'q' dentro do mprocs (mata todos)"
 echo
 sleep 1
 
