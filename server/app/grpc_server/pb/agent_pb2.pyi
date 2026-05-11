@@ -104,20 +104,26 @@ class CommandResult(_message.Message):
     def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
-    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts")
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds")
     LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
     MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
     DISK_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     DISK_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
     ACTIVE_ALERTS_FIELD_NUMBER: _ClassVar[int]
+    IP_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    CPU_COUNT_FIELD_NUMBER: _ClassVar[int]
+    UPTIME_SECONDS_FIELD_NUMBER: _ClassVar[int]
     load_avg_1m: float
     mem_used_bytes: int
     mem_total_bytes: int
     disk_used_bytes: int
     disk_total_bytes: int
     active_alerts: int
-    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ...) -> None: ...
+    ip_address: str
+    cpu_count: int
+    uptime_seconds: int
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ...) -> None: ...
 
 class HeartbeatResponse(_message.Message):
     __slots__ = ("server_ts", "pending_commands")

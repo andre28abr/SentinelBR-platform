@@ -93,6 +93,9 @@ message HostStats {
   uint64 disk_used_bytes = 4;
   uint64 disk_total_bytes = 5;
   uint32 active_alerts = 6;
+  string ip_address = 7;       // IP principal do host (eth0/en0)
+  uint32 cpu_count = 8;        // numero de cores logicos
+  uint64 uptime_seconds = 9;   // uptime do host
 }
 
 message HeartbeatResponse {

@@ -26,3 +26,12 @@ class HostResponse(BaseModel):
     status: str
     last_heartbeat: datetime | None
     created_at: datetime
+    # Stats snapshot (atualizado a cada heartbeat)
+    ip_address: str | None = None
+    cpu_count: int | None = None
+    load_avg_1m: float | None = None
+    mem_used_bytes: int | None = None
+    mem_total_bytes: int | None = None
+    disk_used_bytes: int | None = None
+    disk_total_bytes: int | None = None
+    uptime_seconds: int | None = None

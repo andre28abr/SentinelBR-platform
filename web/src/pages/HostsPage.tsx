@@ -2,6 +2,7 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import AlertBadge from '@/components/AlertBadge'
+import OsIcon, { osLabel } from '@/components/OsIcon'
 import { ApiError, api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -15,7 +16,17 @@ interface Host {
   status: string
   last_heartbeat: string | null
   created_at: string
+  ip_address: string | null
+  cpu_count: number | null
+  load_avg_1m: number | null
+  mem_used_bytes: number | null
+  mem_total_bytes: number | null
+  disk_used_bytes: number | null
+  disk_total_bytes: number | null
+  uptime_seconds: number | null
 }
+
+const REFRESH_MS = 5_000
 
 export default function HostsPage() {
   const { user, logout } = useAuthStore()
@@ -42,19 +53,26 @@ export default function HostsPage() {
 
   useEffect(() => {
     let cancelled = false
-    api
-      .get<Host[]>('/api/v1/hosts')
-      .then((data) => {
-        if (!cancelled) setHosts(data)
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiError ? String(err.detail) : 'erro ao carregar')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+
+    function load() {
+      api
+        .get<Host[]>('/api/v1/hosts')
+        .then((data) => {
+          if (!cancelled) setHosts(data)
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err instanceof ApiError ? String(err.detail) : 'erro ao carregar')
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false)
+        })
+    }
+
+    load()
+    const t = setInterval(load, REFRESH_MS)
     return () => {
       cancelled = true
+      clearInterval(t)
     }
   }, [])
 
@@ -74,42 +92,56 @@ export default function HostsPage() {
     }
   }
 
+  const activeCount = hosts.filter((h) => h.status === 'active').length
+
   return (
-    <main className="min-h-screen p-6 max-w-4xl mx-auto">
-      <header className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div>
-          <h1 className="text-2xl font-bold">Hosts</h1>
-          <p className="text-sm text-zinc-500">{hosts.length} cadastrado(s)</p>
+    <main className="min-h-screen p-6 max-w-5xl mx-auto">
+      {/* Header — 2 linhas: info / menu */}
+      <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
+        {/* Linha 1: titulo + contadores + org + user */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl font-bold">Hosts</h1>
+            <span className="text-sm text-zinc-500">
+              <span className="font-semibold text-green-600 dark:text-green-400">{activeCount}</span>
+              {' '}/{' '}{hosts.length}{' '}conectado{hosts.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            {user?.org && (
+              <span className="text-zinc-500">
+                <span className="text-[10px] uppercase">org:</span>{' '}
+                <span className="font-mono text-zinc-700 dark:text-zinc-300">{user.org.name}</span>
+              </span>
+            )}
+            <span className="text-zinc-300 dark:text-zinc-700">·</span>
+            <span className="text-zinc-500">{user?.email}</span>
+            <button
+              type="button"
+              onClick={logout}
+              className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
+              sair
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
+        {/* Linha 2: menu de navegacao */}
+        <nav className="flex items-center gap-1 text-sm">
           <AlertBadge />
-          <Link to="/kb" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <span className="text-zinc-300 dark:text-zinc-700 mx-2">|</span>
+          <Link to="/kb" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
             ATT&CK
           </Link>
-          <Link to="/hunting" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <Link to="/hunting" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
             Hunting
           </Link>
-          <Link to="/purple-team" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <Link to="/purple-team" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
             Purple Team
           </Link>
-          <Link to="/compliance" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+          <Link to="/compliance" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
             LGPD
           </Link>
-          {user?.org && (
-            <span className="text-zinc-500 border-l border-zinc-200 dark:border-zinc-800 pl-4">
-              <span className="text-[10px] uppercase">org:</span>{' '}
-              <span className="font-mono">{user.org.name}</span>
-            </span>
-          )}
-          <span className="text-zinc-500">{user?.email}</span>
-          <button
-            type="button"
-            onClick={logout}
-            className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            sair
-          </button>
-        </div>
+        </nav>
       </header>
 
       <div className="mb-4">
@@ -166,26 +198,86 @@ export default function HostsPage() {
       ) : (
         <div className="space-y-2">
           {hosts.map((h) => (
-            <Link
-              key={h.id}
-              to={`/hosts/${h.id}`}
-              className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
-            >
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-semibold">{h.name}</h2>
-                <StatusBadge status={h.status} />
-              </div>
-              <p className="text-sm text-zinc-500 font-mono">{h.hostname}</p>
-              {h.os_distro && (
-                <p className="text-xs text-zinc-500 mt-1">
-                  {h.os_distro} {h.os_version} ({h.os_family})
-                </p>
-              )}
-            </Link>
+            <HostCard key={h.id} host={h} />
           ))}
         </div>
       )}
     </main>
+  )
+}
+
+function HostCard({ host: h }: { host: Host }) {
+  const memPct = h.mem_total_bytes ? Math.round((h.mem_used_bytes! / h.mem_total_bytes) * 100) : null
+  const diskPct = h.disk_total_bytes ? Math.round((h.disk_used_bytes! / h.disk_total_bytes) * 100) : null
+
+  return (
+    <Link
+      to={`/hosts/${h.id}`}
+      className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
+    >
+      <div className="flex items-start gap-3">
+        <OsIcon distro={h.os_distro} family={h.os_family} size="md" />
+        <div className="flex-1 min-w-0">
+          {/* Linha 1: nome + status */}
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold truncate">{h.name}</h2>
+            <StatusBadge status={h.status} />
+          </div>
+          {/* Linha 2: OS + hostname + IP */}
+          <p className="text-xs text-zinc-500 mt-0.5 truncate">
+            {h.os_distro ? osLabel(h.os_distro, h.os_version, h.os_family) : 'OS desconhecido'}
+            {' · '}
+            <span className="font-mono">{h.hostname}</span>
+            {h.ip_address && (
+              <>
+                {' · '}
+                <span className="font-mono">{h.ip_address}</span>
+              </>
+            )}
+          </p>
+          {/* Linha 3: mini-stats (so se tiver heartbeat) */}
+          {(memPct !== null || diskPct !== null || h.load_avg_1m !== null || h.uptime_seconds !== null) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500">
+              {memPct !== null && (
+                <Stat label="MEM" pct={memPct} extra={`${fmtBytes(h.mem_used_bytes!)} / ${fmtBytes(h.mem_total_bytes!)}`} />
+              )}
+              {diskPct !== null && (
+                <Stat label="DISK" pct={diskPct} extra={`${fmtBytes(h.disk_used_bytes!)} / ${fmtBytes(h.disk_total_bytes!)}`} />
+              )}
+              {h.load_avg_1m !== null && (
+                <span>
+                  <span className="text-[10px] uppercase">Load</span>{' '}
+                  <span className="font-mono">{h.load_avg_1m.toFixed(2)}</span>
+                  {h.cpu_count !== null && (
+                    <span className="text-zinc-400"> /{h.cpu_count} cores</span>
+                  )}
+                </span>
+              )}
+              {h.uptime_seconds !== null && (
+                <span>
+                  <span className="text-[10px] uppercase">Uptime</span>{' '}
+                  <span className="font-mono">{fmtUptime(h.uptime_seconds)}</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+function Stat({ label, pct, extra }: { label: string; pct: number; extra: string }) {
+  const barColor =
+    pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-orange-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-green-500'
+  return (
+    <span className="flex items-center gap-1.5" title={extra}>
+      <span className="text-[10px] uppercase text-zinc-500">{label}</span>
+      <span className="w-16 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+        <span className={`block h-full ${barColor}`} style={{ width: `${Math.min(100, pct)}%` }} />
+      </span>
+      <span className="font-mono text-[11px]">{pct}%</span>
+    </span>
   )
 }
 
@@ -197,6 +289,22 @@ function StatusBadge({ status }: { status: string }) {
         ? 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
   return (
-    <span className={`text-xs px-2 py-1 rounded-full font-medium ${color}`}>{status}</span>
+    <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${color}`}>{status}</span>
   )
+}
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n}B`
+  if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)}KB`
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(0)}MB`
+  return `${(n / 1024 ** 3).toFixed(1)}GB`
+}
+
+function fmtUptime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`
+  const d = Math.floor(seconds / 86400)
+  const h = Math.floor((seconds % 86400) / 3600)
+  return h > 0 ? `${d}d ${h}h` : `${d}d`
 }

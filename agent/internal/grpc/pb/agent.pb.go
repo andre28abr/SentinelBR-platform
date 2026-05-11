@@ -532,6 +532,9 @@ type HostStats struct {
 	DiskUsedBytes  uint64                 `protobuf:"varint,4,opt,name=disk_used_bytes,json=diskUsedBytes,proto3" json:"disk_used_bytes,omitempty"`
 	DiskTotalBytes uint64                 `protobuf:"varint,5,opt,name=disk_total_bytes,json=diskTotalBytes,proto3" json:"disk_total_bytes,omitempty"`
 	ActiveAlerts   uint32                 `protobuf:"varint,6,opt,name=active_alerts,json=activeAlerts,proto3" json:"active_alerts,omitempty"`
+	IpAddress      string                 `protobuf:"bytes,7,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`              // IP principal do host (eth0/en0)
+	CpuCount       uint32                 `protobuf:"varint,8,opt,name=cpu_count,json=cpuCount,proto3" json:"cpu_count,omitempty"`                // numero de cores logicos
+	UptimeSeconds  uint64                 `protobuf:"varint,9,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"` // uptime do host
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -604,6 +607,27 @@ func (x *HostStats) GetDiskTotalBytes() uint64 {
 func (x *HostStats) GetActiveAlerts() uint32 {
 	if x != nil {
 		return x.ActiveAlerts
+	}
+	return 0
+}
+
+func (x *HostStats) GetIpAddress() string {
+	if x != nil {
+		return x.IpAddress
+	}
+	return ""
+}
+
+func (x *HostStats) GetCpuCount() uint32 {
+	if x != nil {
+		return x.CpuCount
+	}
+	return 0
+}
+
+func (x *HostStats) GetUptimeSeconds() uint64 {
+	if x != nil {
+		return x.UptimeSeconds
 	}
 	return 0
 }
@@ -1418,14 +1442,18 @@ const file_agent_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\".sentinelbr.agent.v1.CommandStatusR\x06status\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12;\n" +
 	"\vexecuted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"executedAt\"\xf0\x01\n" +
+	"executedAt\"\xd3\x02\n" +
 	"\tHostStats\x12\x1e\n" +
 	"\vload_avg_1m\x18\x01 \x01(\x01R\tloadAvg1m\x12$\n" +
 	"\x0emem_used_bytes\x18\x02 \x01(\x04R\fmemUsedBytes\x12&\n" +
 	"\x0fmem_total_bytes\x18\x03 \x01(\x04R\rmemTotalBytes\x12&\n" +
 	"\x0fdisk_used_bytes\x18\x04 \x01(\x04R\rdiskUsedBytes\x12(\n" +
 	"\x10disk_total_bytes\x18\x05 \x01(\x04R\x0ediskTotalBytes\x12#\n" +
-	"\ractive_alerts\x18\x06 \x01(\rR\factiveAlerts\"\x95\x01\n" +
+	"\ractive_alerts\x18\x06 \x01(\rR\factiveAlerts\x12\x1d\n" +
+	"\n" +
+	"ip_address\x18\a \x01(\tR\tipAddress\x12\x1b\n" +
+	"\tcpu_count\x18\b \x01(\rR\bcpuCount\x12%\n" +
+	"\x0euptime_seconds\x18\t \x01(\x04R\ruptimeSeconds\"\x95\x01\n" +
 	"\x11HeartbeatResponse\x127\n" +
 	"\tserver_ts\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bserverTs\x12G\n" +
 	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\x99\x03\n" +

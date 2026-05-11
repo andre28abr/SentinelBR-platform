@@ -114,6 +114,24 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
             host.last_heartbeat = dt.datetime.now(dt.UTC)
             host.status = "active"
 
+            # Snapshot dos stats reportados (se vieram)
+            if request.HasField("stats"):
+                stats = request.stats
+                if stats.ip_address:
+                    host.ip_address = stats.ip_address
+                if stats.cpu_count:
+                    host.cpu_count = stats.cpu_count
+                if stats.load_avg_1m:
+                    host.load_avg_1m = stats.load_avg_1m
+                if stats.mem_total_bytes:
+                    host.mem_used_bytes = stats.mem_used_bytes
+                    host.mem_total_bytes = stats.mem_total_bytes
+                if stats.disk_total_bytes:
+                    host.disk_used_bytes = stats.disk_used_bytes
+                    host.disk_total_bytes = stats.disk_total_bytes
+                if stats.uptime_seconds:
+                    host.uptime_seconds = stats.uptime_seconds
+
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)
 

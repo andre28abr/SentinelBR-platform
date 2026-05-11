@@ -14,6 +14,7 @@ import (
 
 	"github.com/sentinelbr/agent/internal/cmddispatcher"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
+	"github.com/sentinelbr/agent/internal/hoststats"
 )
 
 type Loop struct {
@@ -56,6 +57,7 @@ func (l *Loop) tick(ctx context.Context) error {
 	req := &pb.HeartbeatRequest{
 		HostId:         l.HostID,
 		Ts:             timestamppb.Now(),
+		Stats:          hoststats.Collect(),
 		CommandResults: results,
 	}
 	resp, err := l.Client.Heartbeat(cctx, req)

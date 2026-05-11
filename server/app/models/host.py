@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +28,16 @@ class Host(Base):
     enrollment_token: Mapped[str | None] = mapped_column(String(64), index=True)
     enrollment_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     enrolled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Latest snapshot from heartbeat stats (atualizado a cada heartbeat ~30s)
+    ip_address: Mapped[str | None] = mapped_column(String(45))  # IPv4 ou IPv6
+    cpu_count: Mapped[int | None] = mapped_column(Integer)
+    load_avg_1m: Mapped[float | None] = mapped_column(Float)
+    mem_used_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    mem_total_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    disk_used_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    disk_total_bytes: Mapped[int | None] = mapped_column(BigInteger)
+    uptime_seconds: Mapped[int | None] = mapped_column(BigInteger)
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
