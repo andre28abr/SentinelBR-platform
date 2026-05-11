@@ -61,7 +61,8 @@ class Host(Base):
     fail2ban_installed: Mapped[bool | None] = mapped_column(Boolean)
     fail2ban_banned_ips: Mapped[int | None] = mapped_column(Integer)
     fail2ban_jails_active: Mapped[int | None] = mapped_column(Integer)
-    firewall_active: Mapped[str | None] = mapped_column(String(20))  # ufw|firewalld|nftables|iptables|""
+    # firewall_active: ufw | firewalld | nftables | iptables | ""
+    firewall_active: Mapped[str | None] = mapped_column(String(20))
     auditd_active: Mapped[bool | None] = mapped_column(Boolean)
     rkhunter_installed: Mapped[bool | None] = mapped_column(Boolean)
     lynis_installed: Mapped[bool | None] = mapped_column(Boolean)
