@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
 import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
+import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
 
 interface Vulnerability {
@@ -126,9 +127,17 @@ function VulnsTable({ items }: { items: Vulnerability[] }) {
             <tr>
               <th className="px-4 py-3 font-medium text-zinc-500">CVE</th>
               <th className="px-4 py-3 font-medium text-zinc-500">Sev</th>
-              <th className="px-4 py-3 font-medium text-zinc-500">CVSS</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">
+                <Tooltip content="CVSS v3.x — pontuação de severidade técnica da vulnerabilidade (0-10). >=9 critical, 7-8.9 high, 4-6.9 medium.">
+                  <span className="cursor-help">CVSS</span>
+                </Tooltip>
+              </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Pacote</th>
-              <th className="px-4 py-3 font-medium text-zinc-500">Fix</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">
+                <Tooltip content="Versão que corrige a vulnerabilidade. Faça upgrade pra essa versão ou superior.">
+                  <span className="cursor-help">Fix</span>
+                </Tooltip>
+              </th>
               <th className="px-4 py-3 font-medium text-zinc-500">Detalhes</th>
             </tr>
           </thead>
@@ -188,10 +197,12 @@ function ScoreCard({ score }: { score: number }) {
           ? 'border-yellow-300 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950'
           : 'border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950'
   return (
-    <div className={`p-3 rounded-lg border ${color}`}>
-      <p className="text-[10px] uppercase text-zinc-500 tracking-wide">Risk score</p>
-      <p className="text-2xl font-bold mt-1">{score}<span className="text-xs text-zinc-500">/100</span></p>
-    </div>
+    <Tooltip content="Risk Score 0-100: agregado das CVEs deste host. Pesos: critical=15, high=6, medium=2, low/unknown=0.5. Saturado em 100.">
+      <div className={`p-3 rounded-lg border cursor-help ${color}`}>
+        <p className="text-[10px] uppercase text-zinc-500 tracking-wide">Risk score</p>
+        <p className="text-2xl font-bold mt-1">{score}<span className="text-xs text-zinc-500">/100</span></p>
+      </div>
+    </Tooltip>
   )
 }
 

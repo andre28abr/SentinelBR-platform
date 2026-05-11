@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import OsIcon, { osLabel } from '@/components/OsIcon'
+import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
 
 interface Host {
@@ -197,25 +198,37 @@ function HostCard({ host: h }: { host: Host }) {
           {(memPct !== null || diskPct !== null || h.load_avg_1m !== null || h.uptime_seconds !== null) && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500">
               {memPct !== null && (
-                <Stat label="MEM" pct={memPct} extra={`${fmtBytes(h.mem_used_bytes!)} / ${fmtBytes(h.mem_total_bytes!)}`} />
+                <Tooltip content={`Memória RAM em uso: ${fmtBytes(h.mem_used_bytes!)} de ${fmtBytes(h.mem_total_bytes!)} totais`}>
+                  <span>
+                    <Stat label="MEM" pct={memPct} extra={`${fmtBytes(h.mem_used_bytes!)} / ${fmtBytes(h.mem_total_bytes!)}`} />
+                  </span>
+                </Tooltip>
               )}
               {diskPct !== null && (
-                <Stat label="DISK" pct={diskPct} extra={`${fmtBytes(h.disk_used_bytes!)} / ${fmtBytes(h.disk_total_bytes!)}`} />
+                <Tooltip content={`Disco do filesystem raiz (/) em uso: ${fmtBytes(h.disk_used_bytes!)} de ${fmtBytes(h.disk_total_bytes!)} totais`}>
+                  <span>
+                    <Stat label="DISK" pct={diskPct} extra={`${fmtBytes(h.disk_used_bytes!)} / ${fmtBytes(h.disk_total_bytes!)}`} />
+                  </span>
+                </Tooltip>
               )}
               {h.load_avg_1m !== null && (
-                <span>
-                  <span className="text-[10px] uppercase">Load</span>{' '}
-                  <span className="font-mono">{h.load_avg_1m.toFixed(2)}</span>
-                  {h.cpu_count !== null && (
-                    <span className="text-zinc-400"> /{h.cpu_count} cores</span>
-                  )}
-                </span>
+                <Tooltip content={`Load average de 1min — média de processos esperando CPU. ${h.load_avg_1m < 1 ? 'baixo' : h.load_avg_1m < (h.cpu_count ?? 1) ? 'normal' : 'alto'}. Idealmente < número de cores.`}>
+                  <span className="cursor-help">
+                    <span className="text-[10px] uppercase">Load</span>{' '}
+                    <span className="font-mono">{h.load_avg_1m.toFixed(2)}</span>
+                    {h.cpu_count !== null && (
+                      <span className="text-zinc-400"> /{h.cpu_count} cores</span>
+                    )}
+                  </span>
+                </Tooltip>
               )}
               {h.uptime_seconds !== null && (
-                <span>
-                  <span className="text-[10px] uppercase">Uptime</span>{' '}
-                  <span className="font-mono">{fmtUptime(h.uptime_seconds)}</span>
-                </span>
+                <Tooltip content="Tempo desde o último boot. Uptime alto = servidor estável.">
+                  <span className="cursor-help">
+                    <span className="text-[10px] uppercase">Uptime</span>{' '}
+                    <span className="font-mono">{fmtUptime(h.uptime_seconds)}</span>
+                  </span>
+                </Tooltip>
               )}
             </div>
           )}
