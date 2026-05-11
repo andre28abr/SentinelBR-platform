@@ -54,3 +54,5 @@ class HostResponse(BaseModel):
     auditd_active: bool | None = None
     rkhunter_installed: bool | None = None
     lynis_installed: bool | None = None
+    fail2ban_status_json: str | None = None
+    firewall_status_json: str | None = None

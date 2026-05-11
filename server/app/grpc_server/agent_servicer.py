@@ -65,6 +65,25 @@ def _action_to_command(action: Action) -> agent_pb2.Command:
             path=action.target,
             reason=action.reason,
         ))
+    elif action.action_type in ("fail2ban_unban", "fail2ban_ban"):
+        # target format: "<jail>:<ip>"
+        jail, _, ip = (action.target or "").partition(":")
+        if action.action_type == "fail2ban_unban":
+            cmd.fail2ban_unban.CopyFrom(agent_pb2.Fail2banUnbanCommand(
+                jail=jail, ip=ip, reason=action.reason,
+            ))
+        else:
+            cmd.fail2ban_ban.CopyFrom(agent_pb2.Fail2banBanCommand(
+                jail=jail, ip=ip, reason=action.reason,
+            ))
+    elif action.action_type == "run_rkhunter_scan":
+        cmd.run_rkhunter_scan.CopyFrom(agent_pb2.RunRkhunterScanCommand(
+            reason=action.reason,
+        ))
+    elif action.action_type == "run_lynis_audit":
+        cmd.run_lynis_audit.CopyFrom(agent_pb2.RunLynisAuditCommand(
+            reason=action.reason,
+        ))
     return cmd
 
 
@@ -156,6 +175,12 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                 host.auditd_active = stats.auditd_active
                 host.rkhunter_installed = stats.rkhunter_installed
                 host.lynis_installed = stats.lynis_installed
+                # JSON snapshots (Fase H2/H4) — so persiste se vier preenchido
+                # pra nao apagar valor anterior em hosts que rodam agente velho.
+                if stats.fail2ban_status_json:
+                    host.fail2ban_status_json = stats.fail2ban_status_json
+                if stats.firewall_status_json:
+                    host.firewall_status_json = stats.firewall_status_json
 
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)

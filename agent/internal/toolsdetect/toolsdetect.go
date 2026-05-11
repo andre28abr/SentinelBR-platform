@@ -16,6 +16,7 @@ package toolsdetect
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -24,15 +25,32 @@ import (
 
 const cmdTimeout = 5 * time.Second
 
+// maxIPsPerJail limita o tamanho da lista enviada no heartbeat. Jails com
+// muitos banidos truncam — UI ainda mostra o count total.
+const maxIPsPerJail = 50
+
 // Info eh o snapshot que o agente reporta no heartbeat.
 type Info struct {
 	Fail2banInstalled   bool
 	Fail2banBannedIPs   uint32
 	Fail2banJailsActive uint32
+	Fail2banStatusJSON  string // detalhado, formato JSON {"jails":[{...}]}
 	FirewallActive      string // "ufw" | "firewalld" | "nftables" | "iptables" | ""
+	FirewallStatusJSON  string // detalhado, formato varia por backend
 	AuditdActive        bool
 	RkhunterInstalled   bool
 	LynisInstalled      bool
+}
+
+// Fail2banJailDetail eh o detalhe completo de um jail (serializado em JSON).
+type Fail2banJailDetail struct {
+	Name        string   `json:"name"`
+	BannedCount uint32   `json:"banned_count"`
+	BannedIPs   []string `json:"banned_ips"` // truncado em maxIPsPerJail
+}
+
+type fail2banStatusPayload struct {
+	Jails []Fail2banJailDetail `json:"jails"`
 }
 
 // Detect roda todos os detectores e retorna o resultado consolidado.
@@ -43,7 +61,23 @@ func Detect() Info {
 		AuditdActive:      detectAuditd(),
 		FirewallActive:    detectFirewall(),
 	}
-	info.Fail2banInstalled, info.Fail2banJailsActive, info.Fail2banBannedIPs = detectFail2ban()
+	jails := detectFail2banDetailed()
+	if jails != nil {
+		info.Fail2banInstalled = true
+		info.Fail2banJailsActive = uint32(len(jails))
+		var total uint32
+		for _, j := range jails {
+			total += j.BannedCount
+		}
+		info.Fail2banBannedIPs = total
+		if b, err := json.Marshal(fail2banStatusPayload{Jails: jails}); err == nil {
+			info.Fail2banStatusJSON = string(b)
+		}
+	} else if binaryExists("fail2ban-client") {
+		// Binario existe mas daemon nao respondeu — reporta instalado sem detalhes.
+		info.Fail2banInstalled = true
+	}
+	info.FirewallStatusJSON = detectFirewallStatusJSON(info.FirewallActive)
 	return info
 }
 
@@ -141,29 +175,126 @@ func firewallIptablesActive() bool {
 	return lines > 8
 }
 
-// detectFail2ban: roda fail2ban-client status, parseia lista de jails, soma
-// banidos. Precisa root (agente roda como root). Retorna (installed, jails, banidos).
-func detectFail2ban() (bool, uint32, uint32) {
+// detectFail2banDetailed roda fail2ban-client status, parseia lista de jails,
+// e pra cada jail busca lista de banidos. Retorna nil se binario ausente OU
+// daemon nao respondeu (Detect trata os 2 casos diferentes).
+func detectFail2banDetailed() []Fail2banJailDetail {
 	if !binaryExists("fail2ban-client") {
-		return false, 0, 0
+		return nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "fail2ban-client", "status").Output()
 	if err != nil {
-		// Binario existe mas nao executou (provavelmente daemon parado).
-		// Considera instalado, sem jails ativos.
-		return true, 0, 0
+		return nil
 	}
-	jails := parseFail2banJails(string(out))
-	if len(jails) == 0 {
-		return true, 0, 0
+	jailNames := parseFail2banJails(string(out))
+	details := make([]Fail2banJailDetail, 0, len(jailNames))
+	for _, name := range jailNames {
+		count, ips := fail2banJailStatus(name)
+		details = append(details, Fail2banJailDetail{
+			Name:        name,
+			BannedCount: count,
+			BannedIPs:   ips,
+		})
 	}
-	var totalBanned uint32
-	for _, j := range jails {
-		totalBanned += fail2banJailBanned(j)
+	return details
+}
+
+// fail2banJailStatus roda `fail2ban-client status <jail>` e extrai
+// "Currently banned: N" + lista de IPs. IPs vem truncados a maxIPsPerJail.
+func fail2banJailStatus(jail string) (uint32, []string) {
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "fail2ban-client", "status", jail).Output()
+	if err != nil {
+		return 0, nil
 	}
-	return true, uint32(len(jails)), totalBanned
+	var count uint32
+	var ips []string
+	for _, line := range strings.Split(string(out), "\n") {
+		switch {
+		case strings.Contains(line, "Currently banned"):
+			if v := parseFail2banKVValue(line); v != "" {
+				if n, err := strconv.ParseUint(v, 10, 32); err == nil {
+					count = uint32(n)
+				}
+			}
+		case strings.Contains(line, "Banned IP list"):
+			raw := parseFail2banKVValue(line)
+			if raw == "" {
+				continue
+			}
+			for _, ip := range strings.Fields(raw) {
+				if len(ips) >= maxIPsPerJail {
+					break
+				}
+				ips = append(ips, ip)
+			}
+		}
+	}
+	return count, ips
+}
+
+// parseFail2banKVValue extrai o valor a direita do ":" numa linha do output do
+// fail2ban-client (formato tree art com pipes/backticks).
+func parseFail2banKVValue(line string) string {
+	idx := strings.Index(line, ":")
+	if idx < 0 {
+		return ""
+	}
+	return strings.TrimSpace(line[idx+1:])
+}
+
+// detectFirewallStatusJSON retorna snapshot textual das regras ativas do
+// firewall detectado. Formato: {"backend":"<nome>","raw":"<output>"} —
+// frontend renderiza como bloco mono.
+func detectFirewallStatusJSON(backend string) string {
+	if backend == "" {
+		return ""
+	}
+	type firewallPayload struct {
+		Backend string `json:"backend"`
+		Raw     string `json:"raw"`
+	}
+	raw := firewallRawStatus(backend)
+	if raw == "" {
+		return ""
+	}
+	b, err := json.Marshal(firewallPayload{Backend: backend, Raw: raw})
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
+func firewallRawStatus(backend string) string {
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	var out []byte
+	var err error
+	switch backend {
+	case "ufw":
+		out, err = exec.CommandContext(ctx, "ufw", "status", "numbered").Output()
+	case "firewalld":
+		out, err = exec.CommandContext(ctx, "firewall-cmd", "--list-all").Output()
+	case "nftables":
+		out, err = exec.CommandContext(ctx, "nft", "list", "ruleset").Output()
+	case "iptables":
+		out, err = exec.CommandContext(ctx, "iptables", "-L", "-n", "-v").Output()
+	default:
+		return ""
+	}
+	if err != nil {
+		return ""
+	}
+	// Limita tamanho do snapshot pra nao inflar heartbeat (ruleset gigante).
+	const maxBytes = 16 * 1024
+	s := string(out)
+	if len(s) > maxBytes {
+		s = s[:maxBytes] + "\n... (truncated)"
+	}
+	return s
 }
 
 // parseFail2banJails extrai nomes de jails do `fail2ban-client status`.
@@ -194,29 +325,3 @@ func parseFail2banJails(out string) []string {
 	return nil
 }
 
-// fail2banJailBanned roda `fail2ban-client status <jail>` e extrai
-// "Currently banned: N".
-func fail2banJailBanned(jail string) uint32 {
-	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, "fail2ban-client", "status", jail).Output()
-	if err != nil {
-		return 0
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		if !strings.Contains(line, "Currently banned") {
-			continue
-		}
-		idx := strings.Index(line, ":")
-		if idx < 0 {
-			continue
-		}
-		raw := strings.TrimSpace(line[idx+1:])
-		n, err := strconv.ParseUint(raw, 10, 32)
-		if err != nil {
-			return 0
-		}
-		return uint32(n)
-	}
-	return 0
-}

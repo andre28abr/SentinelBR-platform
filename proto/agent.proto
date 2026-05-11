@@ -116,6 +116,13 @@ message HostStats {
   bool auditd_active = 22;
   bool rkhunter_installed = 23;
   bool lynis_installed = 24;
+  // Detalhe completo do fail2ban serializado pra JSON (Fase H2). Formato:
+  // {"jails":[{"name":"sshd","banned_count":2,"banned_ips":["1.2.3.4"]}]}.
+  // Limite ~50 IPs por jail pra nao inflar heartbeat.
+  string fail2ban_status_json = 25;
+  // Snapshot do firewall em JSON (Fase H4). Estrutura varia por backend
+  // (ufw/firewalld/nftables/iptables) — frontend renderiza generico.
+  string firewall_status_json = 26;
 }
 
 message HeartbeatResponse {
@@ -132,7 +139,31 @@ message Command {
     RunYaraScanCommand run_yara_scan = 5;
     QuarantineFileCommand quarantine_file = 6;
     RunClamavScanCommand run_clamav_scan = 7;
+    Fail2banUnbanCommand fail2ban_unban = 8;
+    Fail2banBanCommand fail2ban_ban = 9;
+    RunRkhunterScanCommand run_rkhunter_scan = 10;
+    RunLynisAuditCommand run_lynis_audit = 11;
   }
+}
+
+message Fail2banUnbanCommand {
+  string jail = 1;
+  string ip = 2;
+  string reason = 3;
+}
+
+message Fail2banBanCommand {
+  string jail = 1;
+  string ip = 2;
+  string reason = 3;
+}
+
+message RunRkhunterScanCommand {
+  string reason = 1;  // manual_ui | scheduled
+}
+
+message RunLynisAuditCommand {
+  string reason = 1;
 }
 
 message RunClamavScanCommand {

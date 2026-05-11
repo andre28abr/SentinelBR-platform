@@ -60,12 +60,14 @@ func Collect() *pb.HostStats {
 	stats.ListeningPorts = sysadmin.CountListeningPorts()
 	stats.CronJobs = sysadmin.CountCronJobs()
 
-	// Security tools detection (Fase H1) — best-effort.
+	// Security tools detection (Fase H1+H2+H4) — best-effort.
 	tools := toolsdetect.Detect()
 	stats.Fail2BanInstalled = tools.Fail2banInstalled
 	stats.Fail2BanBannedIps = tools.Fail2banBannedIPs
 	stats.Fail2BanJailsActive = tools.Fail2banJailsActive
+	stats.Fail2BanStatusJson = tools.Fail2banStatusJSON
 	stats.FirewallActive = tools.FirewallActive
+	stats.FirewallStatusJson = tools.FirewallStatusJSON
 	stats.AuditdActive = tools.AuditdActive
 	stats.RkhunterInstalled = tools.RkhunterInstalled
 	stats.LynisInstalled = tools.LynisInstalled

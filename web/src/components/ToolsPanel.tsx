@@ -1,21 +1,30 @@
 /**
- * <ToolsPanel> — overview das ferramentas de seguranca/hardening detectadas
- * pelo agente. Cada ferramenta tem um card "instalado" (verde) ou "nao
- * detectado" (cinza) com hint de instalacao.
+ * <ToolsPanel> — agrega as ferramentas de hardening/defesa detectadas no host.
  *
- * UI de interacao funcional (banir/desbanir IP no fail2ban, rodar lynis audit,
- * etc) vem em fases seguintes.
+ * Sub-aba "Visão geral" mostra cards-resumo de todas (instaladas vs nao).
+ * Cada ferramenta DETECTADA ganha sua propria sub-aba com UI funcional.
+ *
+ * Padrao: usa o mesmo <Tabs> do HostDetailPage. Cards sem UI funcional
+ * mostram badge "instalado" sem botao de interacao.
  */
 
 import { Icon } from '@iconify/react'
 
+import Fail2banPanel from '@/components/Fail2banPanel'
+import FirewallPanel from '@/components/FirewallPanel'
+import LynisPanel from '@/components/LynisPanel'
+import RkhunterPanel from '@/components/RkhunterPanel'
+import Tabs from '@/components/Tabs'
 import Tooltip from '@/components/Tooltip'
 
 interface ToolsHost {
+  id: string
   fail2ban_installed: boolean | null
   fail2ban_banned_ips: number | null
   fail2ban_jails_active: number | null
+  fail2ban_status_json: string | null
   firewall_active: string | null
+  firewall_status_json: string | null
   auditd_active: boolean | null
   rkhunter_installed: boolean | null
   lynis_installed: boolean | null
@@ -25,13 +34,73 @@ interface Props {
   host: ToolsHost
 }
 
+function SubTabLabel({ icon, text }: { icon: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon icon={icon} className="text-base" aria-hidden />
+      {text}
+    </span>
+  )
+}
+
 export default function ToolsPanel({ host }: Props) {
+  const items = [
+    {
+      value: 'overview',
+      label: <SubTabLabel icon="lucide:list" text="Visão geral" />,
+      content: <Overview host={host} />,
+    },
+  ]
+  if (host.fail2ban_installed) {
+    items.push({
+      value: 'fail2ban',
+      label: <SubTabLabel icon="lucide:shield-ban" text="fail2ban" />,
+      content: (
+        <Fail2banPanel
+          hostId={host.id}
+          statusJson={host.fail2ban_status_json}
+          jailsActive={host.fail2ban_jails_active ?? 0}
+          bannedIps={host.fail2ban_banned_ips ?? 0}
+        />
+      ),
+    })
+  }
+  if (host.firewall_active) {
+    items.push({
+      value: 'firewall',
+      label: <SubTabLabel icon="lucide:brick-wall" text="Firewall" />,
+      content: (
+        <FirewallPanel
+          backend={host.firewall_active}
+          statusJson={host.firewall_status_json}
+        />
+      ),
+    })
+  }
+  if (host.rkhunter_installed) {
+    items.push({
+      value: 'rkhunter',
+      label: <SubTabLabel icon="lucide:bug-play" text="rkhunter" />,
+      content: <RkhunterPanel hostId={host.id} />,
+    })
+  }
+  if (host.lynis_installed) {
+    items.push({
+      value: 'lynis',
+      label: <SubTabLabel icon="lucide:clipboard-check" text="lynis" />,
+      content: <LynisPanel hostId={host.id} />,
+    })
+  }
+
+  return <Tabs items={items} />
+}
+
+function Overview({ host }: { host: ToolsHost }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-zinc-500">
-        Ferramentas de hardening/defesa detectadas no host. Cards verdes indicam
-        ferramentas ativas — clicar mostra detalhes. Cards cinzas mostram
-        instruções de instalação.
+        Ferramentas de hardening/defesa detectadas no host. Cards verdes têm
+        sub-aba dedicada acima; cinzas mostram instruções de instalação.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -99,7 +168,7 @@ function ToolCard({
       {installed ? (
         details ?? (
           <p className="text-xs text-zinc-500">
-            Detectada e funcionando. UI de interação chegará em breve.
+            Detectada. Veja a sub-aba dedicada acima para interagir.
           </p>
         )
       ) : (

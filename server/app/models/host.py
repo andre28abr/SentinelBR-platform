@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -65,6 +65,12 @@ class Host(Base):
     auditd_active: Mapped[bool | None] = mapped_column(Boolean)
     rkhunter_installed: Mapped[bool | None] = mapped_column(Boolean)
     lynis_installed: Mapped[bool | None] = mapped_column(Boolean)
+
+    # Detalhe completo das ferramentas em JSON (Fase H2/H4). fail2ban tem
+    # lista de jails+IPs; firewall tem lista de regras (formato varia por backend).
+    # Pode ficar grande — usamos Text e o frontend parseia.
+    fail2ban_status_json: Mapped[str | None] = mapped_column(Text)
+    firewall_status_json: Mapped[str | None] = mapped_column(Text)
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

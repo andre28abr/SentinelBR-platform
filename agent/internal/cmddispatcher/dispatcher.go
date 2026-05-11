@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,6 +54,14 @@ func (d *Dispatcher) Execute(cmd *pb.Command) *pb.CommandResult {
 		res.Status, res.ErrorMessage = d.handleQuarantine(p.QuarantineFile)
 	case *pb.Command_RunClamavScan:
 		res.Status, res.ErrorMessage = d.handleClamavScan(p.RunClamavScan)
+	case *pb.Command_Fail2BanUnban:
+		res.Status, res.ErrorMessage = d.handleFail2banSet(p.Fail2BanUnban.Jail, p.Fail2BanUnban.Ip, "unbanip", p.Fail2BanUnban.Reason)
+	case *pb.Command_Fail2BanBan:
+		res.Status, res.ErrorMessage = d.handleFail2banSet(p.Fail2BanBan.Jail, p.Fail2BanBan.Ip, "banip", p.Fail2BanBan.Reason)
+	case *pb.Command_RunRkhunterScan:
+		res.Status, res.ErrorMessage = d.handleRkhunterScan(p.RunRkhunterScan)
+	case *pb.Command_RunLynisAudit:
+		res.Status, res.ErrorMessage = d.handleLynisAudit(p.RunLynisAudit)
 	default:
 		res.Status = pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED
 		res.ErrorMessage = "tipo de comando nao suportado pelo agente"
@@ -283,6 +292,184 @@ func (d *Dispatcher) handleQuarantine(c *pb.QuarantineFileCommand) (pb.CommandSt
 		}
 	}
 	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("sha256=%s", side.SHA256[:16])
+}
+
+// handleFail2banSet roda `fail2ban-client set <jail> <action> <ip>`.
+// action = "unbanip" | "banip". Valida jail/ip pra impedir shell injection.
+func (d *Dispatcher) handleFail2banSet(jail, ip, action, reason string) (pb.CommandStatus, string) {
+	if jail == "" || ip == "" {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, "jail/ip vazio"
+	}
+	if net.ParseIP(ip) == nil {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, "IP invalido: " + ip
+	}
+	// Permite so alfanumerico + dash/underscore no jail (espelha validador do server)
+	for _, r := range jail {
+		if !(r >= 'a' && r <= 'z') && !(r >= 'A' && r <= 'Z') &&
+			!(r >= '0' && r <= '9') && r != '-' && r != '_' {
+			return pb.CommandStatus_COMMAND_STATUS_FAILED, "jail invalido: " + jail
+		}
+	}
+	if _, err := exec.LookPath("fail2ban-client"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "fail2ban-client nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN fail2ban", "action", action, "jail", jail, "ip", ip, "reason", reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "fail2ban-client", "set", jail, action, ip).CombinedOutput()
+	if err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED,
+			fmt.Sprintf("fail2ban-client: %s (%s)", strings.TrimSpace(string(out)), err.Error())
+	}
+	d.Log.Info("fail2ban_set aplicado", "action", action, "jail", jail, "ip", ip)
+	// Emite event pra registrar no log historico
+	if d.EventBus != nil {
+		evAction := "fail2ban_unban"
+		if action == "banip" {
+			evAction = "fail2ban_ban"
+		}
+		ev := events.New(d.HostID, "fail2ban", time.Now().UTC(),
+			fmt.Sprintf("%s %s on jail %s", action, ip, jail))
+		ev.Severity = events.SeverityInfo
+		ev.Fields["event.category"] = "intrusion_detection"
+		ev.Fields["event.action"] = evAction
+		ev.Fields["event.outcome"] = "success"
+		ev.Fields["fail2ban.jail"] = jail
+		ev.Fields["fail2ban.ip"] = ip
+		ev.Fields["fail2ban.reason"] = reason
+		select {
+		case d.EventBus <- ev:
+		default:
+		}
+	}
+	return pb.CommandStatus_COMMAND_STATUS_OK, ""
+}
+
+// handleRkhunterScan roda `rkhunter --check --sk --rwo` (skip prompts, warnings
+// only). Output line "Warning: ..." vira event individual.
+func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.CommandStatus, string) {
+	if _, err := exec.LookPath("rkhunter"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "rkhunter nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN rkhunter_scan", "reason", c.Reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+	timeout := d.ScanTimeout
+	if timeout == 0 {
+		timeout = 15 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	d.Log.Info("rkhunter_scan iniciado", "reason", c.Reason)
+	out, err := exec.CommandContext(ctx, "rkhunter", "--check", "--sk", "--rwo").CombinedOutput()
+	// rkhunter exit codes: 0 = clean, 1 = warnings, 2 = error. Aceita 0 e 1.
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			err = nil
+		}
+	}
+	if err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
+	}
+	warnings := parseRkhunterWarnings(string(out))
+	if d.EventBus != nil {
+		for _, w := range warnings {
+			ev := events.New(d.HostID, "rkhunter", time.Now().UTC(), w)
+			ev.Severity = events.SeverityWarn
+			ev.Fields["event.category"] = "intrusion_detection"
+			ev.Fields["event.action"] = "rkhunter_warning"
+			ev.Fields["event.outcome"] = "alert"
+			ev.Fields["rkhunter.scan_reason"] = c.Reason
+			select {
+			case d.EventBus <- ev:
+			default:
+			}
+		}
+	}
+	d.Log.Info("rkhunter_scan completo", "warnings", len(warnings))
+	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("warnings=%d", len(warnings))
+}
+
+func parseRkhunterWarnings(out string) []string {
+	var ws []string
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if strings.HasPrefix(line, "Warning:") {
+			ws = append(ws, strings.TrimSpace(strings.TrimPrefix(line, "Warning:")))
+		}
+	}
+	return ws
+}
+
+// handleLynisAudit roda `lynis audit system --quick --no-colors`. Extrai
+// "Hardening index" + warnings/suggestions.
+func (d *Dispatcher) handleLynisAudit(c *pb.RunLynisAuditCommand) (pb.CommandStatus, string) {
+	if _, err := exec.LookPath("lynis"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "lynis nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN lynis_audit", "reason", c.Reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+	timeout := d.ScanTimeout
+	if timeout == 0 {
+		timeout = 10 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	d.Log.Info("lynis_audit iniciado", "reason", c.Reason)
+	out, err := exec.CommandContext(ctx, "lynis", "audit", "system", "--quick", "--no-colors").CombinedOutput()
+	// lynis exit codes: 0 success, 1+ varia. Aceita qualquer porque sempre gera output.
+	score, findings := parseLynisOutput(string(out))
+	if d.EventBus != nil {
+		ev := events.New(d.HostID, "lynis", time.Now().UTC(),
+			fmt.Sprintf("audit completo (score=%d, findings=%d)", score, len(findings)))
+		ev.Severity = events.SeverityInfo
+		ev.Fields["event.category"] = "configuration"
+		ev.Fields["event.action"] = "lynis_audit"
+		ev.Fields["event.outcome"] = "success"
+		ev.Fields["lynis.score"] = fmt.Sprintf("%d", score)
+		ev.Fields["lynis.findings"] = fmt.Sprintf("%d", len(findings))
+		ev.Fields["lynis.reason"] = c.Reason
+		select {
+		case d.EventBus <- ev:
+		default:
+		}
+	}
+	if err != nil && score == 0 {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
+	}
+	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("score=%d findings=%d", score, len(findings))
+}
+
+// parseLynisOutput extrai "Hardening index : N" e Suggestion/Warning lines.
+func parseLynisOutput(out string) (int, []string) {
+	var score int
+	var findings []string
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if strings.HasPrefix(line, "Hardening index") {
+			idx := strings.Index(line, ":")
+			if idx >= 0 {
+				tail := strings.TrimSpace(line[idx+1:])
+				tail = strings.Split(tail, "[")[0]
+				tail = strings.TrimSpace(tail)
+				if n, err := strconv.Atoi(tail); err == nil {
+					score = n
+				}
+			}
+		}
+		if strings.HasPrefix(line, "Suggestion:") || strings.HasPrefix(line, "Warning:") {
+			findings = append(findings, line)
+		}
+	}
+	return score, findings
 }
 
 // ExecuteAll roda todos os comandos e retorna a lista de resultados, na ordem.

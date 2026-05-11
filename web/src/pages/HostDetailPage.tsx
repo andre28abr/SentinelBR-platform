@@ -47,7 +47,9 @@ interface Host {
   fail2ban_installed: boolean | null
   fail2ban_banned_ips: number | null
   fail2ban_jails_active: number | null
+  fail2ban_status_json: string | null
   firewall_active: string | null
+  firewall_status_json: string | null
   auditd_active: boolean | null
   rkhunter_installed: boolean | null
   lynis_installed: boolean | null

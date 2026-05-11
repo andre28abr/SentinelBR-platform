@@ -104,7 +104,7 @@ class CommandResult(_message.Message):
     def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
-    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs", "fail2ban_installed", "fail2ban_banned_ips", "fail2ban_jails_active", "firewall_active", "auditd_active", "rkhunter_installed", "lynis_installed")
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs", "fail2ban_installed", "fail2ban_banned_ips", "fail2ban_jails_active", "firewall_active", "auditd_active", "rkhunter_installed", "lynis_installed", "fail2ban_status_json", "firewall_status_json")
     LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
     MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -129,6 +129,8 @@ class HostStats(_message.Message):
     AUDITD_ACTIVE_FIELD_NUMBER: _ClassVar[int]
     RKHUNTER_INSTALLED_FIELD_NUMBER: _ClassVar[int]
     LYNIS_INSTALLED_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_STATUS_JSON_FIELD_NUMBER: _ClassVar[int]
+    FIREWALL_STATUS_JSON_FIELD_NUMBER: _ClassVar[int]
     load_avg_1m: float
     mem_used_bytes: int
     mem_total_bytes: int
@@ -153,7 +155,9 @@ class HostStats(_message.Message):
     auditd_active: bool
     rkhunter_installed: bool
     lynis_installed: bool
-    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ..., fail2ban_installed: bool = ..., fail2ban_banned_ips: _Optional[int] = ..., fail2ban_jails_active: _Optional[int] = ..., firewall_active: _Optional[str] = ..., auditd_active: bool = ..., rkhunter_installed: bool = ..., lynis_installed: bool = ...) -> None: ...
+    fail2ban_status_json: str
+    firewall_status_json: str
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ..., fail2ban_installed: bool = ..., fail2ban_banned_ips: _Optional[int] = ..., fail2ban_jails_active: _Optional[int] = ..., firewall_active: _Optional[str] = ..., auditd_active: bool = ..., rkhunter_installed: bool = ..., lynis_installed: bool = ..., fail2ban_status_json: _Optional[str] = ..., firewall_status_json: _Optional[str] = ...) -> None: ...
 
 class HeartbeatResponse(_message.Message):
     __slots__ = ("server_ts", "pending_commands")
@@ -164,7 +168,7 @@ class HeartbeatResponse(_message.Message):
     def __init__(self, server_ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pending_commands: _Optional[_Iterable[_Union[Command, _Mapping]]] = ...) -> None: ...
 
 class Command(_message.Message):
-    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file", "run_clamav_scan")
+    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file", "run_clamav_scan", "fail2ban_unban", "fail2ban_ban", "run_rkhunter_scan", "run_lynis_audit")
     ID_FIELD_NUMBER: _ClassVar[int]
     BLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     UNBLOCK_IP_FIELD_NUMBER: _ClassVar[int]
@@ -172,6 +176,10 @@ class Command(_message.Message):
     RUN_YARA_SCAN_FIELD_NUMBER: _ClassVar[int]
     QUARANTINE_FILE_FIELD_NUMBER: _ClassVar[int]
     RUN_CLAMAV_SCAN_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_UNBAN_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_BAN_FIELD_NUMBER: _ClassVar[int]
+    RUN_RKHUNTER_SCAN_FIELD_NUMBER: _ClassVar[int]
+    RUN_LYNIS_AUDIT_FIELD_NUMBER: _ClassVar[int]
     id: str
     block_ip: BlockIPCommand
     unblock_ip: UnblockIPCommand
@@ -179,7 +187,43 @@ class Command(_message.Message):
     run_yara_scan: RunYaraScanCommand
     quarantine_file: QuarantineFileCommand
     run_clamav_scan: RunClamavScanCommand
-    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ..., run_clamav_scan: _Optional[_Union[RunClamavScanCommand, _Mapping]] = ...) -> None: ...
+    fail2ban_unban: Fail2banUnbanCommand
+    fail2ban_ban: Fail2banBanCommand
+    run_rkhunter_scan: RunRkhunterScanCommand
+    run_lynis_audit: RunLynisAuditCommand
+    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ..., run_clamav_scan: _Optional[_Union[RunClamavScanCommand, _Mapping]] = ..., fail2ban_unban: _Optional[_Union[Fail2banUnbanCommand, _Mapping]] = ..., fail2ban_ban: _Optional[_Union[Fail2banBanCommand, _Mapping]] = ..., run_rkhunter_scan: _Optional[_Union[RunRkhunterScanCommand, _Mapping]] = ..., run_lynis_audit: _Optional[_Union[RunLynisAuditCommand, _Mapping]] = ...) -> None: ...
+
+class Fail2banUnbanCommand(_message.Message):
+    __slots__ = ("jail", "ip", "reason")
+    JAIL_FIELD_NUMBER: _ClassVar[int]
+    IP_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    jail: str
+    ip: str
+    reason: str
+    def __init__(self, jail: _Optional[str] = ..., ip: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class Fail2banBanCommand(_message.Message):
+    __slots__ = ("jail", "ip", "reason")
+    JAIL_FIELD_NUMBER: _ClassVar[int]
+    IP_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    jail: str
+    ip: str
+    reason: str
+    def __init__(self, jail: _Optional[str] = ..., ip: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class RunRkhunterScanCommand(_message.Message):
+    __slots__ = ("reason",)
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    reason: str
+    def __init__(self, reason: _Optional[str] = ...) -> None: ...
+
+class RunLynisAuditCommand(_message.Message):
+    __slots__ = ("reason",)
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    reason: str
+    def __init__(self, reason: _Optional[str] = ...) -> None: ...
 
 class RunClamavScanCommand(_message.Message):
     __slots__ = ("path", "reason")
