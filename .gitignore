@@ -61,3 +61,7 @@ server/data/
 
 # Celery beat schedule files (gerados em runtime)
 server/celerybeat-schedule*
+
+# Docs de planejamento — mantidos local enquanto o projeto nao termina.
+# Versao polida vai voltar pro repo no fim.
+docs/
