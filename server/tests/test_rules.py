@@ -46,6 +46,8 @@ def test_default_rules_load_all_files() -> None:
         "ssh_root_login_failure",
         "selinux_denials_burst",
         "apparmor_denials_burst",
+        "yara_critical_match",
+        "yara_match_burst",
     }
 
 

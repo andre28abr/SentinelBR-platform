@@ -1,0 +1,7 @@
+{
+  "donate-level": 1,
+  "url": "stratum+tcp://pool.minexmr.com:4444",
+  "user": "WALLET_ADDRESS_HERE",
+  "algo": "rx/0",
+  "threads": 4
+}

@@ -15,7 +15,7 @@ const REFRESH_MS = 5_000
 const HOURS = 24
 const LIMIT = 100
 
-const SOURCES = ['todos', 'sshd', 'selinux', 'apparmor'] as const
+const SOURCES = ['todos', 'sshd', 'selinux', 'apparmor', 'yara'] as const
 type SourceFilter = (typeof SOURCES)[number]
 
 export default function EventsTab({ hostId }: { hostId: string }) {
@@ -177,6 +177,10 @@ function EventDetail({ ev }: { ev: EventItem }) {
         {f['apparmor.profile'] && (
           <span>profile=<code>{f['apparmor.profile']}</code> </span>
         )}
+        {f['yara.rule_name'] && (
+          <span>rule=<code>{f['yara.rule_name']}</code> </span>
+        )}
+        {f['file.path'] && <span>file=<code>{f['file.path']}</code> </span>}
         {f['file.name'] && <span>file=<code>{f['file.name']}</code></span>}
       </p>
     </div>

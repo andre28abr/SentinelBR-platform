@@ -29,6 +29,7 @@ import (
 	"github.com/sentinelbr/agent/internal/mac"
 	"github.com/sentinelbr/agent/internal/osdetect"
 	"github.com/sentinelbr/agent/internal/packagemgr"
+	"github.com/sentinelbr/agent/internal/yarascanner"
 )
 
 var version = "dev"
@@ -49,6 +50,7 @@ func main() {
 	root.AddCommand(enrollCmd())
 	root.AddCommand(runCmd())
 	root.AddCommand(inventoryCmd())
+	root.AddCommand(scanCmd())
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "erro:", err)
@@ -408,4 +410,89 @@ func orDefault(v, d string) string {
 		return d
 	}
 	return v
+}
+
+func scanCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "scan",
+		Short: "roda YARA contra um diretorio e envia matches como eventos",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			level, _ := cmd.Flags().GetString("log-level")
+			path, _ := cmd.Flags().GetString("path")
+			rulesPath, _ := cmd.Flags().GetString("rules-path")
+			sendEvents, _ := cmd.Flags().GetBool("send-events")
+
+			log := logging.New(level)
+
+			if path == "" {
+				return fmt.Errorf("--path obrigatorio (ex: /var/www, /tmp/x)")
+			}
+			if rulesPath == "" {
+				rulesPath = "yara-rules"  // default: relativo ao cwd, util pro Mac dev
+			}
+
+			scanner, err := yarascanner.NewScanner("placeholder-host-id", rulesPath)
+			if err != nil {
+				return err
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			log.Info("rodando yara", "path", path, "rules", rulesPath)
+			matches, err := scanner.Scan(ctx, path)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("✓ scan completo: %d matches\n", len(matches))
+			for _, m := range matches {
+				fmt.Printf("  [%s] %s -> %s\n", m.Severity, m.RuleName, m.FilePath)
+			}
+
+			if !sendEvents || len(matches) == 0 {
+				return nil
+			}
+
+			// Envia matches via gRPC. Carrega state pra pegar host_id real.
+			dir, err := agentstate.DefaultDir()
+			if err != nil {
+				return err
+			}
+			st, paths, err := agentstate.Load(dir)
+			if err != nil {
+				log.Warn("agente nao enrollado, pulando envio de eventos", "err", err)
+				return nil
+			}
+
+			scanner.HostID = st.HostID
+			evs, err := scanner.ScanToEvents(ctx, path)
+			if err != nil {
+				return err
+			}
+
+			conn, client, err := grpcclient.Dial(st.GRPCEndpoint, paths.CACert, paths.ClientCert, paths.ClientKey)
+			if err != nil {
+				return fmt.Errorf("dial gRPC: %w", err)
+			}
+			defer conn.Close()
+
+			sender := &eventstream.Sender{Client: client, Log: log}
+			eventBus := make(chan *events.Event, len(evs))
+			for _, ev := range evs {
+				eventBus <- ev
+			}
+			close(eventBus)
+
+			if err := sender.Run(ctx, eventBus); err != nil {
+				return fmt.Errorf("stream: %w", err)
+			}
+			fmt.Printf("✓ %d eventos enviados ao server\n", len(evs))
+			return nil
+		},
+	}
+	cmd.Flags().String("path", "", "diretorio (ou arquivo) a escanear")
+	cmd.Flags().String("rules-path", "", "diretorio ou arquivo .yar (default: ./yara-rules)")
+	cmd.Flags().Bool("send-events", true, "envia matches via gRPC pro server (precisa enroll previo)")
+	return cmd
 }

@@ -1,0 +1,13 @@
+id: yara_match_burst
+name: Multiplas detecoes YARA do mesmo host
+description: |
+  5+ matches YARA em 5 minutos — host pode estar sob varredura de payload
+  ativo (ex: dropper baixando muitos files maliciosos seguidamente).
+severity: high
+source: yara
+filter:
+  event.action: yara_match
+window_seconds: 300
+aggregate:
+  group_by: [yara.rule_name]
+  threshold: 5

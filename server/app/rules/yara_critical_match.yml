@@ -1,0 +1,15 @@
+id: yara_critical_match
+name: YARA detectou ameaca critica
+description: |
+  YARA scan encontrou padrao classificado como CRITICO (webshell ativo,
+  ransomware, malware conhecido). Investigar IMEDIATAMENTE — provavel
+  comprometimento ou ferramenta atacante deployed.
+severity: critical
+source: yara
+filter:
+  event.action: yara_match
+  yara.severity: critical
+window_seconds: 60
+aggregate:
+  group_by: [yara.rule_name, file.path]
+  threshold: 1
