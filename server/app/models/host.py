@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Float, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,6 +43,11 @@ class Host(Base):
     disk_used_bytes: Mapped[int | None] = mapped_column(BigInteger)
     disk_total_bytes: Mapped[int | None] = mapped_column(BigInteger)
     uptime_seconds: Mapped[int | None] = mapped_column(BigInteger)
+
+    # ClamAV detection (reportado pelo agente no heartbeat)
+    clamav_installed: Mapped[bool | None] = mapped_column(Boolean)
+    clamav_version: Mapped[str | None] = mapped_column(String(255))
+    clamav_db_age_days: Mapped[int | None] = mapped_column(Integer)
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

@@ -96,6 +96,10 @@ message HostStats {
   string ip_address = 7;       // IP principal do host (eth0/en0)
   uint32 cpu_count = 8;        // numero de cores logicos
   uint64 uptime_seconds = 9;   // uptime do host
+  // ClamAV detection
+  bool clamav_installed = 10;
+  string clamav_version = 11;        // ex: "1.0.4/27295/Wed Mar 6 04:09:31 2024"
+  uint32 clamav_db_age_days = 12;    // idade do signature DB em dias
 }
 
 message HeartbeatResponse {
@@ -111,7 +115,13 @@ message Command {
     RunCheckCommand run_check = 4;
     RunYaraScanCommand run_yara_scan = 5;
     QuarantineFileCommand quarantine_file = 6;
+    RunClamavScanCommand run_clamav_scan = 7;
   }
+}
+
+message RunClamavScanCommand {
+  string path = 1;   // diretorio ou arquivo a escanear
+  string reason = 2; // ex: "manual_ui", "scheduled"
 }
 
 message BlockIPCommand {

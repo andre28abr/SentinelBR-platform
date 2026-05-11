@@ -104,7 +104,7 @@ class CommandResult(_message.Message):
     def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
-    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds")
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days")
     LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
     MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -114,6 +114,9 @@ class HostStats(_message.Message):
     IP_ADDRESS_FIELD_NUMBER: _ClassVar[int]
     CPU_COUNT_FIELD_NUMBER: _ClassVar[int]
     UPTIME_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    CLAMAV_INSTALLED_FIELD_NUMBER: _ClassVar[int]
+    CLAMAV_VERSION_FIELD_NUMBER: _ClassVar[int]
+    CLAMAV_DB_AGE_DAYS_FIELD_NUMBER: _ClassVar[int]
     load_avg_1m: float
     mem_used_bytes: int
     mem_total_bytes: int
@@ -123,7 +126,10 @@ class HostStats(_message.Message):
     ip_address: str
     cpu_count: int
     uptime_seconds: int
-    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ...) -> None: ...
+    clamav_installed: bool
+    clamav_version: str
+    clamav_db_age_days: int
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ...) -> None: ...
 
 class HeartbeatResponse(_message.Message):
     __slots__ = ("server_ts", "pending_commands")
@@ -134,20 +140,30 @@ class HeartbeatResponse(_message.Message):
     def __init__(self, server_ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pending_commands: _Optional[_Iterable[_Union[Command, _Mapping]]] = ...) -> None: ...
 
 class Command(_message.Message):
-    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file")
+    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file", "run_clamav_scan")
     ID_FIELD_NUMBER: _ClassVar[int]
     BLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     UNBLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     RUN_CHECK_FIELD_NUMBER: _ClassVar[int]
     RUN_YARA_SCAN_FIELD_NUMBER: _ClassVar[int]
     QUARANTINE_FILE_FIELD_NUMBER: _ClassVar[int]
+    RUN_CLAMAV_SCAN_FIELD_NUMBER: _ClassVar[int]
     id: str
     block_ip: BlockIPCommand
     unblock_ip: UnblockIPCommand
     run_check: RunCheckCommand
     run_yara_scan: RunYaraScanCommand
     quarantine_file: QuarantineFileCommand
-    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ...) -> None: ...
+    run_clamav_scan: RunClamavScanCommand
+    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ..., run_clamav_scan: _Optional[_Union[RunClamavScanCommand, _Mapping]] = ...) -> None: ...
+
+class RunClamavScanCommand(_message.Message):
+    __slots__ = ("path", "reason")
+    PATH_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    path: str
+    reason: str
+    def __init__(self, path: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class BlockIPCommand(_message.Message):
     __slots__ = ("ip", "duration_seconds", "reason")

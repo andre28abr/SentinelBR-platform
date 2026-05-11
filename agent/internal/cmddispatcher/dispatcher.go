@@ -1,14 +1,17 @@
 // Package cmddispatcher recebe pb.Command vindos do server (no HeartbeatResponse)
-// e despacha pra implementacao apropriada (firewall, yara, quarentena),
+// e despacha pra implementacao apropriada (firewall, yara, quarentena, clamav),
 // produzindo pb.CommandResult que vao no proximo HeartbeatRequest.
 package cmddispatcher
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -48,11 +51,118 @@ func (d *Dispatcher) Execute(cmd *pb.Command) *pb.CommandResult {
 		res.Status, res.ErrorMessage = d.handleYaraScan(p.RunYaraScan)
 	case *pb.Command_QuarantineFile:
 		res.Status, res.ErrorMessage = d.handleQuarantine(p.QuarantineFile)
+	case *pb.Command_RunClamavScan:
+		res.Status, res.ErrorMessage = d.handleClamavScan(p.RunClamavScan)
 	default:
 		res.Status = pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED
 		res.ErrorMessage = "tipo de comando nao suportado pelo agente"
 	}
 	return res
+}
+
+// clamavMatch eh uma linha "FOUND" do clamscan.
+type clamavMatch struct {
+	FilePath  string
+	Signature string
+}
+
+// handleClamavScan roda `clamscan -r --no-summary --infected <path>` e emite
+// events pra cada arquivo infectado. Format esperado:
+//
+//	/path/to/file: Signature.Name FOUND
+func (d *Dispatcher) handleClamavScan(c *pb.RunClamavScanCommand) (pb.CommandStatus, string) {
+	if c.Path == "" {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, "path vazio"
+	}
+	if _, err := exec.LookPath("clamscan"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "clamscan nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN clamav_scan", "path", c.Path, "reason", c.Reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+
+	timeout := d.ScanTimeout
+	if timeout == 0 {
+		timeout = 10 * time.Minute // ClamAV eh mais lento que YARA
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	d.Log.Info("clamav_scan iniciado", "path", c.Path, "reason", c.Reason)
+	matches, err := runClamavScan(ctx, c.Path)
+	if err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
+	}
+
+	// Emite event pra cada infected file
+	if d.EventBus != nil {
+		for _, m := range matches {
+			ev := events.New(d.HostID, "clamav", time.Now().UTC(),
+				"infected: "+m.FilePath+" ("+m.Signature+")")
+			ev.Severity = events.SeverityCritical
+			ev.Fields["event.category"] = "malware"
+			ev.Fields["event.action"] = "clamav_match"
+			ev.Fields["event.outcome"] = "alert"
+			ev.Fields["clamav.signature"] = m.Signature
+			ev.Fields["file.path"] = m.FilePath
+			ev.Fields["clamav.scan_reason"] = c.Reason
+			select {
+			case d.EventBus <- ev:
+			default:
+			}
+		}
+	}
+	d.Log.Info("clamav_scan completo", "path", c.Path, "matches", len(matches))
+	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("matches=%d", len(matches))
+}
+
+// runClamavScan executa clamscan recursivo e parseia "FOUND" lines.
+// ClamAV exit codes: 0 = clean, 1 = malware found, 2+ = error.
+// Em exit=1 ainda parsemos stdout (matches).
+func runClamavScan(ctx context.Context, path string) ([]clamavMatch, error) {
+	cmd := exec.CommandContext(ctx, "clamscan", "-r", "--no-summary", "--infected", path)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	runErr := cmd.Run()
+	// exit 1 = found malware (esperado), 0 = clean, 2+ = error.
+	if runErr != nil {
+		if exitErr, ok := runErr.(*exec.ExitError); ok {
+			code := exitErr.ExitCode()
+			if code != 0 && code != 1 {
+				return nil, fmt.Errorf("clamscan exit=%d: %s", code,
+					strings.TrimSpace(stderr.String()))
+			}
+		} else {
+			return nil, fmt.Errorf("clamscan: %w", runErr)
+		}
+	}
+	return parseClamavOutput(stdout.String()), nil
+}
+
+func parseClamavOutput(output string) []clamavMatch {
+	var out []clamavMatch
+	sc := bufio.NewScanner(strings.NewReader(output))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		// Format: "/path/file: Signature.Name FOUND"
+		idx := strings.LastIndex(line, " FOUND")
+		if idx < 0 {
+			continue
+		}
+		head := line[:idx]
+		// head = "/path/file: Signature.Name"
+		colon := strings.LastIndex(head, ": ")
+		if colon < 0 {
+			continue
+		}
+		out = append(out, clamavMatch{
+			FilePath:  strings.TrimSpace(head[:colon]),
+			Signature: strings.TrimSpace(head[colon+2:]),
+		})
+	}
+	return out
 }
 
 func (d *Dispatcher) handleBlockIP(c *pb.BlockIPCommand) (pb.CommandStatus, string) {

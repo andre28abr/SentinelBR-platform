@@ -14,6 +14,7 @@ import (
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 
+	"github.com/sentinelbr/agent/internal/clamavdetect"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 )
 
@@ -44,6 +45,12 @@ func Collect() *pb.HostStats {
 	if ip := primaryIPv4(); ip != "" {
 		stats.IpAddress = ip
 	}
+
+	// ClamAV detection (silent if not installed)
+	clam := clamavdetect.Detect()
+	stats.ClamavInstalled = clam.Installed
+	stats.ClamavVersion = clam.Version
+	stats.ClamavDbAgeDays = clam.DBAgeDays
 
 	return stats
 }

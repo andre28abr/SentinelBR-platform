@@ -9,6 +9,7 @@ from app.api import (
     alerts,
     audit,
     auth,
+    clamav,
     events,
     health,
     hosts,
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router)
     app.include_router(vulnerabilities.router)
     app.include_router(yara.router)
+    app.include_router(clamav.router)
     app.include_router(kb.router)
     app.include_router(organizations.router)
     return app

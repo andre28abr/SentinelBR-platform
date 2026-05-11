@@ -60,6 +60,11 @@ def _action_to_command(action: Action) -> agent_pb2.Command:
             file_path=action.target,
             reason=action.reason,
         ))
+    elif action.action_type == "run_clamav_scan":
+        cmd.run_clamav_scan.CopyFrom(agent_pb2.RunClamavScanCommand(
+            path=action.target,
+            reason=action.reason,
+        ))
     return cmd
 
 
@@ -131,6 +136,12 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                     host.disk_total_bytes = stats.disk_total_bytes
                 if stats.uptime_seconds:
                     host.uptime_seconds = stats.uptime_seconds
+                # ClamAV — sempre persiste (bool pode ser False legit)
+                host.clamav_installed = stats.clamav_installed
+                if stats.clamav_version:
+                    host.clamav_version = stats.clamav_version
+                if stats.clamav_db_age_days:
+                    host.clamav_db_age_days = stats.clamav_db_age_days
 
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)

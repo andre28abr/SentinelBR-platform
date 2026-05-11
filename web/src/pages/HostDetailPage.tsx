@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom'
 import ActionsTab from '@/components/ActionsTab'
 import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import ClamavPanel from '@/components/ClamavPanel'
 import EventsTab from '@/components/EventsTab'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
@@ -22,6 +23,9 @@ interface Host {
   status: string
   last_heartbeat: string | null
   created_at: string
+  clamav_installed: boolean | null
+  clamav_version: string | null
+  clamav_db_age_days: number | null
 }
 
 interface EnrollmentToken {
@@ -196,6 +200,19 @@ export default function HostDetailPage() {
         </h2>
         {id && <YaraPanel hostId={id} />}
       </section>
+
+      {host.clamav_installed && (
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
+            Anti-vírus (ClamAV)
+          </h2>
+          <ClamavPanel
+            hostId={host.id}
+            version={host.clamav_version}
+            dbAgeDays={host.clamav_db_age_days}
+          />
+        </section>
+      )}
 
       <section className="mb-6">
         <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">

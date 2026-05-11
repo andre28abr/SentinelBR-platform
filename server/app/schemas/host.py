@@ -39,3 +39,6 @@ class HostResponse(BaseModel):
     disk_used_bytes: int | None = None
     disk_total_bytes: int | None = None
     uptime_seconds: int | None = None
+    clamav_installed: bool | None = None
+    clamav_version: str | None = None
+    clamav_db_age_days: int | None = None

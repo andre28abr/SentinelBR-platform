@@ -254,6 +254,68 @@ async def test_yara_scan_endpoint_404_unknown_host(
 
 
 @pytest.mark.asyncio
+async def test_clamav_scan_requires_clamav_installed(
+    client: AsyncClient, admin_user: User, db_session: AsyncSession,
+) -> None:
+    """Host sem clamav_installed=true retorna 400 com hint pra instalar."""
+    host = await _seed_host(db_session, admin_user.org_id)
+    # clamav_installed eh None/False por default
+    token = await _login(client, admin_user)
+    r = await client.post(
+        f"/api/v1/hosts/{host.id}/clamav-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+    assert "ClamAV" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_clamav_scan_endpoint_creates_action(
+    client: AsyncClient, admin_user: User, db_session: AsyncSession,
+) -> None:
+    host = await _seed_host(db_session, admin_user.org_id)
+    # marca ClamAV como instalado
+    host.clamav_installed = True
+    await db_session.commit()
+    token = await _login(client, admin_user)
+
+    r = await client.post(
+        f"/api/v1/hosts/{host.id}/clamav-scan",
+        json={"path": "/var/www", "reason": "manual_ui"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 202, r.text
+    body = r.json()
+    assert body["action_type"] == "run_clamav_scan"
+    assert body["target"] == "/var/www"
+    assert body["status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_clamav_scan_endpoint_idempotent(
+    client: AsyncClient, admin_user: User, db_session: AsyncSession,
+) -> None:
+    host = await _seed_host(db_session, admin_user.org_id)
+    host.clamav_installed = True
+    await db_session.commit()
+    token = await _login(client, admin_user)
+
+    r1 = await client.post(
+        f"/api/v1/hosts/{host.id}/clamav-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r1.status_code == 202
+    r2 = await client.post(
+        f"/api/v1/hosts/{host.id}/clamav-scan",
+        json={"path": "/var/www"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r2.status_code == 409
+
+
+@pytest.mark.asyncio
 async def test_revert_executed_creates_unblock(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
