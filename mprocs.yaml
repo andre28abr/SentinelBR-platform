@@ -1,0 +1,17 @@
+procs:
+  server:
+    shell: "make server"
+    autostart: true
+  grpc:
+    shell: "make grpc"
+    autostart: true
+  web:
+    shell: "make web"
+    autostart: true
+
+# atalhos uteis (mprocs default):
+#   ↑/↓     : navega entre processos
+#   Enter   : foca no log do processo
+#   Ctrl+a  : reinicia o processo focado
+#   Ctrl+c  : envia SIGINT pro processo focado
+#   q       : sai do mprocs (mata todos)

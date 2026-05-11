@@ -20,13 +20,26 @@ sentinelbr-platform/
 
 ## Quickstart (dev)
 
-Pré-requisitos: macOS / Linux com `make`, `go`, `python3`, `node` (LTS), `pnpm`, `uv`, e Docker via OrbStack/Docker Desktop.
+Pré-requisitos: macOS / Linux com `make`, `go`, `python3`, `node` (LTS), `pnpm`, `uv`, `mprocs`, e Docker via OrbStack/Docker Desktop.
 
+**Mais simples (macOS, double-click no Finder):**
+- `start-dev.command` → sobe docker + server + gRPC + web numa única janela com mprocs
+- `stop-dev.command` → mata tudo
+
+**Power user (terminal):**
 ```bash
-make setup     # instala deps de cada componente
-make dev       # sobe stack (server + db + redis + loki + minio) via docker compose
+make setup     # instala deps de cada componente (uma vez)
+make up        # sobe stack docker + server/gRPC/web em paralelo via mprocs
+make down      # derruba tudo
+```
+
+**Targets individuais** (se quiser cada um num terminal):
+```bash
+make dev       # só docker stack (postgres/redis/loki/minio)
+make server    # FastAPI :8000
+make grpc      # gRPC mTLS :9443
+make web       # Vite :5173
 make agent     # builda agente local
-make web       # roda web em modo dev (vite)
 ```
 
 ## Componentes

@@ -56,7 +56,7 @@ agent-cross: ## cross-compila agente para linux/darwin/windows (amd64+arm64)
 # ─── Dev ──────────────────────────────────────────────────────────────────────
 
 .PHONY: dev
-dev: ## sobe stack de dev (postgres, redis, loki, minio, server)
+dev: ## sobe stack de dev (postgres, redis, loki, minio)
 	cd $(DEPLOY_DIR) && $(DC) -f compose/docker-compose.dev.yml up -d
 	@echo ""
 	@echo "Server:    http://localhost:8000/docs"
@@ -67,6 +67,15 @@ dev: ## sobe stack de dev (postgres, redis, loki, minio, server)
 .PHONY: dev-down
 dev-down: ## derruba stack de dev
 	cd $(DEPLOY_DIR) && $(DC) -f compose/docker-compose.dev.yml down
+
+.PHONY: up
+up: dev ## sobe stack docker + server/gRPC/web no mprocs (precisa: brew install mprocs)
+	mprocs --config mprocs.yaml
+
+.PHONY: down
+down: ## mata server/gRPC/web e derruba stack docker
+	-lsof -ti:5173,8000,9443 2>/dev/null | xargs kill 2>/dev/null || true
+	$(MAKE) dev-down
 
 .PHONY: web
 web: ## roda vite dev server
