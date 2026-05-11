@@ -9,11 +9,19 @@ interface TokenPair {
   refresh_token: string
 }
 
+interface OrgResponse {
+  id: string
+  name: string
+  slug: string
+}
+
 interface MeResponse {
   id: string
+  org_id: string
   email: string
   name: string
   role: string
+  org?: OrgResponse
 }
 
 export default function LoginPage() {

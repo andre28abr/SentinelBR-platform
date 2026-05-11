@@ -21,8 +21,17 @@ async def _login(client: AsyncClient, user: User) -> str:
     return r.json()["access_token"]
 
 
-async def _seed_host(db: AsyncSession) -> Host:
-    h = Host(name="h1", hostname="h1.example.com", status="active")
+async def _seed_host(db: AsyncSession, org_id=None) -> Host:
+    """Cria host. Se org_id for None, cria uma org nova (cada teste isolado)."""
+    if org_id is None:
+        from uuid import uuid4
+
+        from app.models import Organization
+        org = Organization(name="Test Org", slug=f"test-{uuid4().hex[:8]}")
+        db.add(org)
+        await db.flush()
+        org_id = org.id
+    h = Host(org_id=org_id, name="h1", hostname="h1.example.com", status="active")
     db.add(h)
     await db.commit()
     await db.refresh(h)
@@ -107,7 +116,7 @@ async def test_policy_skips_alert_without_source_ip(db_session: AsyncSession) ->
 async def test_list_actions_for_host(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     db_session.add(Action(
         host_id=host.id, action_type="block_ip", target="1.2.3.4",
         reason="test", status="pending",
@@ -194,7 +203,7 @@ async def test_policy_quarantine_idempotent(db_session: AsyncSession) -> None:
 async def test_yara_scan_endpoint_creates_action(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     token = await _login(client, admin_user)
 
     r = await client.post(
@@ -213,7 +222,7 @@ async def test_yara_scan_endpoint_creates_action(
 async def test_yara_scan_endpoint_idempotent(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     token = await _login(client, admin_user)
 
     r1 = await client.post(
@@ -248,7 +257,7 @@ async def test_yara_scan_endpoint_404_unknown_host(
 async def test_revert_executed_creates_unblock(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     a = Action(
         host_id=host.id, action_type="block_ip", target="9.9.9.9",
         reason="test", status="executed",

@@ -34,7 +34,8 @@ async def trigger_yara_scan(
     current: CurrentUser,
 ) -> Action:
     """Cria uma Action 'run_yara_scan' que sera enviada ao agente no proximo heartbeat."""
-    if not await db.get(Host, host_id):
+    host = await db.get(Host, host_id)
+    if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
 
     # Idempotencia: nao cria 2 scans 'pending' pro mesmo path no mesmo host.

@@ -20,14 +20,14 @@ router = APIRouter(prefix="/api/v1/hosts", tags=["events"])
 async def list_events(
     host_id: uuid.UUID,
     db: DbSession,
-    _: CurrentUser,
+    current: CurrentUser,
     source: str | None = Query(default=None),
     hours: int = Query(default=24, ge=1, le=168),
     limit: int = Query(default=100, ge=1, le=500),
     mask_pii: bool = Query(default=False, description="LGPD: mascara IPs/emails/CPF na resposta"),
 ) -> list[EventResponse]:
     host = await db.get(Host, host_id)
-    if host is None:
+    if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
 
     since = dt.datetime.now(dt.UTC) - dt.timedelta(hours=hours)

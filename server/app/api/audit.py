@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/v1", tags=["compliance"])
 @router.get("/audit-logs", response_model=list[AuditLogResponse])
 async def list_audit_logs(
     db: DbSession,
-    _: CurrentUser,
+    current: CurrentUser,
     actor_user_id: uuid.UUID | None = Query(default=None),
     action: str | None = Query(default=None),
     days: int = Query(default=7, ge=1, le=365),
@@ -27,9 +27,13 @@ async def list_audit_logs(
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[AuditLog]:
     since = dt.datetime.now(dt.UTC) - dt.timedelta(days=days)
+    # Inclui logs da org E logs globais (ex: login_failed sem actor identificado).
     stmt = (
         select(AuditLog)
-        .where(AuditLog.created_at >= since)
+        .where(
+            AuditLog.created_at >= since,
+            (AuditLog.org_id == current.org_id) | (AuditLog.org_id.is_(None)),
+        )
         .order_by(AuditLog.created_at.desc())
         .limit(limit)
     )
@@ -46,21 +50,28 @@ async def list_audit_logs(
 
 @router.get("/compliance/report", response_model=ComplianceReport)
 async def compliance_report(
-    db: DbSession, _: CurrentUser, days: int = Query(default=30, ge=1, le=365)
+    db: DbSession, current: CurrentUser, days: int = Query(default=30, ge=1, le=365)
 ) -> ComplianceReport:
     end = dt.datetime.now(dt.UTC)
     start = end - dt.timedelta(days=days)
 
+    org_id = current.org_id
+    org_or_global = (AuditLog.org_id == org_id) | (AuditLog.org_id.is_(None))
+
     # Auth metrics
-    logins_q = select(func.count()).select_from(AuditLog).where(
-        AuditLog.action.in_(("login_success", "login_failed")),
-        AuditLog.created_at >= start,
-    )
-    total_logins = await db.scalar(logins_q) or 0
+    total_logins = await db.scalar(
+        select(func.count()).select_from(AuditLog).where(
+            AuditLog.action.in_(("login_success", "login_failed")),
+            AuditLog.created_at >= start,
+            org_or_global,
+        )
+    ) or 0
 
     failed_logins = await db.scalar(
         select(func.count()).select_from(AuditLog).where(
-            AuditLog.action == "login_failed", AuditLog.created_at >= start,
+            AuditLog.action == "login_failed",
+            AuditLog.created_at >= start,
+            org_or_global,
         )
     ) or 0
 
@@ -69,53 +80,76 @@ async def compliance_report(
             AuditLog.action == "login_success",
             AuditLog.created_at >= start,
             AuditLog.actor_user_id.is_not(None),
+            org_or_global,
         )
     ) or 0
 
-    # Host metrics
-    hosts_total = await db.scalar(select(func.count()).select_from(Host)) or 0
+    # Host metrics — filtrados por org
+    hosts_total = await db.scalar(
+        select(func.count()).select_from(Host).where(Host.org_id == org_id)
+    ) or 0
     hosts_active = await db.scalar(
-        select(func.count()).select_from(Host).where(Host.status == "active")
+        select(func.count()).select_from(Host).where(
+            Host.org_id == org_id, Host.status == "active",
+        )
     ) or 0
     hosts_created = await db.scalar(
-        select(func.count()).select_from(Host).where(Host.created_at >= start)
+        select(func.count()).select_from(Host).where(
+            Host.org_id == org_id, Host.created_at >= start,
+        )
     ) or 0
     hosts_deleted = await db.scalar(
         select(func.count()).select_from(AuditLog).where(
-            AuditLog.action == "host_deleted", AuditLog.created_at >= start,
+            AuditLog.action == "host_deleted",
+            AuditLog.created_at >= start,
+            org_or_global,
         )
     ) or 0
 
-    # Detection metrics
+    # Detection metrics — filtrados via JOIN host
     alerts_created = await db.scalar(
-        select(func.count()).select_from(Alert).where(Alert.created_at >= start)
+        select(func.count()).select_from(Alert)
+        .join(Host, Alert.host_id == Host.id)
+        .where(Host.org_id == org_id, Alert.created_at >= start)
     ) or 0
     alerts_open = await db.scalar(
-        select(func.count()).select_from(Alert).where(Alert.status == "open")
+        select(func.count()).select_from(Alert)
+        .join(Host, Alert.host_id == Host.id)
+        .where(Host.org_id == org_id, Alert.status == "open")
     ) or 0
     alerts_ack = await db.scalar(
         select(func.count()).select_from(AuditLog).where(
-            AuditLog.action == "alert_acknowledged", AuditLog.created_at >= start,
+            AuditLog.action == "alert_acknowledged",
+            AuditLog.created_at >= start,
+            org_or_global,
         )
     ) or 0
     alerts_resolved = await db.scalar(
         select(func.count()).select_from(AuditLog).where(
-            AuditLog.action == "alert_resolved", AuditLog.created_at >= start,
+            AuditLog.action == "alert_resolved",
+            AuditLog.created_at >= start,
+            org_or_global,
         )
     ) or 0
     actions_exec = await db.scalar(
-        select(func.count()).select_from(Action).where(
-            Action.status == "executed", Action.executed_at >= start,
+        select(func.count()).select_from(Action)
+        .join(Host, Action.host_id == Host.id)
+        .where(
+            Host.org_id == org_id,
+            Action.status == "executed",
+            Action.executed_at >= start,
         )
     ) or 0
 
-    # MTTR: tempo medio entre Alert.created_at e Action.executed_at (vinculados por alert_id).
+    # MTTR — filtra ambos lados via JOIN host
     mttr_secs: float | None = None
     join_rows = (
         await db.execute(
-            select(Alert.created_at, Action.executed_at).join(
-                Action, Action.alert_id == Alert.id, isouter=False
-            ).where(
+            select(Alert.created_at, Action.executed_at)
+            .join(Action, Action.alert_id == Alert.id, isouter=False)
+            .join(Host, Alert.host_id == Host.id)
+            .where(
+                Host.org_id == org_id,
                 Alert.created_at >= start,
                 Action.executed_at.is_not(None),
             )
@@ -126,7 +160,9 @@ async def compliance_report(
         mttr_secs = sum(diffs) / len(diffs)
 
     audit_entries = await db.scalar(
-        select(func.count()).select_from(AuditLog).where(AuditLog.created_at >= start)
+        select(func.count()).select_from(AuditLog).where(
+            AuditLog.created_at >= start, org_or_global,
+        )
     ) or 0
 
     return ComplianceReport(

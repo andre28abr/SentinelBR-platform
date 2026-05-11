@@ -13,9 +13,19 @@ from app.services import audit, enrollment
 router = APIRouter(prefix="/api/v1/hosts", tags=["hosts"])
 
 
+async def _host_in_org_or_404(db, host_id: uuid.UUID, org_id: uuid.UUID) -> Host:
+    """Carrega host se pertencer a org do user, senao 404 (nao vaza existencia)."""
+    host = await db.get(Host, host_id)
+    if host is None or host.org_id != org_id:
+        raise HTTPException(status_code=404, detail="host nao encontrado")
+    return host
+
+
 @router.get("", response_model=list[HostResponse])
-async def list_hosts(db: DbSession, _: CurrentUser) -> list[Host]:
-    result = await db.execute(select(Host).order_by(Host.created_at.desc()))
+async def list_hosts(db: DbSession, current: CurrentUser) -> list[Host]:
+    result = await db.execute(
+        select(Host).where(Host.org_id == current.org_id).order_by(Host.created_at.desc())
+    )
     return list(result.scalars().all())
 
 
@@ -24,6 +34,7 @@ async def create_host(
     payload: HostCreate, request: Request, db: DbSession, current: CurrentUser
 ) -> Host:
     host = Host(
+        org_id=current.org_id,
         name=payload.name,
         hostname=payload.hostname,
         created_by_id=current.id,
@@ -41,20 +52,15 @@ async def create_host(
 
 
 @router.get("/{host_id}", response_model=HostResponse)
-async def get_host(host_id: uuid.UUID, db: DbSession, _: CurrentUser) -> Host:
-    host = await db.get(Host, host_id)
-    if host is None:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
-    return host
+async def get_host(host_id: uuid.UUID, db: DbSession, current: CurrentUser) -> Host:
+    return await _host_in_org_or_404(db, host_id, current.org_id)
 
 
 @router.put("/{host_id}", response_model=HostResponse)
 async def update_host(
-    host_id: uuid.UUID, payload: HostUpdate, db: DbSession, _: CurrentUser
+    host_id: uuid.UUID, payload: HostUpdate, db: DbSession, current: CurrentUser
 ) -> Host:
-    host = await db.get(Host, host_id)
-    if host is None:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await _host_in_org_or_404(db, host_id, current.org_id)
     if payload.name is not None:
         host.name = payload.name
     if payload.hostname is not None:
@@ -68,9 +74,7 @@ async def update_host(
 async def delete_host(
     host_id: uuid.UUID, request: Request, db: DbSession, current: CurrentUser
 ) -> None:
-    host = await db.get(Host, host_id)
-    if host is None:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await _host_in_org_or_404(db, host_id, current.org_id)
     await audit.log_action(
         db, action="host_deleted", actor=current, request=request,
         target_type="host", target_id=host_id,
@@ -86,11 +90,9 @@ async def delete_host(
     status_code=status.HTTP_201_CREATED,
 )
 async def mint_enrollment_token(
-    host_id: uuid.UUID, db: DbSession, _: CurrentUser
+    host_id: uuid.UUID, db: DbSession, current: CurrentUser
 ) -> EnrollmentTokenResponse:
-    host = await db.get(Host, host_id)
-    if host is None:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await _host_in_org_or_404(db, host_id, current.org_id)
 
     token, expires_at = await enrollment.mint_token(db, host)
     settings = get_settings()

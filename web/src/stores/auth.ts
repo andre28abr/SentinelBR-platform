@@ -1,11 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+interface Organization {
+  id: string
+  name: string
+  slug: string
+}
+
 interface User {
   id: string
+  org_id: string
   email: string
   name: string
   role: string
+  org?: Organization
 }
 
 interface AuthState {

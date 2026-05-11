@@ -1,8 +1,9 @@
-"""Cria o primeiro usuario admin se ainda nao existir.
+"""Cria o primeiro usuario admin + a org default se ainda nao existirem.
 
 Uso:
     uv run python -m app.scripts.seed
     SEED_EMAIL=foo@x.com SEED_PASSWORD=segredo SEED_NAME="Foo" uv run python -m app.scripts.seed
+    SEED_ORG_NAME="Acme Corp" SEED_ORG_SLUG=acme uv run python -m app.scripts.seed
 """
 
 import asyncio
@@ -12,7 +13,7 @@ import sys
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import User
+from app.models import Organization, User
 from app.services.auth import hash_password
 
 
@@ -20,14 +21,33 @@ async def seed() -> int:
     email = os.environ.get("SEED_EMAIL", "admin@sentinelbr.io")
     password = os.environ.get("SEED_PASSWORD", "admin1234")
     name = os.environ.get("SEED_NAME", "Admin")
+    org_name = os.environ.get("SEED_ORG_NAME", "Default Organization")
+    org_slug = os.environ.get("SEED_ORG_SLUG", "default")
 
     async with SessionLocal() as db:
-        existing = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        # garante org
+        org = (
+            await db.execute(select(Organization).where(Organization.slug == org_slug))
+        ).scalar_one_or_none()
+        if org is None:
+            org = Organization(name=org_name, slug=org_slug)
+            db.add(org)
+            await db.commit()
+            await db.refresh(org)
+            print(f"org criada: id={org.id} name={org.name} slug={org.slug}")
+        else:
+            print(f"org ja existe: id={org.id} slug={org.slug}")
+
+        # garante user
+        existing = (
+            await db.execute(select(User).where(User.email == email))
+        ).scalar_one_or_none()
         if existing is not None:
             print(f"ja existe usuario com email {email} (id={existing.id})", file=sys.stderr)
             return 0
 
         user = User(
+            org_id=org.id,
             email=email,
             password_hash=hash_password(password),
             name=name,
@@ -37,7 +57,7 @@ async def seed() -> int:
         await db.commit()
         await db.refresh(user)
 
-        print(f"criado: id={user.id} email={user.email} senha={'*' * len(password)}")
+        print(f"user criado: id={user.id} email={user.email} senha={'*' * len(password)}")
         if password == "admin1234":
             print("ATENCAO: senha default. Defina SEED_PASSWORD em producao.", file=sys.stderr)
         return 0

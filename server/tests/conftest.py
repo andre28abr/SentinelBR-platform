@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.config import get_settings
 from app.db import Base, get_db
 from app.main import app
-from app.models import User
+from app.models import Organization, User
 from app.services.auth import hash_password
 
 
@@ -56,8 +56,18 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def admin_user(db_session: AsyncSession) -> User:
+async def default_org(db_session: AsyncSession) -> Organization:
+    org = Organization(name="Test Org", slug="test")
+    db_session.add(org)
+    await db_session.commit()
+    await db_session.refresh(org)
+    return org
+
+
+@pytest_asyncio.fixture
+async def admin_user(db_session: AsyncSession, default_org: Organization) -> User:
     user = User(
+        org_id=default_org.id,
         email="admin@test.io",
         password_hash=hash_password("teste1234"),
         name="Admin Teste",

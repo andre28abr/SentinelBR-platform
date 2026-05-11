@@ -21,6 +21,14 @@ class AuditLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
+    # Org dona do log. nullable=True porque login_failed (user nao identificado)
+    # nao tem como saber a org. Logs com org_id IS NULL sao globais (visiveis
+    # apenas pra admins do sistema, nao filtrados pelo tenant query).
+    org_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True, index=True,
+    )
+
     # Quem fez a acao. actor_user_id eh nullable porque login_failed nao tem user logado.
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True

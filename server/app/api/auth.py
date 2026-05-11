@@ -70,5 +70,12 @@ async def refresh(payload: RefreshRequest, db: DbSession) -> TokenPair:
 
 
 @router.get("/me", response_model=UserResponse)
-async def me(current: CurrentUser) -> UserResponse:
-    return UserResponse.model_validate(current)
+async def me(current: CurrentUser, db: DbSession) -> UserResponse:
+    from app.models import Organization
+    from app.schemas.auth import OrganizationBrief
+
+    org = await db.get(Organization, current.org_id)
+    resp = UserResponse.model_validate(current)
+    if org is not None:
+        resp.org = OrganizationBrief.model_validate(org)
+    return resp

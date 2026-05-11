@@ -9,8 +9,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.grpc_server.agent_servicer import _action_to_command
-from app.models import Action, Host
+from app.models import Action, Host, Organization
 from app.workers import yara_schedule
+
+
+async def _make_org(db, slug: str) -> Organization:
+    org = Organization(name=f"Org {slug}", slug=slug)
+    db.add(org)
+    await db.flush()
+    return org
 
 
 def test_action_to_command_run_yara_scan() -> None:
@@ -62,9 +69,10 @@ def test_action_to_command_unknown_type_returns_empty_payload() -> None:
 async def test_schedule_creates_actions_for_each_active_host(
     db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    h1 = Host(name="a", hostname="a.local", status="active")
-    h2 = Host(name="b", hostname="b.local", status="active")
-    inactive = Host(name="c", hostname="c.local", status="inactive")
+    org = await _make_org(db_session, "ydp1")
+    h1 = Host(org_id=org.id, name="a", hostname="a.local", status="active")
+    h2 = Host(org_id=org.id, name="b", hostname="b.local", status="active")
+    inactive = Host(org_id=org.id, name="c", hostname="c.local", status="inactive")
     db_session.add_all([h1, h2, inactive])
     await db_session.commit()
 
@@ -94,7 +102,8 @@ async def test_schedule_creates_actions_for_each_active_host(
 async def test_schedule_skips_existing_pending(
     db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    h = Host(name="a", hostname="a.local", status="active")
+    org = await _make_org(db_session, "ydp2")
+    h = Host(org_id=org.id, name="a", hostname="a.local", status="active")
     db_session.add(h)
     await db_session.commit()
     await db_session.refresh(h)

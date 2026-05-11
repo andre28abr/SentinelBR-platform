@@ -47,14 +47,23 @@ async def log_action(
     action: str,
     actor: User | None = None,
     actor_email: str | None = None,
+    org_id: uuid.UUID | None = None,
     target_type: str | None = None,
     target_id: str | uuid.UUID | None = None,
     details: dict[str, Any] | None = None,
     request: Request | None = None,
     success: bool = True,
 ) -> AuditLog:
-    """Registra uma operacao. Commit fica a cargo do caller (mesma tx do que esta sendo logado)."""
+    """Registra uma operacao. Commit fica a cargo do caller (mesma tx do que esta sendo logado).
+
+    org_id default vem de actor.org_id (multi-tenancy). Pode ser sobrescrito
+    explicitamente via parametro — usado em casos como login_failed onde
+    nao sabemos a qual org o tentante pertence (registramos como global, NULL).
+    """
+    if org_id is None and actor is not None:
+        org_id = actor.org_id
     entry = AuditLog(
+        org_id=org_id,
         actor_user_id=actor.id if actor else None,
         actor_email=actor_email or (actor.email if actor else None),
         action=action,

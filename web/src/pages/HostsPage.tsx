@@ -95,6 +95,12 @@ export default function HostsPage() {
           <Link to="/compliance" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
             LGPD
           </Link>
+          {user?.org && (
+            <span className="text-zinc-500 border-l border-zinc-200 dark:border-zinc-800 pl-4">
+              <span className="text-[10px] uppercase">org:</span>{' '}
+              <span className="font-mono">{user.org.name}</span>
+            </span>
+          )}
           <span className="text-zinc-500">{user?.email}</span>
           <button
             type="button"

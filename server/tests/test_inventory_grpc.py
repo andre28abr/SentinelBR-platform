@@ -14,7 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.grpc_server.agent_servicer import AgentServicer
 from app.grpc_server.pb import agent_pb2
-from app.models import Host, HostPackage
+from app.models import Host, HostPackage, Organization
+
+
+async def _make_org(db, slug: str) -> Organization:
+    org = Organization(name=f"Org {slug}", slug=slug)
+    db.add(org)
+    await db.flush()
+    return org
 
 
 def _build_inventory(
@@ -49,7 +56,8 @@ def _mock_context(peer_cn: uuid.UUID | None = None) -> MagicMock:
 
 @pytest.mark.asyncio
 async def test_submit_inventory_upserts_packages(db_session: AsyncSession) -> None:
-    host = Host(name="test-host", hostname="test.local", status="active")
+    org = await _make_org(db_session, "iot1")
+    host = Host(org_id=org.id, name="test-host", hostname="test.local", status="active")
     db_session.add(host)
     await db_session.commit()
     await db_session.refresh(host)
@@ -89,7 +97,8 @@ async def test_submit_inventory_upserts_packages(db_session: AsyncSession) -> No
 @pytest.mark.asyncio
 async def test_submit_inventory_replaces_old_snapshot(db_session: AsyncSession) -> None:
     """Re-submit substitui snapshot anterior — pacotes removidos somem."""
-    host = Host(name="test-host", hostname="test.local", status="active")
+    org = await _make_org(db_session, "iot2")
+    host = Host(org_id=org.id, name="test-host", hostname="test.local", status="active")
     db_session.add(host)
     await db_session.commit()
     await db_session.refresh(host)
@@ -129,8 +138,10 @@ async def test_submit_inventory_replaces_old_snapshot(db_session: AsyncSession) 
 
 @pytest.mark.asyncio
 async def test_submit_inventory_rejects_cn_mismatch(db_session: AsyncSession) -> None:
-    host = Host(name="test-host", hostname="test.local", status="active")
-    other = Host(name="other", hostname="other.local", status="active")
+    org = await _make_org(db_session, "iot3a")
+    org2 = await _make_org(db_session, "iot3b")
+    host = Host(org_id=org.id, name="test-host", hostname="test.local", status="active")
+    other = Host(org_id=org2.id, name="other", hostname="other.local", status="active")
     db_session.add_all([host, other])
     await db_session.commit()
     await db_session.refresh(host)

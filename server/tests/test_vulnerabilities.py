@@ -80,7 +80,7 @@ async def test_packages_endpoint_404(client: AsyncClient, admin_user: User) -> N
 async def test_packages_endpoint_lists_seeded(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = Host(name="vh", hostname="vh.example.com", status="active")
+    host = Host(org_id=admin_user.org_id, name="vh", hostname="vh.example.com", status="active")
     db_session.add(host)
     await db_session.commit()
     await db_session.refresh(host)
@@ -105,7 +105,7 @@ async def test_packages_endpoint_lists_seeded(
 async def test_vulnerabilities_summary_with_seeded_data(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = Host(name="vh2", hostname="vh2.example.com", status="active")
+    host = Host(org_id=admin_user.org_id, name="vh2", hostname="vh2.example.com", status="active")
     db_session.add(host)
     await db_session.commit()
     await db_session.refresh(host)

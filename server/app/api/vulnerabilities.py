@@ -23,10 +23,11 @@ router = APIRouter(prefix="/api/v1/hosts", tags=["vulnerabilities"])
 async def list_packages(
     host_id: uuid.UUID,
     db: DbSession,
-    _: CurrentUser,
+    current: CurrentUser,
     limit: int = Query(default=500, ge=1, le=5000),
 ) -> list[HostPackage]:
-    if not await db.get(Host, host_id):
+    host = await db.get(Host, host_id)
+    if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
     result = await db.execute(
         select(HostPackage)
@@ -39,9 +40,10 @@ async def list_packages(
 
 @router.get("/{host_id}/vulnerabilities", response_model=HostVulnerabilitySummary)
 async def list_vulnerabilities(
-    host_id: uuid.UUID, db: DbSession, _: CurrentUser
+    host_id: uuid.UUID, db: DbSession, current: CurrentUser
 ) -> HostVulnerabilitySummary:
-    if not await db.get(Host, host_id):
+    host = await db.get(Host, host_id)
+    if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
 
     severity_order = case(
@@ -75,9 +77,10 @@ async def list_vulnerabilities(
 
 
 @router.post("/{host_id}/scan", status_code=202)
-async def trigger_scan(host_id: uuid.UUID, db: DbSession, _: CurrentUser) -> dict:
+async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: CurrentUser) -> dict:
     """Dispara scan manual (mesmo task que roda apos SubmitInventory)."""
-    if not await db.get(Host, host_id):
+    host = await db.get(Host, host_id)
+    if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
 
     summary = await scan_host(host_id)

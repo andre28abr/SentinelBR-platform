@@ -19,8 +19,8 @@ async def _login(client: AsyncClient, user: User) -> str:
     return r.json()["access_token"]
 
 
-async def _seed_host(db: AsyncSession, name: str = "host1") -> Host:
-    h = Host(name=name, hostname=f"{name}.example.com", status="active")
+async def _seed_host(db: AsyncSession, org_id, name: str = "host1") -> Host:
+    h = Host(org_id=org_id, name=name, hostname=f"{name}.example.com", status="active")
     db.add(h)
     await db.commit()
     await db.refresh(h)
@@ -65,7 +65,7 @@ async def test_list_requires_auth(client: AsyncClient) -> None:
 async def test_list_returns_recent_first(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     await _seed_alert(db_session, host, severity="high")
     await _seed_alert(db_session, host, severity="medium", st="resolved")
 
@@ -80,7 +80,7 @@ async def test_list_returns_recent_first(
 async def test_list_filters_by_status(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     await _seed_alert(db_session, host, st="open")
     await _seed_alert(db_session, host, st="resolved")
 
@@ -98,7 +98,7 @@ async def test_list_filters_by_status(
 async def test_count_returns_open_and_total(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     await _seed_alert(db_session, host, st="open")
     await _seed_alert(db_session, host, st="open")
     await _seed_alert(db_session, host, st="resolved")
@@ -113,7 +113,7 @@ async def test_count_returns_open_and_total(
 async def test_patch_updates_status(
     client: AsyncClient, admin_user: User, db_session: AsyncSession
 ) -> None:
-    host = await _seed_host(db_session)
+    host = await _seed_host(db_session, admin_user.org_id)
     alert = await _seed_alert(db_session, host)
 
     token = await _login(client, admin_user)
