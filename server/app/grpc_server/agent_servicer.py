@@ -6,6 +6,8 @@ host_id eh extraido do CN do cert do cliente, validado contra a tabela hosts.
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import datetime as dt
 import logging
 import uuid
@@ -16,8 +18,9 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.grpc_server.pb import agent_pb2, agent_pb2_grpc
-from app.models import Action, Host
+from app.models import Action, Host, HostPackage
 from app.services import loki
+from app.workers import vuln as vuln_tasks
 
 log = logging.getLogger(__name__)
 
@@ -163,6 +166,7 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
 
         batch: list[loki.IngestEvent] = []
         batch_size = 50
+        flush_interval_s = 2.0  # garante visibilidade rapida em dev/lab quando o batch nao enche
 
         async def flush() -> None:
             if not batch:
@@ -173,33 +177,104 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                 log.warning("falha push Loki: %s", e)
             batch.clear()
 
-        async for event in request_iterator:
-            event_host_id = uuid.UUID(event.host_id)
-            if peer_id is not None and peer_id != event_host_id:
-                await context.abort(
-                    grpc.StatusCode.PERMISSION_DENIED,
-                    "host_id no evento difere do CN do cert",
-                )
+        # Flush periodico em background — fecha quando o stream fecha (cancellation).
+        async def periodic_flush() -> None:
+            try:
+                while True:
+                    await asyncio.sleep(flush_interval_s)
+                    await flush()
+            except asyncio.CancelledError:
+                pass
 
-            has_ts = event.ts.seconds or event.ts.nanos
-            ts = event.ts.ToDatetime() if has_ts else dt.datetime.now(dt.UTC)
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=dt.UTC)
+        flush_task = asyncio.create_task(periodic_flush())
 
-            batch.append(loki.IngestEvent(
-                event_id=event.event_id,
-                host_id=event.host_id,
-                timestamp=ts,
-                source=event.source,
-                severity=event.severity or "info",
-                raw=event.raw,
-                fields=dict(event.fields),
-            ))
+        try:
+            async for event in request_iterator:
+                event_host_id = uuid.UUID(event.host_id)
+                if peer_id is not None and peer_id != event_host_id:
+                    await context.abort(
+                        grpc.StatusCode.PERMISSION_DENIED,
+                        "host_id no evento difere do CN do cert",
+                    )
 
-            yield agent_pb2.EventAck(event_id=event.event_id, stored=True)
+                has_ts = event.ts.seconds or event.ts.nanos
+                ts = event.ts.ToDatetime() if has_ts else dt.datetime.now(dt.UTC)
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=dt.UTC)
 
-            if len(batch) >= batch_size:
-                await flush()
+                batch.append(loki.IngestEvent(
+                    event_id=event.event_id,
+                    host_id=event.host_id,
+                    timestamp=ts,
+                    source=event.source,
+                    severity=event.severity or "info",
+                    raw=event.raw,
+                    fields=dict(event.fields),
+                ))
 
-        await flush()
-        log.info("StreamEvents fechado", extra={"host_id": str(peer_id)})
+                yield agent_pb2.EventAck(event_id=event.event_id, stored=True)
+
+                if len(batch) >= batch_size:
+                    await flush()
+        finally:
+            flush_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await flush_task
+            await flush()  # last best-effort flush
+            log.info("StreamEvents fechado", extra={"host_id": str(peer_id)})
+
+    async def SubmitInventory(  # noqa: N802
+        self,
+        request: agent_pb2.InventoryReport,
+        context: grpc.aio.ServicerContext,
+    ) -> agent_pb2.InventoryAck:
+        peer_id = _peer_host_id(context)
+        request_id = uuid.UUID(request.host_id)
+        if peer_id is not None and peer_id != request_id:
+            await context.abort(
+                grpc.StatusCode.PERMISSION_DENIED,
+                f"cert CN ({peer_id}) nao bate com host_id do inventory ({request_id})",
+            )
+
+        async with SessionLocal() as db:
+            host = await db.get(Host, request_id)
+            if host is None:
+                await context.abort(grpc.StatusCode.NOT_FOUND, "host nao registrado")
+
+            # Snapshot strategy: deleta tudo do host e re-insere. Simples e correto
+            # — pacotes patcheados/removidos somem do snapshot atual.
+            from sqlalchemy import delete
+            await db.execute(delete(HostPackage).where(HostPackage.host_id == request_id))
+
+            seen: set[tuple[str, str]] = set()
+            for pkg in request.packages:
+                key = (pkg.name, pkg.arch or "")
+                if key in seen:
+                    continue
+                seen.add(key)
+                db.add(HostPackage(
+                    host_id=request_id,
+                    name=pkg.name,
+                    version=pkg.version,
+                    arch=pkg.arch or "",
+                    source=request.source,
+                ))
+            await db.commit()
+            log.info(
+                "inventory recebido", extra={
+                    "host_id": str(request_id), "packages": len(seen), "source": request.source,
+                },
+            )
+
+        # Agenda scan OSV em background (fire-and-forget — vuln_scan eh idempotente).
+        try:
+            vuln_tasks.scan_host.delay(str(request_id))
+            scan_scheduled = True
+        except Exception as e:  # noqa: BLE001
+            log.warning("falha ao agendar scan vuln: %s", e)
+            scan_scheduled = False
+
+        return agent_pb2.InventoryAck(
+            packages_received=len(request.packages),
+            scan_scheduled=scan_scheduled,
+        )

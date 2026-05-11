@@ -83,8 +83,8 @@ web: ## roda vite dev server
 	cd $(WEB_DIR) && $(PNPM) dev
 
 .PHONY: server
-server: ## roda fastapi local (sem docker, precisa de db rodando via `make dev`)
-	cd $(SERVER_DIR) && $(UV) run uvicorn app.main:app --reload --port 8000
+server: ## roda fastapi local em 0.0.0.0:8000 (acessivel por VMs do OrbStack)
+	cd $(SERVER_DIR) && $(UV) run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 .PHONY: grpc
 grpc: ## roda gRPC server (mTLS) na porta 9443
@@ -160,6 +160,33 @@ proto-python:
 	@# fix imports: gerador escreve `import agent_pb2` mas precisamos `from . import agent_pb2`
 	@sed -i '' 's/^import agent_pb2/from . import agent_pb2/' $(SERVER_PB_DIR)/agent_pb2_grpc.py
 
+# ─── Lab (VMs vulneraveis no OrbStack) ────────────────────────────────────────
+
+LAB_DIR := samples/labs
+LAB_BIN := $(LAB_DIR)/bin/sentinel-agent-linux-arm64
+
+.PHONY: lab-build-agent
+lab-build-agent: ## cross-compila agente pra linux/arm64 (OrbStack VMs)
+	@mkdir -p $(LAB_DIR)/bin
+	cd $(AGENT_DIR) && GOOS=linux GOARCH=arm64 $(GO) build -o ../$(LAB_BIN) ./cmd/sentinel-agent
+	@echo "✓ binario em $(LAB_BIN)"
+
+.PHONY: lab-up
+lab-up: lab-build-agent ## sobe 4 VMs no OrbStack + agente + planta vulns (~5min)
+	@$(LAB_DIR)/up.sh
+
+.PHONY: lab-attack
+lab-attack: ## re-planta vulns nas VMs (renova webshells, brute-force, etc)
+	@$(LAB_DIR)/attack.sh
+
+.PHONY: lab-status
+lab-status: ## lista VMs do lab + status dos agentes
+	@$(LAB_DIR)/status.sh
+
+.PHONY: lab-down
+lab-down: ## destroi todas as VMs do lab (~10s)
+	@$(LAB_DIR)/down.sh
+
 # ─── Clean ────────────────────────────────────────────────────────────────────
 
 .PHONY: clean
@@ -168,3 +195,4 @@ clean: ## limpa artefatos de build
 	rm -rf $(SERVER_DIR)/.venv $(SERVER_DIR)/.pytest_cache $(SERVER_DIR)/.mypy_cache $(SERVER_DIR)/.ruff_cache
 	rm -rf $(WEB_DIR)/node_modules $(WEB_DIR)/dist
 	rm -rf $(PROTO_DIR)/gen
+	rm -rf $(LAB_DIR)/bin
