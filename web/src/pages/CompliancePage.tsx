@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react'
 import { useEffect, useState } from 'react'
 import {
   CartesianGrid,
@@ -155,9 +156,10 @@ export default function CompliancePage() {
               }
             }}
             disabled={downloadingPdf}
-            className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-xs font-medium disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-900 dark:hover:bg-emerald-950 text-emerald-50 text-xs font-medium disabled:opacity-50"
           >
-            {downloadingPdf ? 'Gerando…' : '📄 Baixar PDF'}
+            <Icon icon="lucide:download" className="text-sm" aria-hidden />
+            {downloadingPdf ? 'Gerando…' : 'Baixar PDF'}
           </button>
         </Tooltip>
       </div>

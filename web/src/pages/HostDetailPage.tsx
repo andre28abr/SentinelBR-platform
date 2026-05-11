@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -11,6 +12,15 @@ import Tooltip from '@/components/Tooltip'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
 import { ApiError, api } from '@/lib/api'
+
+function TabLabel({ icon, text }: { icon: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon icon={icon} className="text-base" aria-hidden />
+      {text}
+    </span>
+  )
+}
 
 interface Host {
   id: string
@@ -231,21 +241,29 @@ export default function HostDetailPage() {
 
       <Tabs
         items={[
-          { value: 'overview', label: '🖥 Visão geral', content: overview },
+          {
+            value: 'overview',
+            label: <TabLabel icon="lucide:layout-dashboard" text="Visão geral" />,
+            content: overview,
+          },
           {
             value: 'vulns',
-            label: '🛡 Vulnerabilidades',
+            label: <TabLabel icon="lucide:shield-alert" text="Vulnerabilidades" />,
             content: id ? <VulnerabilitiesTab hostId={id} /> : null,
           },
-          { value: 'antimalware', label: '🦠 Anti-malware', content: antimalware },
+          {
+            value: 'antimalware',
+            label: <TabLabel icon="lucide:bug" text="Anti-malware" />,
+            content: antimalware,
+          },
           {
             value: 'actions',
-            label: '⚡ Ações',
+            label: <TabLabel icon="lucide:zap" text="Ações" />,
             content: id ? <ActionsTab hostId={id} /> : null,
           },
           {
             value: 'events',
-            label: '📋 Eventos',
+            label: <TabLabel icon="lucide:scroll-text" text="Eventos" />,
             content: id ? <EventsTab hostId={id} /> : null,
           },
         ]}
