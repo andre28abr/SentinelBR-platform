@@ -6,6 +6,7 @@ import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import ClamavPanel from '@/components/ClamavPanel'
 import EventsTab from '@/components/EventsTab'
+import Tabs from '@/components/Tabs'
 import Tooltip from '@/components/Tooltip'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
@@ -105,20 +106,9 @@ export default function HostDetailPage() {
 
   if (!host) return <p className="p-6 text-sm text-zinc-500">Carregando…</p>
 
-  return (
-    <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <AppHeader />
-      <Breadcrumbs items={[{ label: 'Hosts', to: '/' }, { label: host.name }]} />
-
-      <section className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold">{host.name}</h1>
-          <StatusBadge status={host.status} />
-        </div>
-        <p className="text-sm text-zinc-500 font-mono">{host.hostname}</p>
-      </section>
-
-      <section className="mb-6">
+  const overview = (
+    <div className="space-y-6">
+      <section>
         <h2 className="text-sm font-semibold mb-2 text-zinc-500 uppercase tracking-wide">
           Sistema operacional
         </h2>
@@ -136,7 +126,7 @@ export default function HostDetailPage() {
         )}
       </section>
 
-      <section className="mb-6">
+      <section>
         <LocationEditor
           hostId={host.id}
           initial={host.location}
@@ -145,7 +135,7 @@ export default function HostDetailPage() {
       </section>
 
       {host.status !== 'active' && (
-        <section className="mb-6 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <section className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
           <h2 className="font-semibold mb-2">Instalar agente</h2>
           <p className="text-sm text-zinc-500 mb-3">
             Gere um token de uso unico (validade 60min) e cole o comando no host.
@@ -186,62 +176,80 @@ export default function HostDetailPage() {
       )}
 
       {host.status === 'active' && (
-        <section className="mb-6 p-4 rounded-lg border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950">
+        <section className="p-4 rounded-lg border border-green-300 dark:border-green-800 bg-green-50 dark:bg-green-950">
           <p className="text-sm text-green-900 dark:text-green-200">
             Agente conectado e enviando heartbeats.
           </p>
         </section>
       )}
 
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
-          Vulnerabilidades (CVEs)
-        </h2>
-        {id && <VulnerabilitiesTab hostId={id} />}
-      </section>
-
       {(host.services_running !== null || host.packages_upgradable !== null) && (
-        <section className="mb-6">
+        <section>
           <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
             Painel do sistema
           </h2>
           <SystemPanel host={host} />
         </section>
       )}
+    </div>
+  )
 
-      <section className="mb-6">
+  const antimalware = (
+    <div className="space-y-6">
+      <section>
         <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
-          Anti-malware (YARA)
+          YARA — Detecção por regras
         </h2>
         {id && <YaraPanel hostId={id} />}
       </section>
-
-      {host.clamav_installed && (
-        <section className="mb-6">
-          <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
-            Anti-vírus (ClamAV)
-          </h2>
-          <ClamavPanel
-            hostId={host.id}
-            version={host.clamav_version}
-            dbAgeDays={host.clamav_db_age_days}
-          />
-        </section>
-      )}
-
-      <section className="mb-6">
+      <section>
         <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
-          Ações de resposta
+          ClamAV — Antivírus por assinaturas
         </h2>
-        {id && <ActionsTab hostId={id} />}
+        <ClamavPanel
+          hostId={host.id}
+          installed={host.clamav_installed}
+          version={host.clamav_version}
+          dbAgeDays={host.clamav_db_age_days}
+        />
+      </section>
+    </div>
+  )
+
+  return (
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Hosts', to: '/' }, { label: host.name }]} />
+
+      <section className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-2xl font-bold">{host.name}</h1>
+          <StatusBadge status={host.status} />
+        </div>
+        <p className="text-sm text-zinc-500 font-mono">{host.hostname}</p>
       </section>
 
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
-          Eventos recentes
-        </h2>
-        {id && <EventsTab hostId={id} />}
-      </section>
+      <Tabs
+        items={[
+          { value: 'overview', label: '🖥 Visão geral', content: overview },
+          {
+            value: 'vulns',
+            label: '🛡 Vulnerabilidades',
+            content: id ? <VulnerabilitiesTab hostId={id} /> : null,
+          },
+          { value: 'antimalware', label: '🦠 Anti-malware', content: antimalware },
+          {
+            value: 'actions',
+            label: '⚡ Ações',
+            content: id ? <ActionsTab hostId={id} /> : null,
+          },
+          {
+            value: 'events',
+            label: '📋 Eventos',
+            content: id ? <EventsTab hostId={id} /> : null,
+          },
+        ]}
+      />
     </main>
   )
 }

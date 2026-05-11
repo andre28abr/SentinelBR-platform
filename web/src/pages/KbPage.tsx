@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { ApiError, api } from '@/lib/api'
 
 interface Technique {
@@ -11,9 +12,9 @@ interface Technique {
   severity: string
   url: string
   description: string
-  detection?: { rules?: string[]; signals?: string }
-  mitigation?: string[]
-  references?: string[]
+  detection?: { rules?: string[]; signals?: string } | null
+  mitigation?: string[] | null
+  references?: string[] | null
 }
 
 export default function KbPage() {
@@ -66,7 +67,9 @@ export default function KbPage() {
 
         <section className="md:col-span-2">
           {selected ? (
-            <TechniqueDetail t={selected} />
+            <ErrorBoundary key={selected.id}>
+              <TechniqueDetail t={selected} />
+            </ErrorBoundary>
           ) : (
             <p className="text-sm text-zinc-500 italic">
               Selecione uma técnica à esquerda para ver detalhes.
@@ -79,6 +82,11 @@ export default function KbPage() {
 }
 
 function TechniqueDetail({ t }: { t: Technique }) {
+  const rules = Array.isArray(t.detection?.rules) ? t.detection!.rules : []
+  const mitigation = Array.isArray(t.mitigation) ? t.mitigation : []
+  const references = Array.isArray(t.references) ? t.references : []
+  const signals = typeof t.detection?.signals === 'string' ? t.detection.signals : ''
+
   return (
     <article className="space-y-4">
       <header>
@@ -95,53 +103,62 @@ function TechniqueDetail({ t }: { t: Technique }) {
         <p className="text-sm whitespace-pre-wrap">{t.description}</p>
       </section>
 
-      {t.detection && (
+      {(rules.length > 0 || signals) && (
         <section>
           <h3 className="text-sm font-semibold uppercase text-zinc-500 mb-1">
             Detecção no SentinelBR
           </h3>
-          {t.detection.rules && (
+          {rules.length > 0 && (
             <ul className="text-sm list-disc list-inside mb-2">
-              {t.detection.rules.map((r) => (
-                <li key={r} className="font-mono">{r}</li>
+              {rules.map((r, i) => (
+                <li key={`${r}-${i}`} className="font-mono">
+                  {String(r)}
+                </li>
               ))}
             </ul>
           )}
-          {t.detection.signals && (
+          {signals && (
             <p className="text-sm whitespace-pre-wrap text-zinc-600 dark:text-zinc-400">
-              {t.detection.signals}
+              {signals}
             </p>
           )}
         </section>
       )}
 
-      {t.mitigation && (
+      {mitigation.length > 0 && (
         <section>
           <h3 className="text-sm font-semibold uppercase text-zinc-500 mb-1">Mitigação</h3>
           <ul className="text-sm list-disc list-inside space-y-1">
-            {t.mitigation.map((m, i) => (
-              <li key={i}>{m}</li>
+            {mitigation.map((m, i) => (
+              <li key={i}>{typeof m === 'string' ? m : JSON.stringify(m)}</li>
             ))}
           </ul>
         </section>
       )}
 
-      {t.references && (
+      {references.length > 0 && (
         <section>
           <h3 className="text-sm font-semibold uppercase text-zinc-500 mb-1">Referências</h3>
           <ul className="text-xs space-y-1">
-            {t.references.map((r) => (
-              <li key={r}>
-                <a
-                  href={r}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline break-all"
-                >
-                  {r}
-                </a>
-              </li>
-            ))}
+            {references.map((r, i) => {
+              const href = typeof r === 'string' ? r : ''
+              return (
+                <li key={`${href}-${i}`}>
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                    >
+                      {href}
+                    </a>
+                  ) : (
+                    <span className="text-zinc-400 italic">referência inválida</span>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}

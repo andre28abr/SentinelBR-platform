@@ -24,6 +24,8 @@ interface ScanAction {
 
 interface Props {
   hostId: string
+  /** se true, mostra UI de scan. Se false/null, mostra hint pra instalar. */
+  installed?: boolean | null
   /** versao reportada pelo agente (string completa do --version). */
   version?: string | null
   /** idade do signature DB em dias. >7 alerta. */
@@ -32,12 +34,50 @@ interface Props {
 
 const SUGGESTED_PATHS = ['/home', '/var/www', '/tmp', '/opt', '/srv']
 
-export default function ClamavPanel({ hostId, version, dbAgeDays }: Props) {
+export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: Props) {
   const [open, setOpen] = useState(false)
   const [path, setPath] = useState(SUGGESTED_PATHS[0])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastAction, setLastAction] = useState<ScanAction | null>(null)
+
+  // Estado 1: ClamAV nao instalado no host
+  if (!installed) {
+    return (
+      <div className="space-y-3 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-baseline gap-2">
+          <h3 className="text-sm font-semibold">
+            <Tooltip content="ClamAV — antivírus open-source com 1M+ assinaturas atualizadas diariamente. Complementa o YARA detectando malware já catalogado globalmente.">
+              <span className="cursor-help">🛡 ClamAV</span>
+            </Tooltip>
+          </h3>
+          <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-normal">
+            não detectado
+          </span>
+        </div>
+        <p className="text-sm text-zinc-500">
+          ClamAV não está instalado neste host. Pra ativar antivírus baseado em
+          assinaturas conhecidas, instale no servidor:
+        </p>
+        <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded">
+          <p className="text-[10px] uppercase text-zinc-500 mb-1">Debian / Ubuntu</p>
+          <code className="text-xs font-mono block">
+            sudo apt install clamav clamav-daemon && sudo freshclam
+          </code>
+        </div>
+        <div className="bg-zinc-100 dark:bg-zinc-900 p-3 rounded">
+          <p className="text-[10px] uppercase text-zinc-500 mb-1">RHEL / Fedora / Rocky</p>
+          <code className="text-xs font-mono block">
+            sudo dnf install clamav clamav-update && sudo freshclam
+          </code>
+        </div>
+        <p className="text-xs text-zinc-500 italic">
+          Depois de instalar, aguarde o próximo heartbeat (~30s) — esta página
+          atualiza automaticamente.
+        </p>
+      </div>
+    )
+  }
 
   async function submit() {
     setError(null)
