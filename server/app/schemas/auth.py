@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    org_slug: str | None = None  # opcional: valida que user pertence a essa org
 
 
 class TokenPair(BaseModel):

@@ -42,6 +42,25 @@ async def login(payload: LoginRequest, request: Request, db: DbSession) -> Token
         await db.commit()
         raise HTTPException(status_code=403, detail="usuario inativo")
 
+    # Se org_slug foi informado, valida membership. No MVP cada user pertence a
+    # 1 org, entao isso eh basicamente double-check "estou logando no tenant certo?"
+    if payload.org_slug:
+        from app.models import Organization
+        org = await db.get(Organization, user.org_id)
+        if org is None or org.slug != payload.org_slug:
+            await audit.log_action(
+                db,
+                action="login_failed",
+                actor=user,
+                request=request,
+                success=False,
+                details={"reason": "org_slug_mismatch", "tried_org": payload.org_slug},
+            )
+            await db.commit()
+            raise HTTPException(
+                status_code=401, detail="organizacao nao bate com a conta",
+            )
+
     await audit.log_action(db, action="login_success", actor=user, request=request)
     await db.commit()
 

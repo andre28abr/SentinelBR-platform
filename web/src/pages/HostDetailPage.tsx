@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 
 import ActionsTab from '@/components/ActionsTab'
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import EventsTab from '@/components/EventsTab'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
@@ -81,9 +83,8 @@ export default function HostDetailPage() {
   if (error && !host) {
     return (
       <main className="min-h-screen p-6 max-w-7xl mx-auto">
-        <Link to="/" className="text-sm text-zinc-500 hover:underline">
-          ← voltar
-        </Link>
+        <AppHeader />
+        <Breadcrumbs items={[{ label: 'Hosts', to: '/' }, { label: 'erro' }]} />
         <p className="mt-4 text-red-600">{error}</p>
       </main>
     )
@@ -93,17 +94,16 @@ export default function HostDetailPage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <Link to="/" className="text-sm text-zinc-500 hover:underline">
-        ← voltar
-      </Link>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Hosts', to: '/' }, { label: host.name }]} />
 
-      <header className="mt-4 mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+      <section className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-baseline justify-between">
           <h1 className="text-2xl font-bold">{host.name}</h1>
           <StatusBadge status={host.status} />
         </div>
         <p className="text-sm text-zinc-500 font-mono">{host.hostname}</p>
-      </header>
+      </section>
 
       <section className="mb-6">
         <h2 className="text-sm font-semibold mb-2 text-zinc-500 uppercase tracking-wide">

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { ApiError, api } from '@/lib/api'
 
 interface HuntingQuery {
@@ -29,16 +31,15 @@ export default function HuntingPage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <Link to="/" className="text-sm text-zinc-500 hover:underline">
-          ← voltar
-        </Link>
-        <h1 className="text-2xl font-bold mt-2">Hunting Queries</h1>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Hunting Queries' }]} />
+      <section className="mb-6">
+        <h1 className="text-2xl font-bold">Hunting Queries</h1>
         <p className="text-sm text-zinc-500">
           Buscas prontas que correlacionam padrões de ataque conhecidos. Clique em
           um host depois pra ver os eventos filtrados.
         </p>
-      </header>
+      </section>
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 

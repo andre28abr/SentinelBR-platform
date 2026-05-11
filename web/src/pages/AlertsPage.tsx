@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import ExplainPopover from '@/components/ExplainPopover'
 import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
 import { ApiError, api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 
 interface Alert {
   id: string
@@ -25,7 +26,6 @@ interface Alert {
 const REFRESH_MS = 5_000
 
 export default function AlertsPage() {
-  const { user, logout } = useAuthStore()
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -73,25 +73,8 @@ export default function AlertsPage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <header className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-sm text-zinc-500 hover:underline">
-            Hosts
-          </Link>
-          <span className="text-zinc-300 dark:text-zinc-700">/</span>
-          <h1 className="text-2xl font-bold">Alertas</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-zinc-500">{user?.email}</span>
-          <button
-            type="button"
-            onClick={logout}
-            className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            sair
-          </button>
-        </div>
-      </header>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Alertas' }]} />
 
       <div className="mb-4 flex gap-2 text-sm">
         {(['open', 'acknowledged', 'resolved', 'all'] as const).map((s) => (

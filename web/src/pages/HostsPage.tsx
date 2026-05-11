@@ -1,10 +1,10 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import AlertBadge from '@/components/AlertBadge'
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import OsIcon, { osLabel } from '@/components/OsIcon'
 import { ApiError, api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 
 interface Host {
   id: string
@@ -29,7 +29,6 @@ interface Host {
 const REFRESH_MS = 5_000
 
 export default function HostsPage() {
-  const { user, logout } = useAuthStore()
   const [hosts, setHosts] = useState<Host[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,55 +95,10 @@ export default function HostsPage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      {/* Header — 2 linhas: info / menu */}
-      <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
-        {/* Linha 1: titulo + contadores + org + user */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl font-bold">Hosts</h1>
-            <span className="text-sm text-zinc-500">
-              <span className="font-semibold text-green-600 dark:text-green-400">{activeCount}</span>
-              {' '}/{' '}{hosts.length}{' '}conectado{hosts.length === 1 ? '' : 's'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            {user?.org && (
-              <span className="text-zinc-500">
-                <span className="text-[10px] uppercase">org:</span>{' '}
-                <span className="font-mono text-zinc-700 dark:text-zinc-300">{user.org.name}</span>
-              </span>
-            )}
-            <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            <span className="text-zinc-500">{user?.email}</span>
-            <button
-              type="button"
-              onClick={logout}
-              className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-            >
-              sair
-            </button>
-          </div>
-        </div>
-        {/* Linha 2: menu de navegacao */}
-        <nav className="flex items-center gap-1 text-sm">
-          <AlertBadge />
-          <span className="text-zinc-300 dark:text-zinc-700 mx-2">|</span>
-          <Link to="/kb" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
-            ATT&CK
-          </Link>
-          <Link to="/hunting" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
-            Hunting
-          </Link>
-          <Link to="/purple-team" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
-            Purple Team
-          </Link>
-          <Link to="/compliance" className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100">
-            LGPD
-          </Link>
-        </nav>
-      </header>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Hosts' }]} />
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
@@ -152,6 +106,10 @@ export default function HostsPage() {
         >
           {showForm ? 'Cancelar' : '+ Novo host'}
         </button>
+        <span className="text-sm text-zinc-500">
+          <span className="font-semibold text-green-600 dark:text-green-400">{activeCount}</span>
+          {' '}/{' '}{hosts.length}{' '}conectado{hosts.length === 1 ? '' : 's'}
+        </span>
       </div>
 
       {showForm && (

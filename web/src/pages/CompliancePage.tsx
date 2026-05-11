@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { ApiError, api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 
 interface ComplianceReport {
   period_start: string
@@ -40,7 +40,6 @@ interface AuditLog {
 }
 
 export default function CompliancePage() {
-  const { user, logout } = useAuthStore()
   const [report, setReport] = useState<ComplianceReport | null>(null)
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [days, setDays] = useState(30)
@@ -79,25 +78,9 @@ export default function CompliancePage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <header className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-4">
-          <Link to="/" className="text-sm text-zinc-500 hover:underline">
-            Hosts
-          </Link>
-          <span className="text-zinc-300 dark:text-zinc-700">/</span>
-          <h1 className="text-2xl font-bold">Compliance LGPD</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="text-zinc-500">{user?.email}</span>
-          <button
-            type="button"
-            onClick={logout}
-            className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            sair
-          </button>
-        </div>
-      </header>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Compliance LGPD' }]} />
+      <h1 className="text-2xl font-bold mb-4">Compliance LGPD</h1>
 
       <div className="mb-4 flex items-center gap-3 text-sm">
         <span className="text-zinc-500">Periodo:</span>

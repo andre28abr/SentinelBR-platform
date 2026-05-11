@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 
+import AppHeader from '@/components/AppHeader'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import { ApiError, api } from '@/lib/api'
 
 interface Technique {
@@ -29,17 +30,14 @@ export default function KbPage() {
 
   return (
     <main className="min-h-screen p-6 max-w-7xl mx-auto">
-      <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <div>
-          <Link to="/" className="text-sm text-zinc-500 hover:underline">
-            ← voltar
-          </Link>
-          <h1 className="text-2xl font-bold mt-2">MITRE ATT&CK — Knowledge Base PT-BR</h1>
-          <p className="text-sm text-zinc-500">
-            Técnicas que o SentinelBR detecta hoje, com mitigações e referências.
-          </p>
-        </div>
-      </header>
+      <AppHeader />
+      <Breadcrumbs items={[{ label: 'Knowledge Base — MITRE ATT&CK' }]} />
+      <section className="mb-6">
+        <h1 className="text-2xl font-bold">MITRE ATT&CK — Knowledge Base PT-BR</h1>
+        <p className="text-sm text-zinc-500">
+          Técnicas que o SentinelBR detecta hoje, com mitigações e referências.
+        </p>
+      </section>
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
