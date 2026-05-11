@@ -28,3 +28,24 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1078/003/
   - https://www.linux.com/news/openssh-best-security-practices/
+
+summary_simple:
+  what_happened: |
+    Alguém tentou entrar no servidor diretamente como root (administrador
+    máximo do Linux). Em servidor bem configurado, isso NUNCA deveria
+    acontecer — root SSH deveria estar desabilitado.
+  should_worry: |
+    SIM, esse é um sinal sério. Pode significar:
+    1. Seu servidor está com PermitRootLogin ativado (vulnerável)
+    2. Atacante está reconhecendo seu servidor
+    3. Pior caso: alguém roubou credenciais e está testando
+  what_to_do:
+    - "URGENTE: Confirme que /etc/ssh/sshd_config tem PermitRootLogin no"
+    - "Reinicie sshd: sudo systemctl restart sshd"
+    - "Audite quem tem acesso sudo: cat /etc/sudoers e arquivos em /etc/sudoers.d/"
+    - "Se vir 'Accepted' como root no auth.log: troque TODAS as chaves SSH IMEDIATAMENTE"
+    - "Considere reinstalar o servidor se confirmar comprometimento"
+  jargon:
+    root: "Usuário com poder máximo no Linux — pode fazer qualquer coisa, incluindo apagar tudo"
+    PermitRootLogin: "Opção do SSH que permite login direto como root (boa prática: desabilitar)"
+    sudo: "Comando que dá poderes de root a um usuário comum temporariamente, sem precisar virar root"

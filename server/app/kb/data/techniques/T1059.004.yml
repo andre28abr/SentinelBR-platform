@@ -36,3 +36,23 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1059/004/
   - https://gtfobins.github.io
+
+summary_simple:
+  what_happened: |
+    Encontramos um script suspeito que usa o padrão clássico "curl X | bash"
+    — baixa um programa da internet e executa direto, sem você ver o que é.
+    É o anti-padrão favorito de atacantes pra rodar payload pós-invasão.
+  should_worry: |
+    Depende. Se VOCÊ instalou algo seguindo um tutorial sketchy ("curl
+    instalador.sh | bash"), é só hábito ruim. Se NÃO foi você, alguém
+    plantou script pra rodar payload de C2.
+  what_to_do:
+    - "Abra o arquivo e leia: cat <caminho-do-script>"
+    - "Veja se está em cron pra rodar sozinho: crontab -l && cat /etc/cron.d/*"
+    - "Verifique de onde tenta baixar: a URL é confiável? google ela"
+    - SentinelBR já quarantinou o arquivo
+    - "Hábito: NUNCA execute 'curl X | bash' de fontes não confiáveis. Sempre baixe, leia, AÍ execute"
+  jargon:
+    curl|bash: "Padrão onde você baixa um script e executa direto. Cômodo, mas perigoso porque você não vê o que está sendo executado"
+    payload: "Código malicioso que o atacante quer rodar — pode ser miner, webshell, ransomware..."
+    C2 (Command and Control): "Servidor do atacante que dá ordens pro malware na sua máquina"

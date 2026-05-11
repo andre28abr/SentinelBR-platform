@@ -31,3 +31,24 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1496/
   - https://github.com/xmrig/xmrig
+
+summary_simple:
+  what_happened: |
+    Encontramos um MINERADOR DE CRIPTOMOEDA no seu servidor. O atacante
+    invadiu, deixou um programinha que minera Monero (ou outra cripto) 24/7
+    usando SEU servidor — e o lucro vai pra carteira dele.
+  should_worry: |
+    Sim. Não é "só" sobre custo elétrico — significa que alguém INVADIU
+    seu servidor. Se conseguiu plantar miner, conseguiu plantar webshell,
+    keylogger, etc. Investigue como entrou.
+  what_to_do:
+    - Confirme se o miner está rodando como processo (ps aux | grep -E "xmrig|cgmining|minerd")
+    - "Veja CPU média: top — se ficou em 90%+ por dias é o miner ativo"
+    - O SentinelBR já quarantinou o config — agora mate o processo se ainda roda
+    - "Verifique cron e systemd: o miner pode ter agendamento pra ressuscitar (crontab -l, systemctl list-timers)"
+    - Auditar quem teve acesso SSH recente
+    - Considerar reinstalar o servidor
+  jargon:
+    cryptojacking: "Usar servidor invadido pra minerar cripto. Comum porque é silencioso (atacante quer ficar discreto)"
+    Monero: "Criptomoeda focada em privacidade — favorita de atacantes porque é difícil rastrear"
+    miner: "Programa que faz cálculos pesados pra ganhar cripto. Consome 90%+ de CPU"

@@ -42,8 +42,35 @@ def list_playbooks() -> list[dict[str, Any]]:
     return _load_dir("playbooks")
 
 
+@lru_cache(maxsize=1)
+def _load_action_types() -> dict[str, Any]:
+    """Carrega action_types.yml — explicacoes leigas por action_type."""
+    path = _KB_ROOT / "action_types.yml"
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def get_technique(tid: str) -> dict[str, Any] | None:
     for t in list_techniques():
         if t.get("id") == tid:
             return t
     return None
+
+
+def explain_rule(rule_id: str) -> dict[str, Any] | None:
+    """Dado um rule_id de detection (ex: ssh_brute_force_ip), retorna a tecnica
+    MITRE que cobre ele com o summary_simple. None se nao mapeado."""
+    for t in list_techniques():
+        det = t.get("detection") or {}
+        if rule_id in (det.get("rules") or []):
+            return t
+    return None
+
+
+def explain_action(action_type: str) -> dict[str, Any] | None:
+    """Dado um action_type (block_ip, quarantine_file, etc), retorna explicacao
+    leiga. None se action_type desconhecido."""
+    action_types = _load_action_types()
+    return action_types.get(action_type)

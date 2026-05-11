@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import ExplainPopover from '@/components/ExplainPopover'
 import { ApiError, api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -137,7 +138,10 @@ export default function AlertsPage() {
                       · {fmtRelative(a.last_event_at)}
                     </span>
                   </div>
-                  <p className="font-semibold">{a.rule_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">{a.rule_name}</p>
+                    <ExplainPopover kind="rule" ruleId={a.rule_id} />
+                  </div>
                   <p className="text-sm text-zinc-500">{a.description}</p>
                   {Object.entries(a.context).length > 0 && (
                     <p className="text-xs text-zinc-500 mt-1 font-mono">

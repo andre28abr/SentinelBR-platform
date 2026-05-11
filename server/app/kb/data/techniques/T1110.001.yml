@@ -31,3 +31,22 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1110/001/
   - https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-074a
+
+summary_simple:
+  what_happened: |
+    Alguém tentou várias senhas SSH no seu servidor pra entrar. Robôs fazem
+    isso o tempo todo varrendo a internet: vão chutando senhas comuns
+    (admin, root, password, 123456) até acertar.
+  should_worry: |
+    Sim. Se sua senha for fraca, eventualmente eles entram. Volume alto
+    (12+ tentativas em minutos) significa que tem alguém testando ativamente
+    no seu servidor agora.
+  what_to_do:
+    - "Verifique se algum login deu certo: rode `grep \"Accepted\" /var/log/auth.log` no servidor"
+    - O SentinelBR já bloqueou o IP no firewall (veja aba "Ações de resposta")
+    - Considere desabilitar senha SSH e usar só chave (PasswordAuthentication no em /etc/ssh/sshd_config)
+    - Confirme que sua conta de admin tem senha forte (mínimo 16 caracteres aleatórios)
+  jargon:
+    brute-force: "Atacante tenta milhares de senhas em sequência até uma funcionar"
+    auth.log: "Arquivo onde o Linux registra todas as tentativas de login (sucessos e falhas)"
+    SSH: "Protocolo que permite acessar e controlar o servidor remotamente via terminal"

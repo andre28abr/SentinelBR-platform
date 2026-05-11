@@ -34,3 +34,24 @@ mitigation:
 references:
   - https://attack.mitre.org/techniques/T1505/003/
   - https://github.com/Yara-Rules/rules/tree/master/webshells
+
+summary_simple:
+  what_happened: |
+    Encontramos um WEBSHELL no seu servidor — um arquivo PHP/JSP/ASPX
+    plantado pelo atacante. Funciona como um "controle remoto" do servidor
+    via navegador: o atacante abre a URL e roda qualquer comando.
+  should_worry: |
+    CRÍTICO. Significa que alguém já invadiu seu servidor (provavelmente
+    pelo seu site WordPress/Joomla com plugin vulnerável) e deixou esse
+    backdoor pra voltar depois. O ataque inicial pode ter sido semanas atrás.
+  what_to_do:
+    - O SentinelBR já moveu o arquivo pra quarentena (/var/sentinelbr/quarantine/)
+    - "Veja o IP que ESTAVA acessando esse arquivo: grep <nome-do-arquivo> /var/log/nginx/access.log"
+    - Atualize TODOS os plugins/temas do WordPress/Joomla
+    - Considere reinstalar o servidor do zero (atacante pode ter outros backdoors)
+    - "Restaure backup ANTERIOR à invasão (se confirmar a data)"
+    - "Troque TODAS as senhas e chaves SSH/API"
+  jargon:
+    webshell: "Arquivo malicioso que dá controle remoto do servidor via navegador. Backdoor persistente."
+    backdoor: "Entrada secreta deixada pelo atacante pra voltar depois, mesmo se você corrigir a falha original"
+    quarentena: "Pasta isolada onde arquivos maliciosos ficam sem poder ser executados, mas você ainda pode investigar"

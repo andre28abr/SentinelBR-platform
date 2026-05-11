@@ -119,3 +119,79 @@ async def test_endpoint_playbooks(client: AsyncClient, admin_user: User) -> None
     )
     assert r.status_code == 200
     assert len(r.json()) >= 2
+
+
+def test_explain_rule_maps_to_technique() -> None:
+    """ssh_brute_force_ip deve mapear pra T1110.001 (Adivinhacao de Senha)."""
+    kb.list_techniques.cache_clear()
+    tech = kb.explain_rule("ssh_brute_force_ip")
+    assert tech is not None
+    assert tech["id"] == "T1110.001"
+    assert "summary_simple" in tech
+
+
+def test_explain_rule_unknown_returns_none() -> None:
+    assert kb.explain_rule("rule_inexistente_xyz") is None
+
+
+def test_explain_action_block_ip() -> None:
+    kb._load_action_types.cache_clear()
+    e = kb.explain_action("block_ip")
+    assert e is not None
+    assert "what_happened" in e
+    assert "what_to_do" in e
+    assert isinstance(e["what_to_do"], list)
+
+
+def test_explain_action_unknown_returns_none() -> None:
+    assert kb.explain_action("acao_inexistente") is None
+
+
+@pytest.mark.asyncio
+async def test_endpoint_explain_rule(client: AsyncClient, admin_user: User) -> None:
+    token = await _login(client, admin_user)
+    r = await client.get(
+        "/api/v1/kb/explain?rule_id=ssh_brute_force_ip",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["kind"] == "rule"
+    assert body["technique"]["id"] == "T1110.001"
+
+
+@pytest.mark.asyncio
+async def test_endpoint_explain_action(client: AsyncClient, admin_user: User) -> None:
+    token = await _login(client, admin_user)
+    r = await client.get(
+        "/api/v1/kb/explain?action_type=quarantine_file",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["kind"] == "action"
+    assert "what_happened" in body["explainer"]
+
+
+@pytest.mark.asyncio
+async def test_endpoint_explain_missing_params(client: AsyncClient, admin_user: User) -> None:
+    token = await _login(client, admin_user)
+    r = await client.get(
+        "/api/v1/kb/explain",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_endpoint_explain_unknown_rule(client: AsyncClient, admin_user: User) -> None:
+    """rule_id desconhecido retorna 200 + technique=null (frontend decide UX)."""
+    token = await _login(client, admin_user)
+    r = await client.get(
+        "/api/v1/kb/explain?rule_id=mystery_rule",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["kind"] == "rule"
+    assert body["technique"] is None

@@ -5,7 +5,7 @@ Tudo read-only e publico para usuario autenticado (nao tem dado sensivel).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.api.deps import CurrentUser
 from app.services import kb
@@ -34,3 +34,34 @@ async def list_hunting_queries(_: CurrentUser) -> list[dict]:
 @router.get("/playbooks")
 async def list_playbooks(_: CurrentUser) -> list[dict]:
     return kb.list_playbooks()
+
+
+@router.get("/explain")
+async def explain(
+    _: CurrentUser,
+    rule_id: str | None = Query(
+        default=None, description="rule_id de alerta (ex: ssh_brute_force_ip)",
+    ),
+    action_type: str | None = Query(
+        default=None, description="action_type (ex: block_ip)",
+    ),
+) -> dict:
+    """Retorna explicacao leiga ("o que aconteceu? devo me preocupar? o que fazer?")
+    pra um rule_id de alerta OU action_type. UI usa pra popover ⓘ."""
+    if rule_id:
+        tech = kb.explain_rule(rule_id)
+        return {
+            "kind": "rule",
+            "key": rule_id,
+            "technique": tech,  # None se nao mapeado
+        }
+    if action_type:
+        explainer = kb.explain_action(action_type)
+        return {
+            "kind": "action",
+            "key": action_type,
+            "explainer": explainer,  # None se nao mapeado
+        }
+    raise HTTPException(
+        status_code=400, detail="precisa de ?rule_id=... OU ?action_type=...",
+    )

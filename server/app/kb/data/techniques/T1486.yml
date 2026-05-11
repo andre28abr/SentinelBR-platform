@@ -35,3 +35,28 @@ references:
   - https://attack.mitre.org/techniques/T1486/
   - https://www.cisa.gov/stopransomware
   - https://www.gov.br/gsi/pt-br/composicao/dsi/incidentes-em-redes
+
+summary_simple:
+  what_happened: |
+    Detectamos RANSOMWARE — programa que encripta seus arquivos e exige
+    resgate em cripto pra devolver. Famílias ativas no Brasil em 2024-2025:
+    LockBit, BlackCat, Akira, Royal. Geralmente entra por phishing ou RDP
+    fraco.
+  should_worry: |
+    EMERGÊNCIA. Se confirmar que arquivos já estão sendo encriptados,
+    DESCONECTE o servidor da rede AGORA (antes que se espalhe pra outros
+    servidores). Não pague o resgate — estatisticamente, muitos não recebem
+    chave funcionando.
+  what_to_do:
+    - "1. DESLIGA o cabo de rede / desativa interface (ip link set eth0 down)"
+    - "2. NÃO desliga o servidor (memória pode ter chaves de descriptografia)"
+    - "3. Tira foto/snapshot do estado pra forensics"
+    - "4. Restaure de backup OFFSITE — testado, imutável (não é backup que rodou só de ontem)"
+    - "5. Reporta ao CTIR.gov.br: incidentes@ctir.gov.br"
+    - "6. Polícia: SSP/Federal — pra registrar BO"
+    - "Plano de IR: NÃO PAGAR. Recupera de backup. Investiga como entrou"
+  jargon:
+    ransomware: "Tipo de malware que sequestra seus arquivos encriptando eles. Pede dinheiro pra devolver"
+    LGPD Art. 48: "Lei brasileira que OBRIGA notificar a ANPD em caso de vazamento — ransomware geralmente vaza dados"
+    CTIR: "Centro de Tratamento de Incidentes do governo brasileiro — você deve reportar incidentes graves"
+    backup OFFSITE: "Backup em outro lugar físico/cloud, separado da rede principal — ransomware não consegue alcançar"

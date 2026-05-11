@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import ExplainPopover from '@/components/ExplainPopover'
 import { ApiError, api } from '@/lib/api'
 
 interface Action {
@@ -99,7 +100,12 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
                 <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
                   {fmtTimeShort(a.created_at)}
                 </td>
-                <td className="px-3 py-2 font-medium">{a.action_type}</td>
+                <td className="px-3 py-2 font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    {a.action_type}
+                    <ExplainPopover kind="action" actionType={a.action_type} />
+                  </span>
+                </td>
                 <td className="px-3 py-2 font-mono">{a.target}</td>
                 <td className="px-3 py-2">
                   <StatusBadge status={a.status} />

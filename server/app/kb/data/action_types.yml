@@ -1,0 +1,66 @@
+# Explainers de cada tipo de Action que o SentinelBR cria.
+# Linguagem leiga: focado em ajudar usuario SMB que nao eh analyst.
+
+block_ip:
+  title: Bloqueio automático de IP
+  what_happened: |
+    O SentinelBR detectou ataque vindo de um IP e mandou pro agente bloquear
+    esse IP no firewall do servidor. Atacante não consegue mais se conectar.
+  should_worry: |
+    Sim, mas o pior já foi evitado — bloqueio aconteceu rápido. Considere
+    investigar o que o atacante tentou ANTES do bloqueio (logs do auth.log).
+  what_to_do:
+    - Veja o tempo entre primeiro evento e o bloqueio na aba "Ações"
+    - "Para REMOVER o bloqueio: clique em \"desbloquear\" se foi falso positivo"
+    - "Para tornar PERMANENTE: o block_ip atual expira no reboot. Adicione regra fixa: sudo nft add element inet sentinelbr blocked_ips { '<IP>' }"
+
+unblock_ip:
+  title: Desbloqueio de IP
+  what_happened: |
+    Você (ou algum operador) reverteu um bloqueio de IP. O IP volta a ter
+    acesso ao servidor através do firewall.
+  should_worry: |
+    Só se foi clicado por engano. Caso contrário, ação normal de reverter
+    um falso positivo (ex: bloqueou seu próprio IP de casa).
+  what_to_do:
+    - Se foi por engano, basta criar novo bloqueio via /alerts
+    - "Audite quem reverteu: aba LGPD mostra audit log com timestamp + IP"
+
+run_yara_scan:
+  title: Scan YARA agendado
+  what_happened: |
+    Pedimos pro agente escanear uma pasta procurando malware conhecido
+    (webshells, miners, ransomware). Pode ser scan manual (você clicou
+    "Escanear pasta…") ou agendado (todo dia 1x).
+  should_worry: |
+    Não. Scan rodando é o SentinelBR trabalhando. Se encontrar match
+    crítico, aparece alerta em /alerts (com botão ⓘ pra explicação).
+  what_to_do:
+    - Aguarde o scan terminar (geralmente <1min por pasta)
+    - "Se vier matches críticos: aba \"Eventos\" filtre por source=yara"
+    - "Para scan periódico: configure SENTINELBR_YARA_SCHEDULED_PATHS no .env"
+
+quarantine_file:
+  title: Quarentena de arquivo malicioso
+  what_happened: |
+    O SentinelBR moveu um arquivo malicioso pra pasta isolada de
+    quarentena. O arquivo continua existindo (pra forensics), mas não
+    pode mais ser executado.
+  should_worry: |
+    Depende do que foi quarantinado. Se foi webshell ou ransomware =
+    CRÍTICO. Se foi script suspeito mas comum = revise antes de pânico.
+  what_to_do:
+    - "Veja o arquivo em /var/sentinelbr/quarantine/<hash>.bin"
+    - "Sidecar JSON ao lado tem: caminho original, sha256, motivo, timestamp"
+    - "Para restaurar (se foi falso positivo): cp /var/sentinelbr/quarantine/<hash>.bin <caminho-original>"
+    - "Para preservar pra polícia/forensics: NÃO mova nem delete"
+
+run_check:
+  title: Verificação solicitada
+  what_happened: |
+    Operador pediu pro agente rodar uma verificação específica (depende
+    do check_id). Resultado vem no próximo heartbeat.
+  should_worry: |
+    Não. Ação rotineira de operação.
+  what_to_do:
+    - Aguarde resultado no próximo heartbeat (~30s)

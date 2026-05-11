@@ -39,3 +39,25 @@ references:
   - https://attack.mitre.org/techniques/T1068/
   - https://github.com/SecWiki/linux-kernel-exploits
   - https://gtfobins.github.io
+
+summary_simple:
+  what_happened: |
+    Detectamos várias ações negadas pelo SELinux/AppArmor em sequência —
+    significa que algum processo está tentando fazer coisa fora do que está
+    autorizado a fazer. Isso pode ser exploit tentando virar root.
+  should_worry: |
+    Possivelmente. Pequeno volume = perfil incompleto ou nova versão do
+    software. Burst grande de denials do mesmo processo = exploit ativo
+    sendo tentado.
+  what_to_do:
+    - "Veja os denials: ausearch -m AVC -ts recent (SELinux) ou journalctl | grep apparmor"
+    - "Identifique o processo: ps -p <pid>"
+    - É um processo legítimo? Pode ser regra incompleta — gere policy: audit2allow
+    - "É processo desconhecido? Investiga origem: how foi instalado, quem deployou"
+    - Confirme patches de kernel estão em dia (esse mês de CVEs críticas)
+    - Patches: sudo apt update && sudo apt upgrade
+  jargon:
+    SELinux/AppArmor: "Sistemas que confinam cada processo Linux a só fazer o que está autorizado. Se um exploit acontecer, limita o dano"
+    denial: "Quando um processo tenta fazer algo fora do perfil e o SO bloqueia. Pode ser bug ou exploit"
+    CVE: "Identificador único de uma vulnerabilidade conhecida. CVE-2021-3156 = Baron Samedit (sudo)"
+    exploit: "Programa que aproveita uma vulnerabilidade pra ganhar acesso/poder que não deveria ter"

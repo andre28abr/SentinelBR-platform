@@ -28,3 +28,22 @@ mitigation:
 
 references:
   - https://attack.mitre.org/techniques/T1110/003/
+
+summary_simple:
+  what_happened: |
+    Alguém tentou uma mesma senha contra muitos usuários diferentes do seu
+    servidor. É a versão "esperta" do brute-force: em vez de tentar mil
+    senhas no usuário "admin", tenta a senha "password123" em vários
+    usuários (admin, root, deploy, ubuntu, postgres...).
+  should_worry: |
+    Sim, principalmente se você tem usuários com nomes previsíveis. O
+    atacante provavelmente conseguiu uma lista de e-mails seus em algum
+    vazamento e agora testa senhas fracas.
+  what_to_do:
+    - Liste seus usuários SSH ativos e revise se algum tem senha óbvia
+    - Veja se algum login bem-sucedido aconteceu nessa janela de tempo
+    - SentinelBR bloqueou o IP — confira aba "Ações de resposta"
+    - Ative MFA pra todos os usuários SSH (libpam-google-authenticator)
+  jargon:
+    password spraying: "Tentar uma senha comum em muitos usuários — foge dos bloqueios que disparam em N falhas no mesmo user"
+    MFA: "Autenticação em 2 fatores — além da senha, precisa de um código do celular"
