@@ -170,3 +170,47 @@ async def test_compliance_report_returns_metrics(
     assert body["distinct_users_logged_in"] >= 1
     assert "audit_log_entries_in_period" in body
     assert "note" in body
+
+
+@pytest.mark.asyncio
+async def test_compliance_pdf_returns_pdf_bytes(
+    client: AsyncClient, admin_user: User,
+) -> None:
+    """PDF endpoint retorna application/pdf com bytes validos."""
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": admin_user.email, "password": "teste1234"},
+    )
+    token = login.json()["access_token"]
+    r = await client.get(
+        "/api/v1/compliance/report/pdf?days=7",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert "attachment" in r.headers["content-disposition"]
+    # Magic number do PDF
+    assert r.content.startswith(b"%PDF-")
+
+
+@pytest.mark.asyncio
+async def test_login_timeline_returns_daily_buckets(
+    client: AsyncClient, admin_user: User,
+) -> None:
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": admin_user.email, "password": "teste1234"},
+    )
+    token = login.json()["access_token"]
+    r = await client.get(
+        "/api/v1/compliance/login-timeline?days=7",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    points = r.json()
+    # 7 dias = 8 pontos (inclui start e end dates)
+    assert len(points) >= 7
+    for p in points:
+        assert "date" in p
+        assert "success" in p
+        assert "failed" in p

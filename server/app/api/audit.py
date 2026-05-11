@@ -6,14 +6,24 @@ import datetime as dt
 import uuid
 
 from fastapi import APIRouter, Query
-from sqlalchemy import func, select
+from fastapi.responses import Response
+from pydantic import BaseModel
+from sqlalchemy import cast, func, select
+from sqlalchemy.types import Date
 
 from app.api.deps import CurrentUser, DbSession
-from app.models import Action, Alert, AuditLog, Host
+from app.models import Action, Alert, AuditLog, Host, Organization
 from app.schemas.audit_log import AuditLogResponse
 from app.schemas.compliance import ComplianceReport
+from app.services import pdf_report
 
 router = APIRouter(prefix="/api/v1", tags=["compliance"])
+
+
+class LoginTimelinePoint(BaseModel):
+    date: str  # YYYY-MM-DD
+    success: int
+    failed: int
 
 
 @router.get("/audit-logs", response_model=list[AuditLogResponse])
@@ -185,3 +195,65 @@ async def compliance_report(
         audit_log_entries_in_period=audit_entries,
         audit_retention_days=180,  # fixo por enquanto; vira config futura
     )
+
+
+@router.get("/compliance/report/pdf")
+async def compliance_report_pdf(
+    db: DbSession, current: CurrentUser, days: int = Query(default=30, ge=1, le=365)
+) -> Response:
+    """Mesmo report do endpoint JSON, mas renderizado como PDF (LGPD Art. 37)."""
+    report = await compliance_report(db, current, days)
+    org = await db.get(Organization, current.org_id)
+    org_name = org.name if org else "Organizacao"
+    pdf_bytes = pdf_report.render(report, org_name=org_name)
+    filename = f"compliance-{dt.datetime.now(dt.UTC).strftime('%Y%m%d')}-{days}d.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/compliance/login-timeline", response_model=list[LoginTimelinePoint])
+async def login_timeline(
+    db: DbSession, current: CurrentUser, days: int = Query(default=30, ge=1, le=365),
+) -> list[LoginTimelinePoint]:
+    """Serie temporal diaria de logins (success vs failed) — pra grafico de linha."""
+    end = dt.datetime.now(dt.UTC)
+    start = end - dt.timedelta(days=days)
+    org_or_global = (AuditLog.org_id == current.org_id) | (AuditLog.org_id.is_(None))
+
+    day_col = cast(AuditLog.created_at, Date).label("day")
+    rows = (
+        await db.execute(
+            select(day_col, AuditLog.action, func.count().label("n"))
+            .where(
+                AuditLog.action.in_(("login_success", "login_failed")),
+                AuditLog.created_at >= start,
+                org_or_global,
+            )
+            .group_by(day_col, AuditLog.action)
+            .order_by(day_col)
+        )
+    ).all()
+
+    # Agrega em dict {date: {success, failed}}
+    bucket: dict[str, dict[str, int]] = {}
+    for day, action, n in rows:
+        key = day.isoformat()
+        bucket.setdefault(key, {"success": 0, "failed": 0})
+        if action == "login_success":
+            bucket[key]["success"] = n
+        else:
+            bucket[key]["failed"] = n
+
+    # Garante pontos pra todos os dias do periodo (mesmo zero)
+    out: list[LoginTimelinePoint] = []
+    cur = start.date()
+    end_date = end.date()
+    while cur <= end_date:
+        key = cur.isoformat()
+        data = bucket.get(key, {"success": 0, "failed": 0})
+        out.append(LoginTimelinePoint(date=key, success=data["success"], failed=data["failed"]))
+        cur += dt.timedelta(days=1)
+    return out

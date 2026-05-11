@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
+import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 
 interface ComplianceReport {
   period_start: string
@@ -39,12 +51,21 @@ interface AuditLog {
   created_at: string
 }
 
+interface TimelinePoint {
+  date: string
+  success: number
+  failed: number
+}
+
 export default function CompliancePage() {
+  const { accessToken } = useAuthStore()
   const [report, setReport] = useState<ComplianceReport | null>(null)
   const [logs, setLogs] = useState<AuditLog[]>([])
+  const [timeline, setTimeline] = useState<TimelinePoint[]>([])
   const [days, setDays] = useState(30)
   const [actionFilter, setActionFilter] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -55,6 +76,14 @@ export default function CompliancePage() {
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof ApiError ? String(e.detail) : 'erro')
+      })
+    api
+      .get<TimelinePoint[]>(`/api/v1/compliance/login-timeline?days=${days}`)
+      .then((r) => {
+        if (!cancelled) setTimeline(r)
+      })
+      .catch(() => {
+        // ignora — chart eh feature secundaria
       })
     return () => {
       cancelled = true
@@ -82,7 +111,7 @@ export default function CompliancePage() {
       <Breadcrumbs items={[{ label: 'Compliance LGPD' }]} />
       <h1 className="text-2xl font-bold mb-4">Compliance LGPD</h1>
 
-      <div className="mb-4 flex items-center gap-3 text-sm">
+      <div className="mb-4 flex items-center gap-3 text-sm flex-wrap">
         <span className="text-zinc-500">Periodo:</span>
         {[7, 30, 90, 180].map((d) => (
           <button
@@ -98,7 +127,92 @@ export default function CompliancePage() {
             {d}d
           </button>
         ))}
+        <span className="text-zinc-300 dark:text-zinc-700">|</span>
+        <Tooltip content="Baixa o relatório como PDF — pronto pra apresentar ao DPO (LGPD Art. 37)">
+          <button
+            type="button"
+            onClick={async () => {
+              setDownloadingPdf(true)
+              try {
+                const resp = await fetch(
+                  `/api/v1/compliance/report/pdf?days=${days}`,
+                  { headers: { Authorization: `Bearer ${accessToken}` } },
+                )
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+                const blob = await resp.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `compliance-${new Date().toISOString().slice(0, 10)}-${days}d.pdf`
+                document.body.appendChild(a)
+                a.click()
+                a.remove()
+                URL.revokeObjectURL(url)
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'erro ao baixar PDF')
+              } finally {
+                setDownloadingPdf(false)
+              }
+            }}
+            disabled={downloadingPdf}
+            className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-xs font-medium disabled:opacity-50"
+          >
+            {downloadingPdf ? 'Gerando…' : '📄 Baixar PDF'}
+          </button>
+        </Tooltip>
       </div>
+
+      {timeline.length > 0 && (
+        <section className="mb-6 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
+          <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
+            Logins ao longo do tempo
+          </h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={timeline} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'currentColor' }}
+                  className="text-zinc-500"
+                  tickFormatter={(d: string) => d.slice(5)} // MM-DD
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'currentColor' }}
+                  className="text-zinc-500"
+                  allowDecimals={false}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    background: 'rgb(24 24 27)',
+                    border: '1px solid rgb(63 63 70)',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                  }}
+                  labelStyle={{ color: 'rgb(228 228 231)' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Line
+                  type="monotone"
+                  dataKey="success"
+                  name="Sucesso"
+                  stroke="#059669"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="failed"
+                  name="Falhados"
+                  stroke="#dc2626"
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
 
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
