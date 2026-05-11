@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models import Alert
 from app.schemas.alert import AlertResponse, AlertUpdate
+from app.services import audit
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
@@ -57,13 +58,27 @@ async def get_alert(alert_id: uuid.UUID, db: DbSession, _: CurrentUser) -> Alert
 async def update_alert(
     alert_id: uuid.UUID,
     payload: AlertUpdate,
+    request: Request,
     db: DbSession,
-    _: CurrentUser,
+    current: CurrentUser,
 ) -> Alert:
     alert = await db.get(Alert, alert_id)
     if alert is None:
         raise HTTPException(status_code=404, detail="alerta nao encontrado")
+    old_status = alert.status
     alert.status = payload.status
+
+    action_name = (
+        "alert_acknowledged" if payload.status == "acknowledged"
+        else "alert_resolved" if payload.status == "resolved"
+        else "alert_status_changed"
+    )
+    await audit.log_action(
+        db, action=action_name, actor=current, request=request,
+        target_type="alert", target_id=alert_id,
+        details={"old_status": old_status, "new_status": payload.status,
+                 "rule_id": alert.rule_id},
+    )
     await db.commit()
     await db.refresh(alert)
     return alert

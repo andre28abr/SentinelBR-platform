@@ -20,7 +20,7 @@ celery_app = Celery(
     "sentinelbr",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["app.workers.detect"],
+    include=["app.workers.detect", "app.workers.retention"],
 )
 
 celery_app.conf.update(
@@ -35,6 +35,11 @@ celery_app.conf.update(
         "detect-every-30s": {
             "task": "app.workers.detect.run_cycle",
             "schedule": schedule(run_every=30.0),
+        },
+        # Retencao roda 1x por dia (LGPD Art. 16). Em prod ajustar pra hora especifica.
+        "retention-daily": {
+            "task": "app.workers.retention.cleanup_audit_logs",
+            "schedule": schedule(run_every=86400.0),
         },
     },
 )

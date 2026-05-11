@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
@@ -8,7 +8,7 @@ from app.config import get_settings
 from app.models import Host
 from app.schemas.enrollment import EnrollmentTokenResponse
 from app.schemas.host import HostCreate, HostResponse, HostUpdate
-from app.services import enrollment
+from app.services import audit, enrollment
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["hosts"])
 
@@ -20,13 +20,21 @@ async def list_hosts(db: DbSession, _: CurrentUser) -> list[Host]:
 
 
 @router.post("", response_model=HostResponse, status_code=status.HTTP_201_CREATED)
-async def create_host(payload: HostCreate, db: DbSession, current: CurrentUser) -> Host:
+async def create_host(
+    payload: HostCreate, request: Request, db: DbSession, current: CurrentUser
+) -> Host:
     host = Host(
         name=payload.name,
         hostname=payload.hostname,
         created_by_id=current.id,
     )
     db.add(host)
+    await db.flush()
+    await audit.log_action(
+        db, action="host_created", actor=current, request=request,
+        target_type="host", target_id=host.id,
+        details={"name": host.name, "hostname": host.hostname},
+    )
     await db.commit()
     await db.refresh(host)
     return host
@@ -57,10 +65,17 @@ async def update_host(
 
 
 @router.delete("/{host_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_host(host_id: uuid.UUID, db: DbSession, _: CurrentUser) -> None:
+async def delete_host(
+    host_id: uuid.UUID, request: Request, db: DbSession, current: CurrentUser
+) -> None:
     host = await db.get(Host, host_id)
     if host is None:
         raise HTTPException(status_code=404, detail="host nao encontrado")
+    await audit.log_action(
+        db, action="host_deleted", actor=current, request=request,
+        target_type="host", target_id=host_id,
+        details={"name": host.name, "hostname": host.hostname},
+    )
     await db.delete(host)
     await db.commit()
 

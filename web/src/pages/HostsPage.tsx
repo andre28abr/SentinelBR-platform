@@ -83,6 +83,9 @@ export default function HostsPage() {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <AlertBadge />
+          <Link to="/compliance" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+            LGPD
+          </Link>
           <span className="text-zinc-500">{user?.email}</span>
           <button
             type="button"

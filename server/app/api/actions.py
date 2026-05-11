@@ -5,12 +5,13 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
 from app.models import Action, Host
 from app.schemas.action import ActionResponse, ActionUpdate
+from app.services import audit
 
 router = APIRouter(prefix="/api/v1", tags=["actions"])
 
@@ -30,7 +31,8 @@ async def list_actions_for_host(
 
 @router.patch("/actions/{action_id}", response_model=ActionResponse)
 async def revert_action(
-    action_id: uuid.UUID, payload: ActionUpdate, db: DbSession, _: CurrentUser
+    action_id: uuid.UUID, payload: ActionUpdate, request: Request,
+    db: DbSession, current: CurrentUser,
 ) -> Action:
     action = await db.get(Action, action_id)
     if action is None:
@@ -55,6 +57,11 @@ async def revert_action(
         action.status = "reverted"
         action.reverted_at = dt.datetime.now(dt.UTC)
 
+    await audit.log_action(
+        db, action="action_reverted", actor=current, request=request,
+        target_type="action", target_id=action_id,
+        details={"action_type": action.action_type, "target": action.target},
+    )
     await db.commit()
     await db.refresh(action)
     return action

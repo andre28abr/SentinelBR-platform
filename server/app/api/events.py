@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.api.deps import CurrentUser, DbSession
 from app.models import Host
 from app.schemas.event import EventResponse
-from app.services import loki
+from app.services import loki, pii
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["events"])
 
@@ -24,6 +24,7 @@ async def list_events(
     source: str | None = Query(default=None),
     hours: int = Query(default=24, ge=1, le=168),
     limit: int = Query(default=100, ge=1, le=500),
+    mask_pii: bool = Query(default=False, description="LGPD: mascara IPs/emails/CPF na resposta"),
 ) -> list[EventResponse]:
     host = await db.get(Host, host_id)
     if host is None:
@@ -35,14 +36,16 @@ async def list_events(
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"Loki indisponivel: {e}") from e
 
-    return [
-        EventResponse(
+    out: list[EventResponse] = []
+    for e in events:
+        raw = pii.mask_string(e.raw) if mask_pii else e.raw
+        fields = pii.mask_dict(e.fields) if mask_pii else e.fields
+        out.append(EventResponse(
             event_id=e.event_id,
             timestamp=e.timestamp,
             source=e.source,
             severity=e.severity,
-            raw=e.raw,
-            fields=e.fields,
-        )
-        for e in events
-    ]
+            raw=raw,
+            fields=fields,
+        ))
+    return out

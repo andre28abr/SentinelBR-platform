@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     grpc_public_endpoint: str = Field(default="localhost:9443")
     grpc_listen_addr: str = Field(default="[::]:9443")
 
+    # LGPD: retencao de audit logs em dias. Default 180 (~6 meses).
+    audit_retention_days: int = Field(default=180)
+
 
 @lru_cache
 def get_settings() -> Settings:
