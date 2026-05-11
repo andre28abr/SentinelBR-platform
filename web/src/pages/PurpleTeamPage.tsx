@@ -26,7 +26,7 @@ export default function PurpleTeamPage() {
   }, [])
 
   return (
-    <main className="min-h-screen p-6 max-w-5xl mx-auto">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
       <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <Link to="/" className="text-sm text-zinc-500 hover:underline">
           ← voltar

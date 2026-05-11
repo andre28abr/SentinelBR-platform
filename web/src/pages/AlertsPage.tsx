@@ -72,7 +72,7 @@ export default function AlertsPage() {
   }
 
   return (
-    <main className="min-h-screen p-6 max-w-5xl mx-auto">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
       <header className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-4">
           <Link to="/" className="text-sm text-zinc-500 hover:underline">

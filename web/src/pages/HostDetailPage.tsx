@@ -80,7 +80,7 @@ export default function HostDetailPage() {
 
   if (error && !host) {
     return (
-      <main className="min-h-screen p-6 max-w-3xl mx-auto">
+      <main className="min-h-screen p-6 max-w-7xl mx-auto">
         <Link to="/" className="text-sm text-zinc-500 hover:underline">
           ← voltar
         </Link>
@@ -92,7 +92,7 @@ export default function HostDetailPage() {
   if (!host) return <p className="p-6 text-sm text-zinc-500">Carregando…</p>
 
   return (
-    <main className="min-h-screen p-6 max-w-3xl mx-auto">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
       <Link to="/" className="text-sm text-zinc-500 hover:underline">
         ← voltar
       </Link>

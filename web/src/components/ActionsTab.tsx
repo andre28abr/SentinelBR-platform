@@ -101,13 +101,13 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
         <table className="w-full text-xs">
           <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
             <tr>
-              <th className="px-3 py-2 font-medium text-zinc-500">Quando</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Tipo</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Target</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Status</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Motivo</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Detalhes</th>
-              <th className="px-3 py-2 font-medium text-zinc-500 text-right">Ações</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Quando</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Tipo</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Target</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Status</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Motivo</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Detalhes</th>
+              <th className="px-4 py-3 font-medium text-zinc-500 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -116,26 +116,26 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
                 key={a.id}
                 className="border-t border-zinc-100 dark:border-zinc-800"
               >
-                <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
+                <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
                   {fmtTimeShort(a.created_at)}
                 </td>
-                <td className="px-3 py-2 font-medium">{a.action_type}</td>
-                <td className="px-3 py-2 font-mono">{a.target}</td>
-                <td className="px-3 py-2">
+                <td className="px-4 py-3 font-medium">{a.action_type}</td>
+                <td className="px-4 py-3 font-mono">{a.target}</td>
+                <td className="px-4 py-3">
                   <StatusBadge status={a.status} />
                   {a.error_message && (
                     <p className="text-[10px] text-red-600 mt-1 max-w-xs">{a.error_message}</p>
                   )}
                 </td>
-                <td className="px-3 py-2 text-zinc-500 max-w-xs truncate">{a.reason}</td>
-                <td className="px-3 py-2">
+                <td className="px-4 py-3 text-zinc-500 max-w-xs truncate">{a.reason}</td>
+                <td className="px-4 py-3">
                   <ExplainPopover
                     kind="action"
                     actionType={a.action_type}
                     variant="link"
                   />
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-4 py-3 text-right">
                   <RowActionsMenu items={buildActions(a)} />
                 </td>
               </tr>

@@ -112,18 +112,18 @@ export default function VulnerabilitiesTab({ hostId }: { hostId: string }) {
           <table className="w-full text-xs">
             <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
               <tr>
-                <th className="px-3 py-2 font-medium text-zinc-500">CVE</th>
-                <th className="px-3 py-2 font-medium text-zinc-500">Sev</th>
-                <th className="px-3 py-2 font-medium text-zinc-500">CVSS</th>
-                <th className="px-3 py-2 font-medium text-zinc-500">Pacote</th>
-                <th className="px-3 py-2 font-medium text-zinc-500">Fix</th>
-                <th className="px-3 py-2 font-medium text-zinc-500">Detalhes</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">CVE</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">Sev</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">CVSS</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">Pacote</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">Fix</th>
+                <th className="px-4 py-3 font-medium text-zinc-500">Detalhes</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((v) => (
                 <tr key={v.id} className="border-t border-zinc-100 dark:border-zinc-800">
-                  <td className="px-3 py-2 font-mono">
+                  <td className="px-4 py-3 font-mono">
                     <a
                       href={`https://nvd.nist.gov/vuln/detail/${v.cve_id}`}
                       target="_blank"
@@ -133,20 +133,20 @@ export default function VulnerabilitiesTab({ hostId }: { hostId: string }) {
                       {v.cve_id}
                     </a>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <SeverityBadge severity={v.severity} />
                   </td>
-                  <td className="px-3 py-2 font-mono text-zinc-500">
+                  <td className="px-4 py-3 font-mono text-zinc-500">
                     {v.cvss_score?.toFixed(1) ?? '—'}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <span className="font-mono">{v.package_name}</span>
                     <span className="text-zinc-500"> {v.installed_version}</span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-zinc-500">
+                  <td className="px-4 py-3 font-mono text-zinc-500">
                     {v.fixed_version ?? '—'}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <ExplainPopover kind="cve" cve={v} variant="link" />
                   </td>
                 </tr>

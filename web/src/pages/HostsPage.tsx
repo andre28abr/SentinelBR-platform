@@ -95,7 +95,7 @@ export default function HostsPage() {
   const activeCount = hosts.filter((h) => h.status === 'active').length
 
   return (
-    <main className="min-h-screen p-6 max-w-5xl mx-auto">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
       {/* Header — 2 linhas: info / menu */}
       <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
         {/* Linha 1: titulo + contadores + org + user */}

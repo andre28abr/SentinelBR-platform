@@ -122,11 +122,11 @@ export default function EventsTab({ hostId }: { hostId: string }) {
         <table className="w-full text-xs">
           <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
             <tr>
-              <th className="px-3 py-2 font-medium text-zinc-500">Quando</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Severidade</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Source</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Resumo</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Detalhes</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Quando</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Severidade</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Source</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Resumo</th>
+              <th className="px-4 py-3 font-medium text-zinc-500">Detalhes</th>
             </tr>
           </thead>
           <tbody>
@@ -135,17 +135,17 @@ export default function EventsTab({ hostId }: { hostId: string }) {
                 key={e.event_id || `${e.timestamp}-${e.raw}`}
                 className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
               >
-                <td className="px-3 py-2 font-mono whitespace-nowrap text-zinc-500">
+                <td className="px-4 py-3 font-mono whitespace-nowrap text-zinc-500">
                   {fmtTimeShort(e.timestamp)}
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <SeverityBadge severity={e.severity} />
                 </td>
-                <td className="px-3 py-2 font-mono text-zinc-500">{e.source}</td>
-                <td className="px-3 py-2">
+                <td className="px-4 py-3 font-mono text-zinc-500">{e.source}</td>
+                <td className="px-4 py-3">
                   <EventDetail ev={e} />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-4 py-3">
                   <ExplainPopover
                     kind="event"
                     event={{

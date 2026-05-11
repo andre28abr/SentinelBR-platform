@@ -28,7 +28,7 @@ export default function KbPage() {
   }, [])
 
   return (
-    <main className="min-h-screen p-6 max-w-6xl mx-auto">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto">
       <header className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
         <div>
           <Link to="/" className="text-sm text-zinc-500 hover:underline">
