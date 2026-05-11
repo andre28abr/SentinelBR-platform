@@ -148,6 +148,14 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                 host.packages_upgradable = stats.packages_upgradable
                 host.listening_ports = stats.listening_ports
                 host.cron_jobs = stats.cron_jobs
+                # Security tools (Fase H1) — sempre persiste bools/counts
+                host.fail2ban_installed = stats.fail2ban_installed
+                host.fail2ban_banned_ips = stats.fail2ban_banned_ips
+                host.fail2ban_jails_active = stats.fail2ban_jails_active
+                host.firewall_active = stats.firewall_active
+                host.auditd_active = stats.auditd_active
+                host.rkhunter_installed = stats.rkhunter_installed
+                host.lynis_installed = stats.lynis_installed
 
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)

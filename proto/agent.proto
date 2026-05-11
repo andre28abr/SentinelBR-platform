@@ -106,6 +106,16 @@ message HostStats {
   uint32 packages_upgradable = 15;
   uint32 listening_ports = 16;
   uint32 cron_jobs = 17;
+  // Security tools detection (Fase H1) — toolbox de hardening do host.
+  // Cada campo diz se a ferramenta esta instalada/ativa pra UI decidir se
+  // mostra painel de interacao.
+  bool fail2ban_installed = 18;
+  uint32 fail2ban_banned_ips = 19;    // soma de IPs banidos em todos jails
+  uint32 fail2ban_jails_active = 20;  // numero de jails configurados
+  string firewall_active = 21;        // "ufw" | "firewalld" | "nftables" | "iptables" | ""
+  bool auditd_active = 22;
+  bool rkhunter_installed = 23;
+  bool lynis_installed = 24;
 }
 
 message HeartbeatResponse {

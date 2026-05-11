@@ -47,3 +47,10 @@ class HostResponse(BaseModel):
     packages_upgradable: int | None = None
     listening_ports: int | None = None
     cron_jobs: int | None = None
+    fail2ban_installed: bool | None = None
+    fail2ban_banned_ips: int | None = None
+    fail2ban_jails_active: int | None = None
+    firewall_active: str | None = None
+    auditd_active: bool | None = None
+    rkhunter_installed: bool | None = None
+    lynis_installed: bool | None = None

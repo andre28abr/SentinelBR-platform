@@ -9,6 +9,7 @@ import ClamavPanel from '@/components/ClamavPanel'
 import EventsTab from '@/components/EventsTab'
 import Tabs from '@/components/Tabs'
 import Tooltip from '@/components/Tooltip'
+import ToolsPanel from '@/components/ToolsPanel'
 import VulnerabilitiesTab from '@/components/VulnerabilitiesTab'
 import YaraPanel from '@/components/YaraPanel'
 import { ApiError, api } from '@/lib/api'
@@ -43,6 +44,13 @@ interface Host {
   packages_upgradable: number | null
   listening_ports: number | null
   cron_jobs: number | null
+  fail2ban_installed: boolean | null
+  fail2ban_banned_ips: number | null
+  fail2ban_jails_active: number | null
+  firewall_active: string | null
+  auditd_active: boolean | null
+  rkhunter_installed: boolean | null
+  lynis_installed: boolean | null
 }
 
 interface EnrollmentToken {
@@ -255,6 +263,11 @@ export default function HostDetailPage() {
             value: 'antimalware',
             label: <TabLabel icon="lucide:bug" text="Anti-malware" />,
             content: antimalware,
+          },
+          {
+            value: 'tools',
+            label: <TabLabel icon="lucide:wrench" text="Ferramentas" />,
+            content: <ToolsPanel host={host} />,
           },
           {
             value: 'actions',

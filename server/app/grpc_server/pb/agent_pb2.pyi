@@ -104,7 +104,7 @@ class CommandResult(_message.Message):
     def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
-    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs")
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs", "fail2ban_installed", "fail2ban_banned_ips", "fail2ban_jails_active", "firewall_active", "auditd_active", "rkhunter_installed", "lynis_installed")
     LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
     MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -122,6 +122,13 @@ class HostStats(_message.Message):
     PACKAGES_UPGRADABLE_FIELD_NUMBER: _ClassVar[int]
     LISTENING_PORTS_FIELD_NUMBER: _ClassVar[int]
     CRON_JOBS_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_INSTALLED_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_BANNED_IPS_FIELD_NUMBER: _ClassVar[int]
+    FAIL2BAN_JAILS_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    FIREWALL_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    AUDITD_ACTIVE_FIELD_NUMBER: _ClassVar[int]
+    RKHUNTER_INSTALLED_FIELD_NUMBER: _ClassVar[int]
+    LYNIS_INSTALLED_FIELD_NUMBER: _ClassVar[int]
     load_avg_1m: float
     mem_used_bytes: int
     mem_total_bytes: int
@@ -139,7 +146,14 @@ class HostStats(_message.Message):
     packages_upgradable: int
     listening_ports: int
     cron_jobs: int
-    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ...) -> None: ...
+    fail2ban_installed: bool
+    fail2ban_banned_ips: int
+    fail2ban_jails_active: int
+    firewall_active: str
+    auditd_active: bool
+    rkhunter_installed: bool
+    lynis_installed: bool
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ..., fail2ban_installed: bool = ..., fail2ban_banned_ips: _Optional[int] = ..., fail2ban_jails_active: _Optional[int] = ..., firewall_active: _Optional[str] = ..., auditd_active: bool = ..., rkhunter_installed: bool = ..., lynis_installed: bool = ...) -> None: ...
 
 class HeartbeatResponse(_message.Message):
     __slots__ = ("server_ts", "pending_commands")

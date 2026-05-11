@@ -56,6 +56,16 @@ class Host(Base):
     listening_ports: Mapped[int | None] = mapped_column(Integer)
     cron_jobs: Mapped[int | None] = mapped_column(Integer)
 
+    # Security tools detection (Fase H1) — quais ferramentas o agente
+    # detectou instaladas. UI mostra paineis condicionais.
+    fail2ban_installed: Mapped[bool | None] = mapped_column(Boolean)
+    fail2ban_banned_ips: Mapped[int | None] = mapped_column(Integer)
+    fail2ban_jails_active: Mapped[int | None] = mapped_column(Integer)
+    firewall_active: Mapped[str | None] = mapped_column(String(20))  # ufw|firewalld|nftables|iptables|""
+    auditd_active: Mapped[bool | None] = mapped_column(Boolean)
+    rkhunter_installed: Mapped[bool | None] = mapped_column(Boolean)
+    lynis_installed: Mapped[bool | None] = mapped_column(Boolean)
+
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

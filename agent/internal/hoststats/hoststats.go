@@ -17,6 +17,7 @@ import (
 	"github.com/sentinelbr/agent/internal/clamavdetect"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 	"github.com/sentinelbr/agent/internal/sysadmin"
+	"github.com/sentinelbr/agent/internal/toolsdetect"
 )
 
 // Collect retorna um snapshot atual. Erros sao silenciados (campo fica zero).
@@ -58,6 +59,16 @@ func Collect() *pb.HostStats {
 	stats.PackagesUpgradable = sysadmin.CountPackagesUpgradable()
 	stats.ListeningPorts = sysadmin.CountListeningPorts()
 	stats.CronJobs = sysadmin.CountCronJobs()
+
+	// Security tools detection (Fase H1) — best-effort.
+	tools := toolsdetect.Detect()
+	stats.Fail2BanInstalled = tools.Fail2banInstalled
+	stats.Fail2BanBannedIps = tools.Fail2banBannedIPs
+	stats.Fail2BanJailsActive = tools.Fail2banJailsActive
+	stats.FirewallActive = tools.FirewallActive
+	stats.AuditdActive = tools.AuditdActive
+	stats.RkhunterInstalled = tools.RkhunterInstalled
+	stats.LynisInstalled = tools.LynisInstalled
 
 	return stats
 }

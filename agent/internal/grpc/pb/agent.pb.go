@@ -545,8 +545,18 @@ type HostStats struct {
 	PackagesUpgradable uint32 `protobuf:"varint,15,opt,name=packages_upgradable,json=packagesUpgradable,proto3" json:"packages_upgradable,omitempty"`
 	ListeningPorts     uint32 `protobuf:"varint,16,opt,name=listening_ports,json=listeningPorts,proto3" json:"listening_ports,omitempty"`
 	CronJobs           uint32 `protobuf:"varint,17,opt,name=cron_jobs,json=cronJobs,proto3" json:"cron_jobs,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Security tools detection (Fase H1) — toolbox de hardening do host.
+	// Cada campo diz se a ferramenta esta instalada/ativa pra UI decidir se
+	// mostra painel de interacao.
+	Fail2BanInstalled   bool   `protobuf:"varint,18,opt,name=fail2ban_installed,json=fail2banInstalled,proto3" json:"fail2ban_installed,omitempty"`
+	Fail2BanBannedIps   uint32 `protobuf:"varint,19,opt,name=fail2ban_banned_ips,json=fail2banBannedIps,proto3" json:"fail2ban_banned_ips,omitempty"`       // soma de IPs banidos em todos jails
+	Fail2BanJailsActive uint32 `protobuf:"varint,20,opt,name=fail2ban_jails_active,json=fail2banJailsActive,proto3" json:"fail2ban_jails_active,omitempty"` // numero de jails configurados
+	FirewallActive      string `protobuf:"bytes,21,opt,name=firewall_active,json=firewallActive,proto3" json:"firewall_active,omitempty"`                   // "ufw" | "firewalld" | "nftables" | "iptables" | ""
+	AuditdActive        bool   `protobuf:"varint,22,opt,name=auditd_active,json=auditdActive,proto3" json:"auditd_active,omitempty"`
+	RkhunterInstalled   bool   `protobuf:"varint,23,opt,name=rkhunter_installed,json=rkhunterInstalled,proto3" json:"rkhunter_installed,omitempty"`
+	LynisInstalled      bool   `protobuf:"varint,24,opt,name=lynis_installed,json=lynisInstalled,proto3" json:"lynis_installed,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *HostStats) Reset() {
@@ -696,6 +706,55 @@ func (x *HostStats) GetCronJobs() uint32 {
 		return x.CronJobs
 	}
 	return 0
+}
+
+func (x *HostStats) GetFail2BanInstalled() bool {
+	if x != nil {
+		return x.Fail2BanInstalled
+	}
+	return false
+}
+
+func (x *HostStats) GetFail2BanBannedIps() uint32 {
+	if x != nil {
+		return x.Fail2BanBannedIps
+	}
+	return 0
+}
+
+func (x *HostStats) GetFail2BanJailsActive() uint32 {
+	if x != nil {
+		return x.Fail2BanJailsActive
+	}
+	return 0
+}
+
+func (x *HostStats) GetFirewallActive() string {
+	if x != nil {
+		return x.FirewallActive
+	}
+	return ""
+}
+
+func (x *HostStats) GetAuditdActive() bool {
+	if x != nil {
+		return x.AuditdActive
+	}
+	return false
+}
+
+func (x *HostStats) GetRkhunterInstalled() bool {
+	if x != nil {
+		return x.RkhunterInstalled
+	}
+	return false
+}
+
+func (x *HostStats) GetLynisInstalled() bool {
+	if x != nil {
+		return x.LynisInstalled
+	}
+	return false
 }
 
 type HeartbeatResponse struct {
@@ -1576,7 +1635,7 @@ const file_agent_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\".sentinelbr.agent.v1.CommandStatusR\x06status\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12;\n" +
 	"\vexecuted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"executedAt\"\x9d\x05\n" +
+	"executedAt\"\xd6\a\n" +
 	"\tHostStats\x12\x1e\n" +
 	"\vload_avg_1m\x18\x01 \x01(\x01R\tloadAvg1m\x12$\n" +
 	"\x0emem_used_bytes\x18\x02 \x01(\x04R\fmemUsedBytes\x12&\n" +
@@ -1596,7 +1655,14 @@ const file_agent_proto_rawDesc = "" +
 	"\x0fservices_failed\x18\x0e \x01(\rR\x0eservicesFailed\x12/\n" +
 	"\x13packages_upgradable\x18\x0f \x01(\rR\x12packagesUpgradable\x12'\n" +
 	"\x0flistening_ports\x18\x10 \x01(\rR\x0elisteningPorts\x12\x1b\n" +
-	"\tcron_jobs\x18\x11 \x01(\rR\bcronJobs\"\x95\x01\n" +
+	"\tcron_jobs\x18\x11 \x01(\rR\bcronJobs\x12-\n" +
+	"\x12fail2ban_installed\x18\x12 \x01(\bR\x11fail2banInstalled\x12.\n" +
+	"\x13fail2ban_banned_ips\x18\x13 \x01(\rR\x11fail2banBannedIps\x122\n" +
+	"\x15fail2ban_jails_active\x18\x14 \x01(\rR\x13fail2banJailsActive\x12'\n" +
+	"\x0ffirewall_active\x18\x15 \x01(\tR\x0efirewallActive\x12#\n" +
+	"\rauditd_active\x18\x16 \x01(\bR\fauditdActive\x12-\n" +
+	"\x12rkhunter_installed\x18\x17 \x01(\bR\x11rkhunterInstalled\x12'\n" +
+	"\x0flynis_installed\x18\x18 \x01(\bR\x0elynisInstalled\"\x95\x01\n" +
 	"\x11HeartbeatResponse\x127\n" +
 	"\tserver_ts\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bserverTs\x12G\n" +
 	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\xee\x03\n" +
