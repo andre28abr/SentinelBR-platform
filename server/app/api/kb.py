@@ -45,23 +45,22 @@ async def explain(
     action_type: str | None = Query(
         default=None, description="action_type (ex: block_ip)",
     ),
+    event_source: str | None = Query(
+        default=None, description="event.source (sshd, yara, selinux, apparmor)",
+    ),
 ) -> dict:
-    """Retorna explicacao leiga ("o que aconteceu? devo me preocupar? o que fazer?")
-    pra um rule_id de alerta OU action_type. UI usa pra popover ⓘ."""
+    """Retorna explicacao leiga pra um rule_id, action_type ou event_source.
+    UI usa pra popover ⓘ / link "ver"."""
     if rule_id:
         tech = kb.explain_rule(rule_id)
-        return {
-            "kind": "rule",
-            "key": rule_id,
-            "technique": tech,  # None se nao mapeado
-        }
+        return {"kind": "rule", "key": rule_id, "technique": tech}
     if action_type:
         explainer = kb.explain_action(action_type)
-        return {
-            "kind": "action",
-            "key": action_type,
-            "explainer": explainer,  # None se nao mapeado
-        }
+        return {"kind": "action", "key": action_type, "explainer": explainer}
+    if event_source:
+        explainer = kb.explain_event_source(event_source)
+        return {"kind": "event", "key": event_source, "explainer": explainer}
     raise HTTPException(
-        status_code=400, detail="precisa de ?rule_id=... OU ?action_type=...",
+        status_code=400,
+        detail="precisa de ?rule_id=..., ?action_type=... OU ?event_source=...",
     )

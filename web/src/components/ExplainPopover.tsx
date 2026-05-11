@@ -46,15 +46,43 @@ interface CveData {
   references?: string | null
 }
 
-type Props =
+interface EventData {
+  source: string
+  fields: Record<string, string>
+  raw: string
+  timestamp: string
+  severity: string
+}
+
+type ExplainKind =
   | { kind: 'rule'; ruleId: string }
   | { kind: 'action'; actionType: string }
   | { kind: 'cve'; cve: CveData }
+  | { kind: 'event'; event: EventData }
+
+/** variant:
+ *   "icon"  — botão ⓘ pequeno (default, inline)
+ *   "link"  — texto "ver" estilo link, ideal pra coluna "Detalhes" em tabela
+ */
+type Props = ExplainKind & { variant?: 'icon' | 'link'; label?: string }
 
 export default function ExplainPopover(props: Props) {
   const [open, setOpen] = useState(false)
-  return (
-    <>
+  const variant = props.variant ?? 'icon'
+
+  const trigger =
+    variant === 'link' ? (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen(true)
+        }}
+        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+      >
+        {props.label ?? 'ver'}
+      </button>
+    ) : (
       <button
         type="button"
         onClick={(e) => {
@@ -67,7 +95,11 @@ export default function ExplainPopover(props: Props) {
       >
         ?
       </button>
+    )
 
+  return (
+    <>
+      {trigger}
       {open && <ExplainModal {...props} onClose={() => setOpen(false)} />}
     </>
   )
@@ -86,6 +118,7 @@ function ExplainModal({ onClose, ...props }: Props & { onClose: () => void }) {
         {props.kind === 'rule' && <RuleExplain ruleId={props.ruleId} />}
         {props.kind === 'action' && <ActionExplain actionType={props.actionType} />}
         {props.kind === 'cve' && <CveExplain cve={props.cve} />}
+        {props.kind === 'event' && <EventExplain event={props.event} />}
 
         <footer className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 flex justify-end">
           <button
@@ -239,6 +272,66 @@ function CveExplain({ cve }: { cve: CveData }) {
       )}
     </Body>
   )
+}
+
+interface EventSourceExplainer {
+  title: string
+  what: string
+  fields: Record<string, string>
+}
+
+function EventExplain({ event }: { event: EventData }) {
+  const [src, setSrc] = useState<EventSourceExplainer | null | undefined>(undefined)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    api
+      .get<{ explainer: EventSourceExplainer | null }>(
+        `/api/v1/kb/explain?event_source=${encodeURIComponent(event.source)}`,
+      )
+      .then((d) => setSrc(d.explainer))
+      .catch((e) => setErr(e instanceof ApiError ? String(e.detail) : 'erro'))
+  }, [event.source])
+
+  if (err) return <ErrorState message={err} />
+
+  const action = event.fields['event.action']
+  const title = src?.title || action || `Evento ${event.source}`
+  const subtitle = `Source: ${event.source} · ${new Date(event.timestamp).toLocaleString('pt-BR')}`
+
+  return (
+    <Body title={title} subtitle={subtitle} severity={event.severity}>
+      {src && (
+        <>
+          <Section title="O que é esse evento?" text={src.what} />
+        </>
+      )}
+      {src === undefined && <p className="text-xs text-zinc-500 italic mb-3">Carregando contexto…</p>}
+
+      <section className="mb-4">
+        <h3 className="text-xs font-semibold uppercase text-zinc-500 mb-1">Campos parseados</h3>
+        <dl className="text-xs grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1">
+          {Object.entries(event.fields).map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="font-mono text-zinc-500">{describeField(k, src?.fields)}:</dt>
+              <dd className="font-mono break-all">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section className="mb-2">
+        <h3 className="text-xs font-semibold uppercase text-zinc-500 mb-1">Linha original (log)</h3>
+        <pre className="text-[11px] bg-zinc-100 dark:bg-zinc-900 p-3 rounded overflow-x-auto whitespace-pre-wrap break-all">
+          {event.raw || '(vazio)'}
+        </pre>
+      </section>
+    </Body>
+  )
+}
+
+function describeField(key: string, descriptions?: Record<string, string>): string {
+  return descriptions?.[key] || key
 }
 
 function Body({

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import ExplainPopover from '@/components/ExplainPopover'
 import { ApiError, api } from '@/lib/api'
 
 interface EventItem {
@@ -124,7 +125,8 @@ export default function EventsTab({ hostId }: { hostId: string }) {
               <th className="px-3 py-2 font-medium text-zinc-500">Quando</th>
               <th className="px-3 py-2 font-medium text-zinc-500">Severidade</th>
               <th className="px-3 py-2 font-medium text-zinc-500">Source</th>
-              <th className="px-3 py-2 font-medium text-zinc-500">Detalhe</th>
+              <th className="px-3 py-2 font-medium text-zinc-500">Resumo</th>
+              <th className="px-3 py-2 font-medium text-zinc-500">Detalhes</th>
             </tr>
           </thead>
           <tbody>
@@ -142,6 +144,19 @@ export default function EventsTab({ hostId }: { hostId: string }) {
                 <td className="px-3 py-2 font-mono text-zinc-500">{e.source}</td>
                 <td className="px-3 py-2">
                   <EventDetail ev={e} />
+                </td>
+                <td className="px-3 py-2">
+                  <ExplainPopover
+                    kind="event"
+                    event={{
+                      source: e.source,
+                      fields: e.fields,
+                      raw: e.raw,
+                      timestamp: e.timestamp,
+                      severity: e.severity,
+                    }}
+                    variant="link"
+                  />
                 </td>
               </tr>
             ))}

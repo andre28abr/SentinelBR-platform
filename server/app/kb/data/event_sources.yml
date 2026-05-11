@@ -1,0 +1,81 @@
+# Explicacoes leigas por event.source — usado no popover ⓘ da aba Eventos.
+# Cada entry pode ter:
+#   title: nome curto que aparece como header
+#   what: 1-3 frases explicando de onde veio o evento + por que importa
+#   fields: dicionario {field_key -> descricao} pra renderizar nomes amigaveis
+#           nos fields parseados (ex: "source.ip" vira "IP de origem")
+
+sshd:
+  title: Evento de autenticação SSH
+  what: |
+    Linha do arquivo /var/log/auth.log do Linux, gerada pelo daemon SSH quando
+    alguém tenta logar. Inclui sucessos (Accepted) e falhas (Failed). Cada
+    tentativa de login no servidor passa por aqui — é a primeira fonte que
+    o SentinelBR olha pra detectar ataques de força bruta.
+  fields:
+    "event.action": Tipo da tentativa
+    "event.outcome": Resultado
+    "event.reason": Motivo da falha
+    "user.name": Usuário
+    "user.valid": Usuário existe no sistema?
+    "source.ip": IP de origem
+    "source.port": Porta de origem
+    "auth.method": Método de autenticação
+    "process.name": Processo
+
+yara:
+  title: Match YARA — arquivo suspeito detectado
+  what: |
+    O agente escaneou um arquivo no host e ele bateu com uma regra YARA
+    (assinatura de malware). Pode ser webshell, miner, ransomware,
+    backdoor — depende da regra que casou. Severity critical dispara
+    auto-quarentena pela policy.
+  fields:
+    "event.action": Tipo do evento
+    "event.outcome": Resultado
+    "event.category": Categoria
+    "yara.rule_name": Regra que casou
+    "yara.severity": Severidade da regra
+    "yara.tags": Tags da regra
+    "yara.scan_reason": Por que rodou (manual_ui, scheduled, filewatcher)
+    "file.path": Caminho do arquivo
+
+selinux:
+  title: Denial do SELinux (mandatory access control)
+  what: |
+    O SELinux negou uma operação que estava fora do perfil esperado de um
+    processo. Em servidor saudável, esses denials são raros. Burst do mesmo
+    source_type pode indicar exploit ou misconfiguration.
+  fields:
+    "selinux.source_type": Contexto do processo
+    "selinux.target_type": Contexto do recurso alvo
+    "selinux.target_class": Classe do recurso (file, dir, socket...)
+    "selinux.permission": Permissão negada
+    "process.name": Processo
+
+apparmor:
+  title: Denial do AppArmor (mandatory access control)
+  what: |
+    O AppArmor negou uma operação fora do perfil do processo. Equivalente
+    do SELinux para Ubuntu/Debian. Burst do mesmo profile pode indicar
+    exploit ou perfil desatualizado.
+  fields:
+    "apparmor.profile": Perfil do processo
+    "apparmor.operation": Operação negada
+    "apparmor.name": Recurso alvo
+    "process.name": Processo
+
+quarantine:
+  title: Arquivo movido para quarentena
+  what: |
+    O agente moveu um arquivo malicioso da localização original para a pasta
+    /var/sentinelbr/quarantine/. O arquivo continua existindo (pra forensics)
+    mas não pode mais ser executado. Hash sha256 calculado e gravado em
+    sidecar JSON.
+  fields:
+    "event.action": Ação executada
+    "event.outcome": Resultado
+    "file.path": Caminho original
+    "file.hash.sha256": SHA256 do arquivo
+    "quarantine.path": Destino na quarentena
+    "quarantine.reason": Por que foi quarantinado

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import ExplainPopover from '@/components/ExplainPopover'
+import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
 import { ApiError, api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -138,10 +139,7 @@ export default function AlertsPage() {
                       · {fmtRelative(a.last_event_at)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">{a.rule_name}</p>
-                    <ExplainPopover kind="rule" ruleId={a.rule_id} />
-                  </div>
+                  <p className="font-semibold">{a.rule_name}</p>
                   <p className="text-sm text-zinc-500">{a.description}</p>
                   {Object.entries(a.context).length > 0 && (
                     <p className="text-xs text-zinc-500 mt-1 font-mono">
@@ -151,25 +149,14 @@ export default function AlertsPage() {
                     </p>
                   )}
                 </div>
-                <div className="flex flex-col gap-1 text-xs">
-                  {a.status === 'open' && (
-                    <button
-                      type="button"
-                      onClick={() => changeStatus(a.id, 'acknowledged')}
-                      className="px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    >
-                      reconhecer
-                    </button>
-                  )}
-                  {a.status !== 'resolved' && (
-                    <button
-                      type="button"
-                      onClick={() => changeStatus(a.id, 'resolved')}
-                      className="px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    >
-                      resolver
-                    </button>
-                  )}
+                <div className="flex items-start gap-3 text-xs">
+                  <ExplainPopover
+                    kind="rule"
+                    ruleId={a.rule_id}
+                    variant="link"
+                    label="ver detalhes"
+                  />
+                  <RowActionsMenu items={buildAlertActions(a, changeStatus)} />
                 </div>
               </div>
             </article>
@@ -178,6 +165,20 @@ export default function AlertsPage() {
       )}
     </main>
   )
+}
+
+function buildAlertActions(
+  a: Alert,
+  changeStatus: (id: string, status: 'acknowledged' | 'resolved') => Promise<void>,
+): MenuItem[] {
+  const items: MenuItem[] = []
+  if (a.status === 'open') {
+    items.push({ label: 'Reconhecer', onClick: () => changeStatus(a.id, 'acknowledged') })
+  }
+  if (a.status !== 'resolved') {
+    items.push({ label: 'Resolver', onClick: () => changeStatus(a.id, 'resolved') })
+  }
+  return items
 }
 
 function SeverityBadge({ severity }: { severity: string }) {

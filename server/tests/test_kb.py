@@ -195,3 +195,32 @@ async def test_endpoint_explain_unknown_rule(client: AsyncClient, admin_user: Us
     body = r.json()
     assert body["kind"] == "rule"
     assert body["technique"] is None
+
+
+def test_explain_event_source_sshd() -> None:
+    """sshd deve mapear pra explainer com title + what + fields."""
+    kb._load_event_sources.cache_clear()
+    e = kb.explain_event_source("sshd")
+    assert e is not None
+    assert "title" in e
+    assert "what" in e
+    assert "fields" in e
+    assert "source.ip" in e["fields"]
+
+
+def test_explain_event_source_unknown_returns_none() -> None:
+    assert kb.explain_event_source("source_inexistente") is None
+
+
+@pytest.mark.asyncio
+async def test_endpoint_explain_event_source(client: AsyncClient, admin_user: User) -> None:
+    token = await _login(client, admin_user)
+    r = await client.get(
+        "/api/v1/kb/explain?event_source=yara",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["kind"] == "event"
+    assert body["explainer"]["title"]
+    assert "yara.rule_name" in body["explainer"]["fields"]

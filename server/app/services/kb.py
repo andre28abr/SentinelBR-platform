@@ -52,6 +52,20 @@ def _load_action_types() -> dict[str, Any]:
         return yaml.safe_load(fh) or {}
 
 
+@lru_cache(maxsize=1)
+def _load_event_sources() -> dict[str, Any]:
+    """Carrega event_sources.yml — explicacoes leigas por event.source.
+
+    Usado pelo popover de Eventos pra explicar "o que eh sshd?", "o que eh yara?",
+    e renderizar nomes amigaveis pros fields parseados.
+    """
+    path = _KB_ROOT / "event_sources.yml"
+    if not path.is_file():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
 def get_technique(tid: str) -> dict[str, Any] | None:
     for t in list_techniques():
         if t.get("id") == tid:
@@ -74,3 +88,10 @@ def explain_action(action_type: str) -> dict[str, Any] | None:
     leiga. None se action_type desconhecido."""
     action_types = _load_action_types()
     return action_types.get(action_type)
+
+
+def explain_event_source(event_source: str) -> dict[str, Any] | None:
+    """Dado um event.source (sshd, yara, selinux, apparmor, quarantine), retorna
+    explicacao leiga + dict de campo->descricao. None se desconhecido."""
+    sources = _load_event_sources()
+    return sources.get(event_source)

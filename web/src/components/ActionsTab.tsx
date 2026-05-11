@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
+import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
 import { ApiError, api } from '@/lib/api'
 
 interface Action {
@@ -61,6 +62,23 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
     }
   }
 
+  async function copyId(id: string) {
+    try {
+      await navigator.clipboard.writeText(id)
+    } catch {
+      // ignore
+    }
+  }
+
+  function buildActions(a: Action): MenuItem[] {
+    const items: MenuItem[] = []
+    if (a.action_type === 'block_ip' && a.status === 'executed') {
+      items.push({ label: 'Desbloquear IP', onClick: () => revert(a.id) })
+    }
+    items.push({ label: 'Copiar ID', onClick: () => copyId(a.id) })
+    return items
+  }
+
   if (loading) return <p className="text-sm text-zinc-500">Carregando ações…</p>
   if (error) return <p className="text-sm text-red-600">{error}</p>
 
@@ -79,7 +97,7 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
       <p className="text-xs text-zinc-500">
         {actions.length} ações · auto-refresh {REFRESH_MS / 1000}s
       </p>
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-visible">
         <table className="w-full text-xs">
           <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
             <tr>
@@ -88,7 +106,8 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
               <th className="px-3 py-2 font-medium text-zinc-500">Target</th>
               <th className="px-3 py-2 font-medium text-zinc-500">Status</th>
               <th className="px-3 py-2 font-medium text-zinc-500">Motivo</th>
-              <th className="px-3 py-2"></th>
+              <th className="px-3 py-2 font-medium text-zinc-500">Detalhes</th>
+              <th className="px-3 py-2 font-medium text-zinc-500 text-right">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -100,12 +119,7 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
                 <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
                   {fmtTimeShort(a.created_at)}
                 </td>
-                <td className="px-3 py-2 font-medium">
-                  <span className="inline-flex items-center gap-1.5">
-                    {a.action_type}
-                    <ExplainPopover kind="action" actionType={a.action_type} />
-                  </span>
-                </td>
+                <td className="px-3 py-2 font-medium">{a.action_type}</td>
                 <td className="px-3 py-2 font-mono">{a.target}</td>
                 <td className="px-3 py-2">
                   <StatusBadge status={a.status} />
@@ -115,15 +129,14 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
                 </td>
                 <td className="px-3 py-2 text-zinc-500 max-w-xs truncate">{a.reason}</td>
                 <td className="px-3 py-2">
-                  {a.action_type === 'block_ip' && a.status === 'executed' && (
-                    <button
-                      type="button"
-                      onClick={() => revert(a.id)}
-                      className="text-[10px] px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    >
-                      desbloquear
-                    </button>
-                  )}
+                  <ExplainPopover
+                    kind="action"
+                    actionType={a.action_type}
+                    variant="link"
+                  />
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <RowActionsMenu items={buildActions(a)} />
                 </td>
               </tr>
             ))}
