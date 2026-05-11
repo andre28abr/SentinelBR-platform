@@ -33,6 +33,9 @@ api::login >/dev/null || \
 for d in "${DISTROS[@]}"; do
   envfile="$LABS_DIR/distros/$d.env"
   [[ -f "$envfile" ]] || { echo "FALHA: distro '$d' nao tem env em $envfile" >&2; exit 1; }
+  # Reset opt-ins entre iteracoes — sem isso, flags do .env anterior vazariam
+  # pro proximo (ex: INSTALL_HARDENING_TOOLS do fedora.env afetando ubuntu-22).
+  unset INSTALL_CLAMAV INSTALL_HARDENING_TOOLS AGGRESSIVE
   # shellcheck source=/dev/null
   source "$envfile"
 
