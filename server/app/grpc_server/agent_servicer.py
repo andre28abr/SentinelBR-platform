@@ -84,6 +84,28 @@ def _action_to_command(action: Action) -> agent_pb2.Command:
         cmd.run_lynis_audit.CopyFrom(agent_pb2.RunLynisAuditCommand(
             reason=action.reason,
         ))
+    elif action.action_type == "run_chkrootkit_scan":
+        cmd.run_chkrootkit_scan.CopyFrom(agent_pb2.RunChkrootkitScanCommand(
+            reason=action.reason,
+        ))
+    elif action.action_type == "run_aide_check":
+        cmd.run_aide_check.CopyFrom(agent_pb2.RunAideCheckCommand(
+            reason=action.reason,
+        ))
+    elif action.action_type == "add_firewall_rule":
+        # target format: "<backend>|<verb>|<protocol>|<port>|<source_cidr>"
+        parts = (action.target or "").split("|", 4)
+        if len(parts) == 5:
+            cmd.add_firewall_rule.CopyFrom(agent_pb2.AddFirewallRuleCommand(
+                backend=parts[0], verb=parts[1], protocol=parts[2],
+                port=parts[3], source_cidr=parts[4], reason=action.reason,
+            ))
+    elif action.action_type == "remove_firewall_rule":
+        # target format: "<backend>|<rule_id>"
+        backend, _, rule_id = (action.target or "").partition("|")
+        cmd.remove_firewall_rule.CopyFrom(agent_pb2.RemoveFirewallRuleCommand(
+            backend=backend, rule_id=rule_id, reason=action.reason,
+        ))
     return cmd
 
 
@@ -175,12 +197,19 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                 host.auditd_active = stats.auditd_active
                 host.rkhunter_installed = stats.rkhunter_installed
                 host.lynis_installed = stats.lynis_installed
-                # JSON snapshots (Fase H2/H4) — so persiste se vier preenchido
+                # JSON snapshots (Fase H2/H4/H5) — so persiste se vier preenchido
                 # pra nao apagar valor anterior em hosts que rodam agente velho.
                 if stats.fail2ban_status_json:
                     host.fail2ban_status_json = stats.fail2ban_status_json
                 if stats.firewall_status_json:
                     host.firewall_status_json = stats.firewall_status_json
+                if stats.auditd_status_json:
+                    host.auditd_status_json = stats.auditd_status_json
+                # Fase H7 — bools/strings sempre persiste, vazio == nao detectado
+                host.chkrootkit_installed = stats.chkrootkit_installed
+                host.aide_installed = stats.aide_installed
+                host.selinux_mode = stats.selinux_mode
+                host.apparmor_mode = stats.apparmor_mode
 
             # 1) processa CommandResults reportados pelo agente
             await _apply_command_results(db, request_id, request.command_results)

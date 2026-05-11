@@ -56,3 +56,8 @@ class HostResponse(BaseModel):
     lynis_installed: bool | None = None
     fail2ban_status_json: str | None = None
     firewall_status_json: str | None = None
+    auditd_status_json: str | None = None
+    selinux_mode: str | None = None
+    apparmor_mode: str | None = None
+    chkrootkit_installed: bool | None = None
+    aide_installed: bool | None = None

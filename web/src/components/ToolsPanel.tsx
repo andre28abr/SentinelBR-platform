@@ -1,15 +1,18 @@
 /**
  * <ToolsPanel> — agrega as ferramentas de hardening/defesa detectadas no host.
  *
- * Sub-aba "Visão geral" mostra cards-resumo de todas (instaladas vs nao).
- * Cada ferramenta DETECTADA ganha sua propria sub-aba com UI funcional.
+ * Sub-aba "Visao geral" mostra cards-resumo de todas (instaladas vs nao).
+ * Cada ferramenta DETECTADA com UI funcional ganha sub-aba propria.
  *
- * Padrao: usa o mesmo <Tabs> do HostDetailPage. Cards sem UI funcional
- * mostram badge "instalado" sem botao de interacao.
+ * Ferramentas sem painel interativo (SELinux/AppArmor, status only) so
+ * aparecem nos cards da Visao geral.
  */
 
 import { Icon } from '@iconify/react'
 
+import AidePanel from '@/components/AidePanel'
+import AuditdPanel from '@/components/AuditdPanel'
+import ChkrootkitPanel from '@/components/ChkrootkitPanel'
 import Fail2banPanel from '@/components/Fail2banPanel'
 import FirewallPanel from '@/components/FirewallPanel'
 import LynisPanel from '@/components/LynisPanel'
@@ -26,8 +29,13 @@ interface ToolsHost {
   firewall_active: string | null
   firewall_status_json: string | null
   auditd_active: boolean | null
+  auditd_status_json: string | null
   rkhunter_installed: boolean | null
   lynis_installed: boolean | null
+  chkrootkit_installed: boolean | null
+  aide_installed: boolean | null
+  selinux_mode: string | null
+  apparmor_mode: string | null
 }
 
 interface Props {
@@ -71,10 +79,18 @@ export default function ToolsPanel({ host }: Props) {
       label: <SubTabLabel icon="lucide:brick-wall" text="Firewall" />,
       content: (
         <FirewallPanel
+          hostId={host.id}
           backend={host.firewall_active}
           statusJson={host.firewall_status_json}
         />
       ),
+    })
+  }
+  if (host.auditd_active) {
+    items.push({
+      value: 'auditd',
+      label: <SubTabLabel icon="lucide:file-search" text="auditd" />,
+      content: <AuditdPanel statusJson={host.auditd_status_json} />,
     })
   }
   if (host.rkhunter_installed) {
@@ -84,11 +100,25 @@ export default function ToolsPanel({ host }: Props) {
       content: <RkhunterPanel hostId={host.id} />,
     })
   }
+  if (host.chkrootkit_installed) {
+    items.push({
+      value: 'chkrootkit',
+      label: <SubTabLabel icon="lucide:bug-off" text="chkrootkit" />,
+      content: <ChkrootkitPanel hostId={host.id} />,
+    })
+  }
   if (host.lynis_installed) {
     items.push({
       value: 'lynis',
       label: <SubTabLabel icon="lucide:clipboard-check" text="lynis" />,
       content: <LynisPanel hostId={host.id} />,
+    })
+  }
+  if (host.aide_installed) {
+    items.push({
+      value: 'aide',
+      label: <SubTabLabel icon="lucide:database" text="AIDE" />,
+      content: <AidePanel hostId={host.id} />,
     })
   }
 
@@ -112,7 +142,11 @@ function Overview({ host }: { host: ToolsHost }) {
         <FirewallCard active={host.firewall_active ?? ''} />
         <AuditdCard active={!!host.auditd_active} />
         <RkhunterCard installed={!!host.rkhunter_installed} />
+        <ChkrootkitCard installed={!!host.chkrootkit_installed} />
         <LynisCard installed={!!host.lynis_installed} />
+        <AideCard installed={!!host.aide_installed} />
+        <SELinuxCard mode={host.selinux_mode ?? ''} />
+        <AppArmorCard mode={host.apparmor_mode ?? ''} />
       </div>
     </div>
   )
@@ -133,7 +167,7 @@ function ToolCard({
   installed: boolean
   badge?: string
   details?: React.ReactNode
-  installHint: { apt?: string; dnf?: string }
+  installHint?: { apt?: string; dnf?: string }
 }) {
   return (
     <div
@@ -174,13 +208,13 @@ function ToolCard({
       ) : (
         <div className="space-y-1.5">
           <p className="text-xs text-zinc-500">{description}</p>
-          {installHint.apt && (
+          {installHint?.apt && (
             <div className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded">
               <p className="text-[9px] uppercase text-zinc-500">Debian / Ubuntu</p>
               <code className="text-[11px] font-mono">{installHint.apt}</code>
             </div>
           )}
-          {installHint.dnf && (
+          {installHint?.dnf && (
             <div className="bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded">
               <p className="text-[9px] uppercase text-zinc-500">RHEL / Fedora</p>
               <code className="text-[11px] font-mono">{installHint.dnf}</code>
@@ -192,15 +226,7 @@ function ToolCard({
   )
 }
 
-function Fail2banCard({
-  installed,
-  jails,
-  banned,
-}: {
-  installed: boolean
-  jails: number
-  banned: number
-}) {
+function Fail2banCard({ installed, jails, banned }: { installed: boolean; jails: number; banned: number }) {
   return (
     <ToolCard
       icon="lucide:shield-ban"
@@ -280,6 +306,21 @@ function RkhunterCard({ installed }: { installed: boolean }) {
   )
 }
 
+function ChkrootkitCard({ installed }: { installed: boolean }) {
+  return (
+    <ToolCard
+      icon="lucide:bug-off"
+      name="chkrootkit"
+      description="Detector de rootkits alternativo ao rkhunter. Roda ~70 testes de scripts shell."
+      installed={installed}
+      installHint={{
+        apt: 'sudo apt install chkrootkit',
+        dnf: 'sudo dnf install chkrootkit',
+      }}
+    />
+  )
+}
+
 function LynisCard({ installed }: { installed: boolean }) {
   return (
     <ToolCard
@@ -291,6 +332,55 @@ function LynisCard({ installed }: { installed: boolean }) {
         apt: 'sudo apt install lynis',
         dnf: 'sudo dnf install lynis',
       }}
+    />
+  )
+}
+
+function AideCard({ installed }: { installed: boolean }) {
+  return (
+    <ToolCard
+      icon="lucide:database"
+      name="AIDE"
+      description="File integrity monitoring — detecta modificações em arquivos críticos (/etc, binários) comparando contra um snapshot."
+      installed={installed}
+      installHint={{
+        apt: 'sudo apt install aide && sudo aide --init',
+        dnf: 'sudo dnf install aide && sudo aide --init',
+      }}
+    />
+  )
+}
+
+function SELinuxCard({ mode }: { mode: string }) {
+  const installed = mode !== '' && mode !== 'Disabled'
+  return (
+    <ToolCard
+      icon="lucide:shield-check"
+      name="SELinux"
+      description="Mandatory Access Control — confina processos a perfis com permissões mínimas. Comum em RHEL/Fedora."
+      installed={installed}
+      badge={mode || 'não detectado'}
+      details={
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          Modo: <span className="font-mono font-medium">{mode}</span>
+          {mode === 'Permissive' && (
+            <> · <span className="text-yellow-700 dark:text-yellow-400">violações são logadas mas não bloqueadas</span></>
+          )}
+        </p>
+      }
+    />
+  )
+}
+
+function AppArmorCard({ mode }: { mode: string }) {
+  const installed = mode === 'enabled'
+  return (
+    <ToolCard
+      icon="lucide:shield-check"
+      name="AppArmor"
+      description="Mandatory Access Control alternativo ao SELinux. Comum em Ubuntu/Debian."
+      installed={installed}
+      badge={mode || 'não detectado'}
     />
   )
 }

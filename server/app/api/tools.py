@@ -108,3 +108,41 @@ async def trigger_lynis_audit(
         db, host_id, "run_lynis_audit", "lynis_installed",
         payload, request, current,
     )
+
+
+@router.post(
+    "/{host_id}/chkrootkit-scan",
+    response_model=ActionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def trigger_chkrootkit_scan(
+    host_id: uuid.UUID,
+    payload: ToolRunRequest,
+    request: Request,
+    db: DbSession,
+    current: CurrentUser,
+) -> Action:
+    """Roda 'chkrootkit -q' no host. Warnings viram eventos."""
+    return await _create_tool_action(
+        db, host_id, "run_chkrootkit_scan", "chkrootkit_installed",
+        payload, request, current,
+    )
+
+
+@router.post(
+    "/{host_id}/aide-check",
+    response_model=ActionResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def trigger_aide_check(
+    host_id: uuid.UUID,
+    payload: ToolRunRequest,
+    request: Request,
+    db: DbSession,
+    current: CurrentUser,
+) -> Action:
+    """Roda 'aide --check' no host (precisa --init feito antes)."""
+    return await _create_tool_action(
+        db, host_id, "run_aide_check", "aide_installed",
+        payload, request, current,
+    )

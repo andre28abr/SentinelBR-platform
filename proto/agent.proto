@@ -123,6 +123,15 @@ message HostStats {
   // Snapshot do firewall em JSON (Fase H4). Estrutura varia por backend
   // (ufw/firewalld/nftables/iptables) — frontend renderiza generico.
   string firewall_status_json = 26;
+  // Auditd snapshot em JSON (Fase H5). Formato:
+  // {"enabled":true,"rules":["-a always,exit -F arch=b64 -S execve","..."]}
+  string auditd_status_json = 27;
+  // SELinux / AppArmor status (Fase H7).
+  string selinux_mode = 28;   // "Enforcing" | "Permissive" | "Disabled" | ""
+  string apparmor_mode = 29;  // "enabled" | "disabled" | ""
+  // chkrootkit + AIDE detection (Fase H7).
+  bool chkrootkit_installed = 30;
+  bool aide_installed = 31;
 }
 
 message HeartbeatResponse {
@@ -143,6 +152,10 @@ message Command {
     Fail2banBanCommand fail2ban_ban = 9;
     RunRkhunterScanCommand run_rkhunter_scan = 10;
     RunLynisAuditCommand run_lynis_audit = 11;
+    RunChkrootkitScanCommand run_chkrootkit_scan = 12;
+    RunAideCheckCommand run_aide_check = 13;
+    AddFirewallRuleCommand add_firewall_rule = 14;
+    RemoveFirewallRuleCommand remove_firewall_rule = 15;
   }
 }
 
@@ -164,6 +177,31 @@ message RunRkhunterScanCommand {
 
 message RunLynisAuditCommand {
   string reason = 1;
+}
+
+message RunChkrootkitScanCommand {
+  string reason = 1;
+}
+
+message RunAideCheckCommand {
+  string reason = 1;
+}
+
+// AddFirewallRuleCommand (Fase H6) — suporta ufw e firewalld. nftables/iptables
+// retorna UNSUPPORTED. Frontend desabilita botoes pra backends nao suportados.
+message AddFirewallRuleCommand {
+  string backend = 1;     // "ufw" | "firewalld"
+  string verb = 2;        // "allow" | "deny"
+  string protocol = 3;    // "tcp" | "udp"
+  string port = 4;        // "22" | "80,443" | "1000:2000"
+  string source_cidr = 5; // opcional, ex "203.0.113.0/24"
+  string reason = 6;
+}
+
+message RemoveFirewallRuleCommand {
+  string backend = 1;
+  string rule_id = 2;  // ufw: numero; firewalld: rule completo
+  string reason = 3;
 }
 
 message RunClamavScanCommand {

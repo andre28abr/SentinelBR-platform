@@ -62,6 +62,14 @@ func (d *Dispatcher) Execute(cmd *pb.Command) *pb.CommandResult {
 		res.Status, res.ErrorMessage = d.handleRkhunterScan(p.RunRkhunterScan)
 	case *pb.Command_RunLynisAudit:
 		res.Status, res.ErrorMessage = d.handleLynisAudit(p.RunLynisAudit)
+	case *pb.Command_RunChkrootkitScan:
+		res.Status, res.ErrorMessage = d.handleChkrootkitScan(p.RunChkrootkitScan)
+	case *pb.Command_RunAideCheck:
+		res.Status, res.ErrorMessage = d.handleAideCheck(p.RunAideCheck)
+	case *pb.Command_AddFirewallRule:
+		res.Status, res.ErrorMessage = d.handleAddFirewallRule(p.AddFirewallRule)
+	case *pb.Command_RemoveFirewallRule:
+		res.Status, res.ErrorMessage = d.handleRemoveFirewallRule(p.RemoveFirewallRule)
 	default:
 		res.Status = pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED
 		res.ErrorMessage = "tipo de comando nao suportado pelo agente"
@@ -470,6 +478,144 @@ func parseLynisOutput(out string) (int, []string) {
 		}
 	}
 	return score, findings
+}
+
+// handleChkrootkitScan roda `chkrootkit -q` (quiet — so warnings).
+func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.CommandStatus, string) {
+	if _, err := exec.LookPath("chkrootkit"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "chkrootkit nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN chkrootkit_scan", "reason", c.Reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+	timeout := d.ScanTimeout
+	if timeout == 0 {
+		timeout = 10 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	d.Log.Info("chkrootkit_scan iniciado", "reason", c.Reason)
+	out, _ := exec.CommandContext(ctx, "chkrootkit", "-q").CombinedOutput()
+	warnings := parseChkrootkitOutput(string(out))
+	if d.EventBus != nil {
+		for _, w := range warnings {
+			ev := events.New(d.HostID, "chkrootkit", time.Now().UTC(), w)
+			ev.Severity = events.SeverityWarn
+			ev.Fields["event.category"] = "intrusion_detection"
+			ev.Fields["event.action"] = "chkrootkit_warning"
+			ev.Fields["event.outcome"] = "alert"
+			ev.Fields["chkrootkit.scan_reason"] = c.Reason
+			select {
+			case d.EventBus <- ev:
+			default:
+			}
+		}
+	}
+	d.Log.Info("chkrootkit_scan completo", "warnings", len(warnings))
+	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("warnings=%d", len(warnings))
+}
+
+func parseChkrootkitOutput(out string) []string {
+	var ws []string
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		// chkrootkit -q so emite lines com "INFECTED" ou warnings sintaticos
+		if line == "" {
+			continue
+		}
+		if strings.Contains(line, "INFECTED") || strings.Contains(line, "Warning") {
+			ws = append(ws, line)
+		}
+	}
+	return ws
+}
+
+// handleAideCheck roda `aide --check`. Requer DB ja inicializado (admin
+// precisou ter rodado `aide --init` antes — bem documentado pelo AIDE).
+func (d *Dispatcher) handleAideCheck(c *pb.RunAideCheckCommand) (pb.CommandStatus, string) {
+	if _, err := exec.LookPath("aide"); err != nil {
+		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "aide nao instalado"
+	}
+	if d.DryRun {
+		d.Log.Info("DRY-RUN aide_check", "reason", c.Reason)
+		return pb.CommandStatus_COMMAND_STATUS_OK, ""
+	}
+	timeout := d.ScanTimeout
+	if timeout == 0 {
+		timeout = 30 * time.Minute
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	d.Log.Info("aide_check iniciado", "reason", c.Reason)
+	out, err := exec.CommandContext(ctx, "aide", "--check").CombinedOutput()
+	// AIDE exit codes: 0=ok, 1+ = differences found ou error.
+	// Aceita exit 1-3 (diff types). 4+ ou err sem ExitError sao error real.
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if code := exitErr.ExitCode(); code >= 4 {
+				return pb.CommandStatus_COMMAND_STATUS_FAILED,
+					fmt.Sprintf("aide exit=%d", code)
+			}
+		} else {
+			return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
+		}
+	}
+	added, changed, removed := parseAideSummary(string(out))
+	if d.EventBus != nil {
+		total := added + changed + removed
+		ev := events.New(d.HostID, "aide", time.Now().UTC(),
+			fmt.Sprintf("integrity check: +%d ~%d -%d", added, changed, removed))
+		if total > 0 {
+			ev.Severity = events.SeverityWarn
+			ev.Fields["event.outcome"] = "alert"
+		} else {
+			ev.Severity = events.SeverityInfo
+			ev.Fields["event.outcome"] = "success"
+		}
+		ev.Fields["event.category"] = "file"
+		ev.Fields["event.action"] = "aide_check"
+		ev.Fields["aide.added"] = fmt.Sprintf("%d", added)
+		ev.Fields["aide.changed"] = fmt.Sprintf("%d", changed)
+		ev.Fields["aide.removed"] = fmt.Sprintf("%d", removed)
+		ev.Fields["aide.reason"] = c.Reason
+		select {
+		case d.EventBus <- ev:
+		default:
+		}
+	}
+	return pb.CommandStatus_COMMAND_STATUS_OK,
+		fmt.Sprintf("added=%d changed=%d removed=%d", added, changed, removed)
+}
+
+// parseAideSummary extrai counts do bloco "Summary" do AIDE.
+// Format: "  Total number of entries:  ..." e "Added entries: N", "Removed entries: N", etc.
+func parseAideSummary(out string) (int, int, int) {
+	var added, changed, removed int
+	sc := bufio.NewScanner(strings.NewReader(out))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		switch {
+		case strings.HasPrefix(line, "Added entries"):
+			added = lastIntOnLine(line)
+		case strings.HasPrefix(line, "Changed entries"):
+			changed = lastIntOnLine(line)
+		case strings.HasPrefix(line, "Removed entries"):
+			removed = lastIntOnLine(line)
+		}
+	}
+	return added, changed, removed
+}
+
+func lastIntOnLine(line string) int {
+	idx := strings.LastIndex(line, ":")
+	if idx < 0 {
+		return 0
+	}
+	tail := strings.TrimSpace(line[idx+1:])
+	n, _ := strconv.Atoi(tail)
+	return n
 }
 
 // ExecuteAll roda todos os comandos e retorna a lista de resultados, na ordem.

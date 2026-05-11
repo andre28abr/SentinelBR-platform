@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     yara_scheduled_paths: str = Field(default="/var/www,/tmp,/home")
     yara_scheduled_interval_seconds: int = Field(default=86400)  # 24h
 
+    # Fase H8 — scheduled audits das ferramentas hardening. Defaults:
+    # rkhunter/chkrootkit/aide diario (86400s), lynis semanal (604800s).
+    # 0 desabilita o agendamento.
+    rkhunter_scheduled_interval_seconds: int = Field(default=86400)
+    chkrootkit_scheduled_interval_seconds: int = Field(default=86400)
+    aide_scheduled_interval_seconds: int = Field(default=86400)
+    lynis_scheduled_interval_seconds: int = Field(default=604800)
+
 
 @lru_cache
 def get_settings() -> Settings:

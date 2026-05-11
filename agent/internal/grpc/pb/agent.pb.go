@@ -562,8 +562,17 @@ type HostStats struct {
 	// Snapshot do firewall em JSON (Fase H4). Estrutura varia por backend
 	// (ufw/firewalld/nftables/iptables) — frontend renderiza generico.
 	FirewallStatusJson string `protobuf:"bytes,26,opt,name=firewall_status_json,json=firewallStatusJson,proto3" json:"firewall_status_json,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Auditd snapshot em JSON (Fase H5). Formato:
+	// {"enabled":true,"rules":["-a always,exit -F arch=b64 -S execve","..."]}
+	AuditdStatusJson string `protobuf:"bytes,27,opt,name=auditd_status_json,json=auditdStatusJson,proto3" json:"auditd_status_json,omitempty"`
+	// SELinux / AppArmor status (Fase H7).
+	SelinuxMode  string `protobuf:"bytes,28,opt,name=selinux_mode,json=selinuxMode,proto3" json:"selinux_mode,omitempty"`    // "Enforcing" | "Permissive" | "Disabled" | ""
+	ApparmorMode string `protobuf:"bytes,29,opt,name=apparmor_mode,json=apparmorMode,proto3" json:"apparmor_mode,omitempty"` // "enabled" | "disabled" | ""
+	// chkrootkit + AIDE detection (Fase H7).
+	ChkrootkitInstalled bool `protobuf:"varint,30,opt,name=chkrootkit_installed,json=chkrootkitInstalled,proto3" json:"chkrootkit_installed,omitempty"`
+	AideInstalled       bool `protobuf:"varint,31,opt,name=aide_installed,json=aideInstalled,proto3" json:"aide_installed,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *HostStats) Reset() {
@@ -778,6 +787,41 @@ func (x *HostStats) GetFirewallStatusJson() string {
 	return ""
 }
 
+func (x *HostStats) GetAuditdStatusJson() string {
+	if x != nil {
+		return x.AuditdStatusJson
+	}
+	return ""
+}
+
+func (x *HostStats) GetSelinuxMode() string {
+	if x != nil {
+		return x.SelinuxMode
+	}
+	return ""
+}
+
+func (x *HostStats) GetApparmorMode() string {
+	if x != nil {
+		return x.ApparmorMode
+	}
+	return ""
+}
+
+func (x *HostStats) GetChkrootkitInstalled() bool {
+	if x != nil {
+		return x.ChkrootkitInstalled
+	}
+	return false
+}
+
+func (x *HostStats) GetAideInstalled() bool {
+	if x != nil {
+		return x.AideInstalled
+	}
+	return false
+}
+
 type HeartbeatResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ServerTs        *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=server_ts,json=serverTs,proto3" json:"server_ts,omitempty"`
@@ -845,6 +889,10 @@ type Command struct {
 	//	*Command_Fail2BanBan
 	//	*Command_RunRkhunterScan
 	//	*Command_RunLynisAudit
+	//	*Command_RunChkrootkitScan
+	//	*Command_RunAideCheck
+	//	*Command_AddFirewallRule
+	//	*Command_RemoveFirewallRule
 	Payload       isCommand_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -984,6 +1032,42 @@ func (x *Command) GetRunLynisAudit() *RunLynisAuditCommand {
 	return nil
 }
 
+func (x *Command) GetRunChkrootkitScan() *RunChkrootkitScanCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_RunChkrootkitScan); ok {
+			return x.RunChkrootkitScan
+		}
+	}
+	return nil
+}
+
+func (x *Command) GetRunAideCheck() *RunAideCheckCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_RunAideCheck); ok {
+			return x.RunAideCheck
+		}
+	}
+	return nil
+}
+
+func (x *Command) GetAddFirewallRule() *AddFirewallRuleCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_AddFirewallRule); ok {
+			return x.AddFirewallRule
+		}
+	}
+	return nil
+}
+
+func (x *Command) GetRemoveFirewallRule() *RemoveFirewallRuleCommand {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_RemoveFirewallRule); ok {
+			return x.RemoveFirewallRule
+		}
+	}
+	return nil
+}
+
 type isCommand_Payload interface {
 	isCommand_Payload()
 }
@@ -1028,6 +1112,22 @@ type Command_RunLynisAudit struct {
 	RunLynisAudit *RunLynisAuditCommand `protobuf:"bytes,11,opt,name=run_lynis_audit,json=runLynisAudit,proto3,oneof"`
 }
 
+type Command_RunChkrootkitScan struct {
+	RunChkrootkitScan *RunChkrootkitScanCommand `protobuf:"bytes,12,opt,name=run_chkrootkit_scan,json=runChkrootkitScan,proto3,oneof"`
+}
+
+type Command_RunAideCheck struct {
+	RunAideCheck *RunAideCheckCommand `protobuf:"bytes,13,opt,name=run_aide_check,json=runAideCheck,proto3,oneof"`
+}
+
+type Command_AddFirewallRule struct {
+	AddFirewallRule *AddFirewallRuleCommand `protobuf:"bytes,14,opt,name=add_firewall_rule,json=addFirewallRule,proto3,oneof"`
+}
+
+type Command_RemoveFirewallRule struct {
+	RemoveFirewallRule *RemoveFirewallRuleCommand `protobuf:"bytes,15,opt,name=remove_firewall_rule,json=removeFirewallRule,proto3,oneof"`
+}
+
 func (*Command_BlockIp) isCommand_Payload() {}
 
 func (*Command_UnblockIp) isCommand_Payload() {}
@@ -1047,6 +1147,14 @@ func (*Command_Fail2BanBan) isCommand_Payload() {}
 func (*Command_RunRkhunterScan) isCommand_Payload() {}
 
 func (*Command_RunLynisAudit) isCommand_Payload() {}
+
+func (*Command_RunChkrootkitScan) isCommand_Payload() {}
+
+func (*Command_RunAideCheck) isCommand_Payload() {}
+
+func (*Command_AddFirewallRule) isCommand_Payload() {}
+
+func (*Command_RemoveFirewallRule) isCommand_Payload() {}
 
 type Fail2BanUnbanCommand struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1256,6 +1364,240 @@ func (x *RunLynisAuditCommand) GetReason() string {
 	return ""
 }
 
+type RunChkrootkitScanCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunChkrootkitScanCommand) Reset() {
+	*x = RunChkrootkitScanCommand{}
+	mi := &file_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunChkrootkitScanCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunChkrootkitScanCommand) ProtoMessage() {}
+
+func (x *RunChkrootkitScanCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunChkrootkitScanCommand.ProtoReflect.Descriptor instead.
+func (*RunChkrootkitScanCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RunChkrootkitScanCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RunAideCheckCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunAideCheckCommand) Reset() {
+	*x = RunAideCheckCommand{}
+	mi := &file_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunAideCheckCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunAideCheckCommand) ProtoMessage() {}
+
+func (x *RunAideCheckCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunAideCheckCommand.ProtoReflect.Descriptor instead.
+func (*RunAideCheckCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RunAideCheckCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// AddFirewallRuleCommand (Fase H6) — suporta ufw e firewalld. nftables/iptables
+// retorna UNSUPPORTED. Frontend desabilita botoes pra backends nao suportados.
+type AddFirewallRuleCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backend       string                 `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`                         // "ufw" | "firewalld"
+	Verb          string                 `protobuf:"bytes,2,opt,name=verb,proto3" json:"verb,omitempty"`                               // "allow" | "deny"
+	Protocol      string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`                       // "tcp" | "udp"
+	Port          string                 `protobuf:"bytes,4,opt,name=port,proto3" json:"port,omitempty"`                               // "22" | "80,443" | "1000:2000"
+	SourceCidr    string                 `protobuf:"bytes,5,opt,name=source_cidr,json=sourceCidr,proto3" json:"source_cidr,omitempty"` // opcional, ex "203.0.113.0/24"
+	Reason        string                 `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddFirewallRuleCommand) Reset() {
+	*x = AddFirewallRuleCommand{}
+	mi := &file_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddFirewallRuleCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddFirewallRuleCommand) ProtoMessage() {}
+
+func (x *AddFirewallRuleCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddFirewallRuleCommand.ProtoReflect.Descriptor instead.
+func (*AddFirewallRuleCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AddFirewallRuleCommand) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
+}
+
+func (x *AddFirewallRuleCommand) GetVerb() string {
+	if x != nil {
+		return x.Verb
+	}
+	return ""
+}
+
+func (x *AddFirewallRuleCommand) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *AddFirewallRuleCommand) GetPort() string {
+	if x != nil {
+		return x.Port
+	}
+	return ""
+}
+
+func (x *AddFirewallRuleCommand) GetSourceCidr() string {
+	if x != nil {
+		return x.SourceCidr
+	}
+	return ""
+}
+
+func (x *AddFirewallRuleCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RemoveFirewallRuleCommand struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backend       string                 `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
+	RuleId        string                 `protobuf:"bytes,2,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"` // ufw: numero; firewalld: rule completo
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveFirewallRuleCommand) Reset() {
+	*x = RemoveFirewallRuleCommand{}
+	mi := &file_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveFirewallRuleCommand) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveFirewallRuleCommand) ProtoMessage() {}
+
+func (x *RemoveFirewallRuleCommand) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveFirewallRuleCommand.ProtoReflect.Descriptor instead.
+func (*RemoveFirewallRuleCommand) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *RemoveFirewallRuleCommand) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
+}
+
+func (x *RemoveFirewallRuleCommand) GetRuleId() string {
+	if x != nil {
+		return x.RuleId
+	}
+	return ""
+}
+
+func (x *RemoveFirewallRuleCommand) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 type RunClamavScanCommand struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`     // diretorio ou arquivo a escanear
@@ -1266,7 +1608,7 @@ type RunClamavScanCommand struct {
 
 func (x *RunClamavScanCommand) Reset() {
 	*x = RunClamavScanCommand{}
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1278,7 +1620,7 @@ func (x *RunClamavScanCommand) String() string {
 func (*RunClamavScanCommand) ProtoMessage() {}
 
 func (x *RunClamavScanCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1291,7 +1633,7 @@ func (x *RunClamavScanCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunClamavScanCommand.ProtoReflect.Descriptor instead.
 func (*RunClamavScanCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{13}
+	return file_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *RunClamavScanCommand) GetPath() string {
@@ -1319,7 +1661,7 @@ type BlockIPCommand struct {
 
 func (x *BlockIPCommand) Reset() {
 	*x = BlockIPCommand{}
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1331,7 +1673,7 @@ func (x *BlockIPCommand) String() string {
 func (*BlockIPCommand) ProtoMessage() {}
 
 func (x *BlockIPCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1344,7 +1686,7 @@ func (x *BlockIPCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockIPCommand.ProtoReflect.Descriptor instead.
 func (*BlockIPCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{14}
+	return file_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *BlockIPCommand) GetIp() string {
@@ -1377,7 +1719,7 @@ type UnblockIPCommand struct {
 
 func (x *UnblockIPCommand) Reset() {
 	*x = UnblockIPCommand{}
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1389,7 +1731,7 @@ func (x *UnblockIPCommand) String() string {
 func (*UnblockIPCommand) ProtoMessage() {}
 
 func (x *UnblockIPCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1402,7 +1744,7 @@ func (x *UnblockIPCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockIPCommand.ProtoReflect.Descriptor instead.
 func (*UnblockIPCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{15}
+	return file_agent_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UnblockIPCommand) GetIp() string {
@@ -1421,7 +1763,7 @@ type RunCheckCommand struct {
 
 func (x *RunCheckCommand) Reset() {
 	*x = RunCheckCommand{}
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1433,7 +1775,7 @@ func (x *RunCheckCommand) String() string {
 func (*RunCheckCommand) ProtoMessage() {}
 
 func (x *RunCheckCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1446,7 +1788,7 @@ func (x *RunCheckCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCheckCommand.ProtoReflect.Descriptor instead.
 func (*RunCheckCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{16}
+	return file_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *RunCheckCommand) GetCheckId() string {
@@ -1466,7 +1808,7 @@ type RunYaraScanCommand struct {
 
 func (x *RunYaraScanCommand) Reset() {
 	*x = RunYaraScanCommand{}
-	mi := &file_agent_proto_msgTypes[17]
+	mi := &file_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1478,7 +1820,7 @@ func (x *RunYaraScanCommand) String() string {
 func (*RunYaraScanCommand) ProtoMessage() {}
 
 func (x *RunYaraScanCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[17]
+	mi := &file_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1491,7 +1833,7 @@ func (x *RunYaraScanCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunYaraScanCommand.ProtoReflect.Descriptor instead.
 func (*RunYaraScanCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{17}
+	return file_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *RunYaraScanCommand) GetPath() string {
@@ -1518,7 +1860,7 @@ type QuarantineFileCommand struct {
 
 func (x *QuarantineFileCommand) Reset() {
 	*x = QuarantineFileCommand{}
-	mi := &file_agent_proto_msgTypes[18]
+	mi := &file_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1872,7 @@ func (x *QuarantineFileCommand) String() string {
 func (*QuarantineFileCommand) ProtoMessage() {}
 
 func (x *QuarantineFileCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[18]
+	mi := &file_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1885,7 @@ func (x *QuarantineFileCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuarantineFileCommand.ProtoReflect.Descriptor instead.
 func (*QuarantineFileCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{18}
+	return file_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *QuarantineFileCommand) GetFilePath() string {
@@ -1575,7 +1917,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_agent_proto_msgTypes[19]
+	mi := &file_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1587,7 +1929,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[19]
+	mi := &file_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1600,7 +1942,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{19}
+	return file_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Event) GetEventId() string {
@@ -1662,7 +2004,7 @@ type EventAck struct {
 
 func (x *EventAck) Reset() {
 	*x = EventAck{}
-	mi := &file_agent_proto_msgTypes[20]
+	mi := &file_agent_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +2016,7 @@ func (x *EventAck) String() string {
 func (*EventAck) ProtoMessage() {}
 
 func (x *EventAck) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[20]
+	mi := &file_agent_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1687,7 +2029,7 @@ func (x *EventAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventAck.ProtoReflect.Descriptor instead.
 func (*EventAck) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{20}
+	return file_agent_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *EventAck) GetEventId() string {
@@ -1716,7 +2058,7 @@ type InventoryReport struct {
 
 func (x *InventoryReport) Reset() {
 	*x = InventoryReport{}
-	mi := &file_agent_proto_msgTypes[21]
+	mi := &file_agent_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1728,7 +2070,7 @@ func (x *InventoryReport) String() string {
 func (*InventoryReport) ProtoMessage() {}
 
 func (x *InventoryReport) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[21]
+	mi := &file_agent_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1741,7 +2083,7 @@ func (x *InventoryReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryReport.ProtoReflect.Descriptor instead.
 func (*InventoryReport) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{21}
+	return file_agent_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *InventoryReport) GetHostId() string {
@@ -1783,7 +2125,7 @@ type PackageInfo struct {
 
 func (x *PackageInfo) Reset() {
 	*x = PackageInfo{}
-	mi := &file_agent_proto_msgTypes[22]
+	mi := &file_agent_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1795,7 +2137,7 @@ func (x *PackageInfo) String() string {
 func (*PackageInfo) ProtoMessage() {}
 
 func (x *PackageInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[22]
+	mi := &file_agent_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1808,7 +2150,7 @@ func (x *PackageInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PackageInfo.ProtoReflect.Descriptor instead.
 func (*PackageInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{22}
+	return file_agent_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *PackageInfo) GetName() string {
@@ -1842,7 +2184,7 @@ type InventoryAck struct {
 
 func (x *InventoryAck) Reset() {
 	*x = InventoryAck{}
-	mi := &file_agent_proto_msgTypes[23]
+	mi := &file_agent_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1854,7 +2196,7 @@ func (x *InventoryAck) String() string {
 func (*InventoryAck) ProtoMessage() {}
 
 func (x *InventoryAck) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[23]
+	mi := &file_agent_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1867,7 +2209,7 @@ func (x *InventoryAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InventoryAck.ProtoReflect.Descriptor instead.
 func (*InventoryAck) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{23}
+	return file_agent_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *InventoryAck) GetPackagesReceived() int32 {
@@ -1928,7 +2270,8 @@ const file_agent_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\".sentinelbr.agent.v1.CommandStatusR\x06status\x12#\n" +
 	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12;\n" +
 	"\vexecuted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"executedAt\"\xba\b\n" +
+	"executedAt\"\x8a\n" +
+	"\n" +
 	"\tHostStats\x12\x1e\n" +
 	"\vload_avg_1m\x18\x01 \x01(\x01R\tloadAvg1m\x12$\n" +
 	"\x0emem_used_bytes\x18\x02 \x01(\x04R\fmemUsedBytes\x12&\n" +
@@ -1957,10 +2300,15 @@ const file_agent_proto_rawDesc = "" +
 	"\x12rkhunter_installed\x18\x17 \x01(\bR\x11rkhunterInstalled\x12'\n" +
 	"\x0flynis_installed\x18\x18 \x01(\bR\x0elynisInstalled\x120\n" +
 	"\x14fail2ban_status_json\x18\x19 \x01(\tR\x12fail2banStatusJson\x120\n" +
-	"\x14firewall_status_json\x18\x1a \x01(\tR\x12firewallStatusJson\"\x95\x01\n" +
+	"\x14firewall_status_json\x18\x1a \x01(\tR\x12firewallStatusJson\x12,\n" +
+	"\x12auditd_status_json\x18\x1b \x01(\tR\x10auditdStatusJson\x12!\n" +
+	"\fselinux_mode\x18\x1c \x01(\tR\vselinuxMode\x12#\n" +
+	"\rapparmor_mode\x18\x1d \x01(\tR\fapparmorMode\x121\n" +
+	"\x14chkrootkit_installed\x18\x1e \x01(\bR\x13chkrootkitInstalled\x12%\n" +
+	"\x0eaide_installed\x18\x1f \x01(\bR\raideInstalled\"\x95\x01\n" +
 	"\x11HeartbeatResponse\x127\n" +
 	"\tserver_ts\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\bserverTs\x12G\n" +
-	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\xc0\x06\n" +
+	"\x10pending_commands\x18\x02 \x03(\v2\x1c.sentinelbr.agent.v1.CommandR\x0fpendingCommands\"\xb2\t\n" +
 	"\aCommand\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\bblock_ip\x18\x02 \x01(\v2#.sentinelbr.agent.v1.BlockIPCommandH\x00R\ablockIp\x12F\n" +
@@ -1974,7 +2322,11 @@ const file_agent_proto_rawDesc = "" +
 	"\ffail2ban_ban\x18\t \x01(\v2'.sentinelbr.agent.v1.Fail2banBanCommandH\x00R\vfail2banBan\x12Y\n" +
 	"\x11run_rkhunter_scan\x18\n" +
 	" \x01(\v2+.sentinelbr.agent.v1.RunRkhunterScanCommandH\x00R\x0frunRkhunterScan\x12S\n" +
-	"\x0frun_lynis_audit\x18\v \x01(\v2).sentinelbr.agent.v1.RunLynisAuditCommandH\x00R\rrunLynisAuditB\t\n" +
+	"\x0frun_lynis_audit\x18\v \x01(\v2).sentinelbr.agent.v1.RunLynisAuditCommandH\x00R\rrunLynisAudit\x12_\n" +
+	"\x13run_chkrootkit_scan\x18\f \x01(\v2-.sentinelbr.agent.v1.RunChkrootkitScanCommandH\x00R\x11runChkrootkitScan\x12P\n" +
+	"\x0erun_aide_check\x18\r \x01(\v2(.sentinelbr.agent.v1.RunAideCheckCommandH\x00R\frunAideCheck\x12Y\n" +
+	"\x11add_firewall_rule\x18\x0e \x01(\v2+.sentinelbr.agent.v1.AddFirewallRuleCommandH\x00R\x0faddFirewallRule\x12b\n" +
+	"\x14remove_firewall_rule\x18\x0f \x01(\v2..sentinelbr.agent.v1.RemoveFirewallRuleCommandH\x00R\x12removeFirewallRuleB\t\n" +
 	"\apayload\"R\n" +
 	"\x14Fail2banUnbanCommand\x12\x12\n" +
 	"\x04jail\x18\x01 \x01(\tR\x04jail\x12\x0e\n" +
@@ -1987,7 +2339,23 @@ const file_agent_proto_rawDesc = "" +
 	"\x16RunRkhunterScanCommand\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\".\n" +
 	"\x14RunLynisAuditCommand\x12\x16\n" +
-	"\x06reason\x18\x01 \x01(\tR\x06reason\"B\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"2\n" +
+	"\x18RunChkrootkitScanCommand\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"-\n" +
+	"\x13RunAideCheckCommand\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\"\xaf\x01\n" +
+	"\x16AddFirewallRuleCommand\x12\x18\n" +
+	"\abackend\x18\x01 \x01(\tR\abackend\x12\x12\n" +
+	"\x04verb\x18\x02 \x01(\tR\x04verb\x12\x1a\n" +
+	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04port\x18\x04 \x01(\tR\x04port\x12\x1f\n" +
+	"\vsource_cidr\x18\x05 \x01(\tR\n" +
+	"sourceCidr\x12\x16\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\"f\n" +
+	"\x19RemoveFirewallRuleCommand\x12\x18\n" +
+	"\abackend\x18\x01 \x01(\tR\abackend\x12\x17\n" +
+	"\arule_id\x18\x02 \x01(\tR\x06ruleId\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"B\n" +
 	"\x14RunClamavScanCommand\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"c\n" +
@@ -2055,73 +2423,81 @@ func file_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_agent_proto_goTypes = []any{
-	(CommandStatus)(0),             // 0: sentinelbr.agent.v1.CommandStatus
-	(*EnrollRequest)(nil),          // 1: sentinelbr.agent.v1.EnrollRequest
-	(*EnrollResponse)(nil),         // 2: sentinelbr.agent.v1.EnrollResponse
-	(*OSInfo)(nil),                 // 3: sentinelbr.agent.v1.OSInfo
-	(*AgentConfig)(nil),            // 4: sentinelbr.agent.v1.AgentConfig
-	(*HeartbeatRequest)(nil),       // 5: sentinelbr.agent.v1.HeartbeatRequest
-	(*CommandResult)(nil),          // 6: sentinelbr.agent.v1.CommandResult
-	(*HostStats)(nil),              // 7: sentinelbr.agent.v1.HostStats
-	(*HeartbeatResponse)(nil),      // 8: sentinelbr.agent.v1.HeartbeatResponse
-	(*Command)(nil),                // 9: sentinelbr.agent.v1.Command
-	(*Fail2BanUnbanCommand)(nil),   // 10: sentinelbr.agent.v1.Fail2banUnbanCommand
-	(*Fail2BanBanCommand)(nil),     // 11: sentinelbr.agent.v1.Fail2banBanCommand
-	(*RunRkhunterScanCommand)(nil), // 12: sentinelbr.agent.v1.RunRkhunterScanCommand
-	(*RunLynisAuditCommand)(nil),   // 13: sentinelbr.agent.v1.RunLynisAuditCommand
-	(*RunClamavScanCommand)(nil),   // 14: sentinelbr.agent.v1.RunClamavScanCommand
-	(*BlockIPCommand)(nil),         // 15: sentinelbr.agent.v1.BlockIPCommand
-	(*UnblockIPCommand)(nil),       // 16: sentinelbr.agent.v1.UnblockIPCommand
-	(*RunCheckCommand)(nil),        // 17: sentinelbr.agent.v1.RunCheckCommand
-	(*RunYaraScanCommand)(nil),     // 18: sentinelbr.agent.v1.RunYaraScanCommand
-	(*QuarantineFileCommand)(nil),  // 19: sentinelbr.agent.v1.QuarantineFileCommand
-	(*Event)(nil),                  // 20: sentinelbr.agent.v1.Event
-	(*EventAck)(nil),               // 21: sentinelbr.agent.v1.EventAck
-	(*InventoryReport)(nil),        // 22: sentinelbr.agent.v1.InventoryReport
-	(*PackageInfo)(nil),            // 23: sentinelbr.agent.v1.PackageInfo
-	(*InventoryAck)(nil),           // 24: sentinelbr.agent.v1.InventoryAck
-	nil,                            // 25: sentinelbr.agent.v1.Event.FieldsEntry
-	(*timestamppb.Timestamp)(nil),  // 26: google.protobuf.Timestamp
+	(CommandStatus)(0),                // 0: sentinelbr.agent.v1.CommandStatus
+	(*EnrollRequest)(nil),             // 1: sentinelbr.agent.v1.EnrollRequest
+	(*EnrollResponse)(nil),            // 2: sentinelbr.agent.v1.EnrollResponse
+	(*OSInfo)(nil),                    // 3: sentinelbr.agent.v1.OSInfo
+	(*AgentConfig)(nil),               // 4: sentinelbr.agent.v1.AgentConfig
+	(*HeartbeatRequest)(nil),          // 5: sentinelbr.agent.v1.HeartbeatRequest
+	(*CommandResult)(nil),             // 6: sentinelbr.agent.v1.CommandResult
+	(*HostStats)(nil),                 // 7: sentinelbr.agent.v1.HostStats
+	(*HeartbeatResponse)(nil),         // 8: sentinelbr.agent.v1.HeartbeatResponse
+	(*Command)(nil),                   // 9: sentinelbr.agent.v1.Command
+	(*Fail2BanUnbanCommand)(nil),      // 10: sentinelbr.agent.v1.Fail2banUnbanCommand
+	(*Fail2BanBanCommand)(nil),        // 11: sentinelbr.agent.v1.Fail2banBanCommand
+	(*RunRkhunterScanCommand)(nil),    // 12: sentinelbr.agent.v1.RunRkhunterScanCommand
+	(*RunLynisAuditCommand)(nil),      // 13: sentinelbr.agent.v1.RunLynisAuditCommand
+	(*RunChkrootkitScanCommand)(nil),  // 14: sentinelbr.agent.v1.RunChkrootkitScanCommand
+	(*RunAideCheckCommand)(nil),       // 15: sentinelbr.agent.v1.RunAideCheckCommand
+	(*AddFirewallRuleCommand)(nil),    // 16: sentinelbr.agent.v1.AddFirewallRuleCommand
+	(*RemoveFirewallRuleCommand)(nil), // 17: sentinelbr.agent.v1.RemoveFirewallRuleCommand
+	(*RunClamavScanCommand)(nil),      // 18: sentinelbr.agent.v1.RunClamavScanCommand
+	(*BlockIPCommand)(nil),            // 19: sentinelbr.agent.v1.BlockIPCommand
+	(*UnblockIPCommand)(nil),          // 20: sentinelbr.agent.v1.UnblockIPCommand
+	(*RunCheckCommand)(nil),           // 21: sentinelbr.agent.v1.RunCheckCommand
+	(*RunYaraScanCommand)(nil),        // 22: sentinelbr.agent.v1.RunYaraScanCommand
+	(*QuarantineFileCommand)(nil),     // 23: sentinelbr.agent.v1.QuarantineFileCommand
+	(*Event)(nil),                     // 24: sentinelbr.agent.v1.Event
+	(*EventAck)(nil),                  // 25: sentinelbr.agent.v1.EventAck
+	(*InventoryReport)(nil),           // 26: sentinelbr.agent.v1.InventoryReport
+	(*PackageInfo)(nil),               // 27: sentinelbr.agent.v1.PackageInfo
+	(*InventoryAck)(nil),              // 28: sentinelbr.agent.v1.InventoryAck
+	nil,                               // 29: sentinelbr.agent.v1.Event.FieldsEntry
+	(*timestamppb.Timestamp)(nil),     // 30: google.protobuf.Timestamp
 }
 var file_agent_proto_depIdxs = []int32{
 	3,  // 0: sentinelbr.agent.v1.EnrollRequest.os:type_name -> sentinelbr.agent.v1.OSInfo
 	4,  // 1: sentinelbr.agent.v1.EnrollResponse.config:type_name -> sentinelbr.agent.v1.AgentConfig
-	26, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
+	30, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
 	7,  // 3: sentinelbr.agent.v1.HeartbeatRequest.stats:type_name -> sentinelbr.agent.v1.HostStats
 	6,  // 4: sentinelbr.agent.v1.HeartbeatRequest.command_results:type_name -> sentinelbr.agent.v1.CommandResult
 	0,  // 5: sentinelbr.agent.v1.CommandResult.status:type_name -> sentinelbr.agent.v1.CommandStatus
-	26, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
-	26, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
+	30, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
+	30, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
 	9,  // 8: sentinelbr.agent.v1.HeartbeatResponse.pending_commands:type_name -> sentinelbr.agent.v1.Command
-	15, // 9: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
-	16, // 10: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
-	17, // 11: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
-	18, // 12: sentinelbr.agent.v1.Command.run_yara_scan:type_name -> sentinelbr.agent.v1.RunYaraScanCommand
-	19, // 13: sentinelbr.agent.v1.Command.quarantine_file:type_name -> sentinelbr.agent.v1.QuarantineFileCommand
-	14, // 14: sentinelbr.agent.v1.Command.run_clamav_scan:type_name -> sentinelbr.agent.v1.RunClamavScanCommand
+	19, // 9: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
+	20, // 10: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
+	21, // 11: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
+	22, // 12: sentinelbr.agent.v1.Command.run_yara_scan:type_name -> sentinelbr.agent.v1.RunYaraScanCommand
+	23, // 13: sentinelbr.agent.v1.Command.quarantine_file:type_name -> sentinelbr.agent.v1.QuarantineFileCommand
+	18, // 14: sentinelbr.agent.v1.Command.run_clamav_scan:type_name -> sentinelbr.agent.v1.RunClamavScanCommand
 	10, // 15: sentinelbr.agent.v1.Command.fail2ban_unban:type_name -> sentinelbr.agent.v1.Fail2banUnbanCommand
 	11, // 16: sentinelbr.agent.v1.Command.fail2ban_ban:type_name -> sentinelbr.agent.v1.Fail2banBanCommand
 	12, // 17: sentinelbr.agent.v1.Command.run_rkhunter_scan:type_name -> sentinelbr.agent.v1.RunRkhunterScanCommand
 	13, // 18: sentinelbr.agent.v1.Command.run_lynis_audit:type_name -> sentinelbr.agent.v1.RunLynisAuditCommand
-	26, // 19: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
-	25, // 20: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
-	26, // 21: sentinelbr.agent.v1.InventoryReport.collected_at:type_name -> google.protobuf.Timestamp
-	23, // 22: sentinelbr.agent.v1.InventoryReport.packages:type_name -> sentinelbr.agent.v1.PackageInfo
-	1,  // 23: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
-	5,  // 24: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
-	20, // 25: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
-	22, // 26: sentinelbr.agent.v1.AgentService.SubmitInventory:input_type -> sentinelbr.agent.v1.InventoryReport
-	2,  // 27: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
-	8,  // 28: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
-	21, // 29: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
-	24, // 30: sentinelbr.agent.v1.AgentService.SubmitInventory:output_type -> sentinelbr.agent.v1.InventoryAck
-	27, // [27:31] is the sub-list for method output_type
-	23, // [23:27] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	14, // 19: sentinelbr.agent.v1.Command.run_chkrootkit_scan:type_name -> sentinelbr.agent.v1.RunChkrootkitScanCommand
+	15, // 20: sentinelbr.agent.v1.Command.run_aide_check:type_name -> sentinelbr.agent.v1.RunAideCheckCommand
+	16, // 21: sentinelbr.agent.v1.Command.add_firewall_rule:type_name -> sentinelbr.agent.v1.AddFirewallRuleCommand
+	17, // 22: sentinelbr.agent.v1.Command.remove_firewall_rule:type_name -> sentinelbr.agent.v1.RemoveFirewallRuleCommand
+	30, // 23: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
+	29, // 24: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
+	30, // 25: sentinelbr.agent.v1.InventoryReport.collected_at:type_name -> google.protobuf.Timestamp
+	27, // 26: sentinelbr.agent.v1.InventoryReport.packages:type_name -> sentinelbr.agent.v1.PackageInfo
+	1,  // 27: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
+	5,  // 28: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
+	24, // 29: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
+	26, // 30: sentinelbr.agent.v1.AgentService.SubmitInventory:input_type -> sentinelbr.agent.v1.InventoryReport
+	2,  // 31: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
+	8,  // 32: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
+	25, // 33: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
+	28, // 34: sentinelbr.agent.v1.AgentService.SubmitInventory:output_type -> sentinelbr.agent.v1.InventoryAck
+	31, // [31:35] is the sub-list for method output_type
+	27, // [27:31] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -2140,6 +2516,10 @@ func file_agent_proto_init() {
 		(*Command_Fail2BanBan)(nil),
 		(*Command_RunRkhunterScan)(nil),
 		(*Command_RunLynisAudit)(nil),
+		(*Command_RunChkrootkitScan)(nil),
+		(*Command_RunAideCheck)(nil),
+		(*Command_AddFirewallRule)(nil),
+		(*Command_RemoveFirewallRule)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2147,7 +2527,7 @@ func file_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

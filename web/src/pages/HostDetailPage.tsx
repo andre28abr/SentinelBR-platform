@@ -51,8 +51,13 @@ interface Host {
   firewall_active: string | null
   firewall_status_json: string | null
   auditd_active: boolean | null
+  auditd_status_json: string | null
   rkhunter_installed: boolean | null
   lynis_installed: boolean | null
+  chkrootkit_installed: boolean | null
+  aide_installed: boolean | null
+  selinux_mode: string | null
+  apparmor_mode: string | null
 }
 
 interface EnrollmentToken {

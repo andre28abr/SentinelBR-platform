@@ -38,8 +38,14 @@ type Info struct {
 	FirewallActive      string // "ufw" | "firewalld" | "nftables" | "iptables" | ""
 	FirewallStatusJSON  string // detalhado, formato varia por backend
 	AuditdActive        bool
+	AuditdStatusJSON    string // {"rules":["-a always,exit ..."]}
 	RkhunterInstalled   bool
 	LynisInstalled      bool
+	// Fase H7
+	ChkrootkitInstalled bool
+	AideInstalled       bool
+	SELinuxMode         string // "Enforcing" | "Permissive" | "Disabled" | ""
+	AppArmorMode        string // "enabled" | "disabled" | ""
 }
 
 // Fail2banJailDetail eh o detalhe completo de um jail (serializado em JSON).
@@ -56,10 +62,14 @@ type fail2banStatusPayload struct {
 // Detect roda todos os detectores e retorna o resultado consolidado.
 func Detect() Info {
 	info := Info{
-		RkhunterInstalled: binaryExists("rkhunter"),
-		LynisInstalled:    binaryExists("lynis"),
-		AuditdActive:      detectAuditd(),
-		FirewallActive:    detectFirewall(),
+		RkhunterInstalled:   binaryExists("rkhunter"),
+		LynisInstalled:      binaryExists("lynis"),
+		ChkrootkitInstalled: binaryExists("chkrootkit"),
+		AideInstalled:       binaryExists("aide"),
+		AuditdActive:        detectAuditd(),
+		FirewallActive:      detectFirewall(),
+		SELinuxMode:         detectSELinuxMode(),
+		AppArmorMode:        detectAppArmorMode(),
 	}
 	jails := detectFail2banDetailed()
 	if jails != nil {
@@ -78,7 +88,68 @@ func Detect() Info {
 		info.Fail2banInstalled = true
 	}
 	info.FirewallStatusJSON = detectFirewallStatusJSON(info.FirewallActive)
+	if info.AuditdActive {
+		info.AuditdStatusJSON = detectAuditdStatusJSON()
+	}
 	return info
+}
+
+// detectSELinuxMode roda `getenforce` (Linux com SELinux). Retorna vazio em
+// sistemas sem SELinux (macOS, Linux sem getenforce).
+func detectSELinuxMode() string {
+	if !binaryExists("getenforce") {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "getenforce").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// detectAppArmorMode usa `aa-status --enabled` (exit 0 = enabled).
+func detectAppArmorMode() string {
+	if !binaryExists("aa-status") {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	if err := exec.CommandContext(ctx, "aa-status", "--enabled").Run(); err == nil {
+		return "enabled"
+	}
+	return "disabled"
+}
+
+// detectAuditdStatusJSON roda `auditctl -l` e empacota regras.
+func detectAuditdStatusJSON() string {
+	if !binaryExists("auditctl") {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "auditctl", "-l").Output()
+	if err != nil {
+		return ""
+	}
+	rules := make([]string, 0, 16)
+	sc := bufio.NewScanner(strings.NewReader(string(out)))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "No rules") {
+			continue
+		}
+		rules = append(rules, line)
+	}
+	type auditdPayload struct {
+		Rules []string `json:"rules"`
+	}
+	b, err := json.Marshal(auditdPayload{Rules: rules})
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
 func binaryExists(name string) bool {

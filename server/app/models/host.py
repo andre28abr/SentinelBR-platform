@@ -72,6 +72,13 @@ class Host(Base):
     # Pode ficar grande — usamos Text e o frontend parseia.
     fail2ban_status_json: Mapped[str | None] = mapped_column(Text)
     firewall_status_json: Mapped[str | None] = mapped_column(Text)
+    # H5: auditd rules (output de `auditctl -l`)
+    auditd_status_json: Mapped[str | None] = mapped_column(Text)
+    # H7: status de SELinux/AppArmor + bools chkrootkit/aide
+    selinux_mode: Mapped[str | None] = mapped_column(String(20))
+    apparmor_mode: Mapped[str | None] = mapped_column(String(20))
+    chkrootkit_installed: Mapped[bool | None] = mapped_column(Boolean)
+    aide_installed: Mapped[bool | None] = mapped_column(Boolean)
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

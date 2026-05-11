@@ -104,7 +104,7 @@ class CommandResult(_message.Message):
     def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
-    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs", "fail2ban_installed", "fail2ban_banned_ips", "fail2ban_jails_active", "firewall_active", "auditd_active", "rkhunter_installed", "lynis_installed", "fail2ban_status_json", "firewall_status_json")
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts", "ip_address", "cpu_count", "uptime_seconds", "clamav_installed", "clamav_version", "clamav_db_age_days", "services_running", "services_failed", "packages_upgradable", "listening_ports", "cron_jobs", "fail2ban_installed", "fail2ban_banned_ips", "fail2ban_jails_active", "firewall_active", "auditd_active", "rkhunter_installed", "lynis_installed", "fail2ban_status_json", "firewall_status_json", "auditd_status_json", "selinux_mode", "apparmor_mode", "chkrootkit_installed", "aide_installed")
     LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
     MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
     MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
@@ -131,6 +131,11 @@ class HostStats(_message.Message):
     LYNIS_INSTALLED_FIELD_NUMBER: _ClassVar[int]
     FAIL2BAN_STATUS_JSON_FIELD_NUMBER: _ClassVar[int]
     FIREWALL_STATUS_JSON_FIELD_NUMBER: _ClassVar[int]
+    AUDITD_STATUS_JSON_FIELD_NUMBER: _ClassVar[int]
+    SELINUX_MODE_FIELD_NUMBER: _ClassVar[int]
+    APPARMOR_MODE_FIELD_NUMBER: _ClassVar[int]
+    CHKROOTKIT_INSTALLED_FIELD_NUMBER: _ClassVar[int]
+    AIDE_INSTALLED_FIELD_NUMBER: _ClassVar[int]
     load_avg_1m: float
     mem_used_bytes: int
     mem_total_bytes: int
@@ -157,7 +162,12 @@ class HostStats(_message.Message):
     lynis_installed: bool
     fail2ban_status_json: str
     firewall_status_json: str
-    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ..., fail2ban_installed: bool = ..., fail2ban_banned_ips: _Optional[int] = ..., fail2ban_jails_active: _Optional[int] = ..., firewall_active: _Optional[str] = ..., auditd_active: bool = ..., rkhunter_installed: bool = ..., lynis_installed: bool = ..., fail2ban_status_json: _Optional[str] = ..., firewall_status_json: _Optional[str] = ...) -> None: ...
+    auditd_status_json: str
+    selinux_mode: str
+    apparmor_mode: str
+    chkrootkit_installed: bool
+    aide_installed: bool
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ..., ip_address: _Optional[str] = ..., cpu_count: _Optional[int] = ..., uptime_seconds: _Optional[int] = ..., clamav_installed: bool = ..., clamav_version: _Optional[str] = ..., clamav_db_age_days: _Optional[int] = ..., services_running: _Optional[int] = ..., services_failed: _Optional[int] = ..., packages_upgradable: _Optional[int] = ..., listening_ports: _Optional[int] = ..., cron_jobs: _Optional[int] = ..., fail2ban_installed: bool = ..., fail2ban_banned_ips: _Optional[int] = ..., fail2ban_jails_active: _Optional[int] = ..., firewall_active: _Optional[str] = ..., auditd_active: bool = ..., rkhunter_installed: bool = ..., lynis_installed: bool = ..., fail2ban_status_json: _Optional[str] = ..., firewall_status_json: _Optional[str] = ..., auditd_status_json: _Optional[str] = ..., selinux_mode: _Optional[str] = ..., apparmor_mode: _Optional[str] = ..., chkrootkit_installed: bool = ..., aide_installed: bool = ...) -> None: ...
 
 class HeartbeatResponse(_message.Message):
     __slots__ = ("server_ts", "pending_commands")
@@ -168,7 +178,7 @@ class HeartbeatResponse(_message.Message):
     def __init__(self, server_ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pending_commands: _Optional[_Iterable[_Union[Command, _Mapping]]] = ...) -> None: ...
 
 class Command(_message.Message):
-    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file", "run_clamav_scan", "fail2ban_unban", "fail2ban_ban", "run_rkhunter_scan", "run_lynis_audit")
+    __slots__ = ("id", "block_ip", "unblock_ip", "run_check", "run_yara_scan", "quarantine_file", "run_clamav_scan", "fail2ban_unban", "fail2ban_ban", "run_rkhunter_scan", "run_lynis_audit", "run_chkrootkit_scan", "run_aide_check", "add_firewall_rule", "remove_firewall_rule")
     ID_FIELD_NUMBER: _ClassVar[int]
     BLOCK_IP_FIELD_NUMBER: _ClassVar[int]
     UNBLOCK_IP_FIELD_NUMBER: _ClassVar[int]
@@ -180,6 +190,10 @@ class Command(_message.Message):
     FAIL2BAN_BAN_FIELD_NUMBER: _ClassVar[int]
     RUN_RKHUNTER_SCAN_FIELD_NUMBER: _ClassVar[int]
     RUN_LYNIS_AUDIT_FIELD_NUMBER: _ClassVar[int]
+    RUN_CHKROOTKIT_SCAN_FIELD_NUMBER: _ClassVar[int]
+    RUN_AIDE_CHECK_FIELD_NUMBER: _ClassVar[int]
+    ADD_FIREWALL_RULE_FIELD_NUMBER: _ClassVar[int]
+    REMOVE_FIREWALL_RULE_FIELD_NUMBER: _ClassVar[int]
     id: str
     block_ip: BlockIPCommand
     unblock_ip: UnblockIPCommand
@@ -191,7 +205,11 @@ class Command(_message.Message):
     fail2ban_ban: Fail2banBanCommand
     run_rkhunter_scan: RunRkhunterScanCommand
     run_lynis_audit: RunLynisAuditCommand
-    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ..., run_clamav_scan: _Optional[_Union[RunClamavScanCommand, _Mapping]] = ..., fail2ban_unban: _Optional[_Union[Fail2banUnbanCommand, _Mapping]] = ..., fail2ban_ban: _Optional[_Union[Fail2banBanCommand, _Mapping]] = ..., run_rkhunter_scan: _Optional[_Union[RunRkhunterScanCommand, _Mapping]] = ..., run_lynis_audit: _Optional[_Union[RunLynisAuditCommand, _Mapping]] = ...) -> None: ...
+    run_chkrootkit_scan: RunChkrootkitScanCommand
+    run_aide_check: RunAideCheckCommand
+    add_firewall_rule: AddFirewallRuleCommand
+    remove_firewall_rule: RemoveFirewallRuleCommand
+    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ..., run_yara_scan: _Optional[_Union[RunYaraScanCommand, _Mapping]] = ..., quarantine_file: _Optional[_Union[QuarantineFileCommand, _Mapping]] = ..., run_clamav_scan: _Optional[_Union[RunClamavScanCommand, _Mapping]] = ..., fail2ban_unban: _Optional[_Union[Fail2banUnbanCommand, _Mapping]] = ..., fail2ban_ban: _Optional[_Union[Fail2banBanCommand, _Mapping]] = ..., run_rkhunter_scan: _Optional[_Union[RunRkhunterScanCommand, _Mapping]] = ..., run_lynis_audit: _Optional[_Union[RunLynisAuditCommand, _Mapping]] = ..., run_chkrootkit_scan: _Optional[_Union[RunChkrootkitScanCommand, _Mapping]] = ..., run_aide_check: _Optional[_Union[RunAideCheckCommand, _Mapping]] = ..., add_firewall_rule: _Optional[_Union[AddFirewallRuleCommand, _Mapping]] = ..., remove_firewall_rule: _Optional[_Union[RemoveFirewallRuleCommand, _Mapping]] = ...) -> None: ...
 
 class Fail2banUnbanCommand(_message.Message):
     __slots__ = ("jail", "ip", "reason")
@@ -224,6 +242,44 @@ class RunLynisAuditCommand(_message.Message):
     REASON_FIELD_NUMBER: _ClassVar[int]
     reason: str
     def __init__(self, reason: _Optional[str] = ...) -> None: ...
+
+class RunChkrootkitScanCommand(_message.Message):
+    __slots__ = ("reason",)
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    reason: str
+    def __init__(self, reason: _Optional[str] = ...) -> None: ...
+
+class RunAideCheckCommand(_message.Message):
+    __slots__ = ("reason",)
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    reason: str
+    def __init__(self, reason: _Optional[str] = ...) -> None: ...
+
+class AddFirewallRuleCommand(_message.Message):
+    __slots__ = ("backend", "verb", "protocol", "port", "source_cidr", "reason")
+    BACKEND_FIELD_NUMBER: _ClassVar[int]
+    VERB_FIELD_NUMBER: _ClassVar[int]
+    PROTOCOL_FIELD_NUMBER: _ClassVar[int]
+    PORT_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_CIDR_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    backend: str
+    verb: str
+    protocol: str
+    port: str
+    source_cidr: str
+    reason: str
+    def __init__(self, backend: _Optional[str] = ..., verb: _Optional[str] = ..., protocol: _Optional[str] = ..., port: _Optional[str] = ..., source_cidr: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class RemoveFirewallRuleCommand(_message.Message):
+    __slots__ = ("backend", "rule_id", "reason")
+    BACKEND_FIELD_NUMBER: _ClassVar[int]
+    RULE_ID_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    backend: str
+    rule_id: str
+    reason: str
+    def __init__(self, backend: _Optional[str] = ..., rule_id: _Optional[str] = ..., reason: _Optional[str] = ...) -> None: ...
 
 class RunClamavScanCommand(_message.Message):
     __slots__ = ("path", "reason")
