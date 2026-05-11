@@ -1,5 +1,6 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
+import AlertsPage from '@/pages/AlertsPage'
 import HostDetailPage from '@/pages/HostDetailPage'
 import HostsPage from '@/pages/HostsPage'
 import LoginPage from '@/pages/LoginPage'
@@ -29,6 +30,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <HostDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alerts"
+          element={
+            <ProtectedRoute>
+              <AlertsPage />
             </ProtectedRoute>
           }
         />

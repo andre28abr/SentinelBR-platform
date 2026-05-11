@@ -1,0 +1,13 @@
+id: ssh_user_enumeration
+name: Enumeracao de usuarios SSH (scan)
+description: |
+  5 ou mais tentativas com usuarios INEXISTENTES vindas do mesmo IP em 5 minutos.
+  Atacante esta listando usuarios validos antes de tentar brute force.
+severity: medium
+source: sshd
+filter:
+  event.action: ssh_invalid_user
+window_seconds: 300
+aggregate:
+  group_by: [source.ip]
+  threshold: 5

@@ -73,8 +73,9 @@ up: dev ## sobe stack docker + server/gRPC/web no mprocs (precisa: brew install 
 	mprocs --config mprocs.yaml
 
 .PHONY: down
-down: ## mata server/gRPC/web e derruba stack docker
+down: ## mata server/gRPC/web/worker/beat e derruba stack docker
 	-lsof -ti:5173,8000,9443 2>/dev/null | xargs kill 2>/dev/null || true
+	-pkill -f 'celery -A app.workers' 2>/dev/null || true
 	$(MAKE) dev-down
 
 .PHONY: web
@@ -88,6 +89,14 @@ server: ## roda fastapi local (sem docker, precisa de db rodando via `make dev`)
 .PHONY: grpc
 grpc: ## roda gRPC server (mTLS) na porta 9443
 	cd $(SERVER_DIR) && $(UV) run python -m app.grpc_server.server
+
+.PHONY: worker
+worker: ## roda Celery worker (processa tarefas)
+	cd $(SERVER_DIR) && $(UV) run celery -A app.workers.celery_app worker --loglevel=info
+
+.PHONY: beat
+beat: ## roda Celery beat scheduler (dispara periodicas — detection cycle 30s)
+	cd $(SERVER_DIR) && $(UV) run celery -A app.workers.celery_app beat --loglevel=info
 
 # ─── Quality ──────────────────────────────────────────────────────────────────
 

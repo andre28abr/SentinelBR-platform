@@ -8,6 +8,12 @@ procs:
   web:
     shell: "make web"
     autostart: true
+  worker:
+    shell: "make worker"
+    autostart: true
+  beat:
+    shell: "make beat"
+    autostart: true
 
 # atalhos uteis (mprocs default):
 #   ↑/↓     : navega entre processos

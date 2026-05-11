@@ -1,0 +1,14 @@
+id: ssh_brute_force_user
+name: SSH brute-force contra usuario especifico
+description: |
+  3 ou mais falhas de login SSH para o MESMO usuario em 60 segundos
+  (de qualquer IP). Indica ataque direcionado a uma conta especifica.
+severity: high
+source: sshd
+filter:
+  event.action: ssh_login
+  event.outcome: failure
+window_seconds: 60
+aggregate:
+  group_by: [user.name]
+  threshold: 3

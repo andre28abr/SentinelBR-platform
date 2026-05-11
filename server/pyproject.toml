@@ -22,6 +22,7 @@ dependencies = [
     "structlog>=24.4.0",
     "grpcio>=1.80.0",
     "cryptography>=44.0.0",
+    "pyyaml>=6.0.0",
 ]
 
 [dependency-groups]
@@ -48,8 +49,9 @@ select = ["E", "F", "I", "N", "UP", "B", "ASYNC", "S", "BLE", "C4", "T20"]
 ignore = ["S101"]  # asserts em testes
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S105", "S106", "N806"]      # senhas hardcoded e nomes de var sao ok em testes
-"app/scripts/**" = ["T201", "S105"]        # print() é a interface dos scripts CLI; senhas default ok
+"tests/**" = ["S105", "S106", "N806", "E501"]   # senhas hardcoded, nomes de var e linhas longas sao ok em testes
+"app/scripts/**" = ["T201", "S105"]             # print() e interface dos CLI; senhas default ok
+"app/api/**" = ["B008"]                          # FastAPI exige Query()/Depends() em defaults
 
 [tool.mypy]
 python_version = "3.12"

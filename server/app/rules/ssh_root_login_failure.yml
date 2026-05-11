@@ -1,0 +1,15 @@
+id: ssh_root_login_failure
+name: Tentativa de login SSH como root
+description: |
+  Qualquer tentativa de login (ate UMA falha) para o usuario root via SSH.
+  PermitRootLogin deve estar desabilitado em prod — qualquer tentativa eh suspeita.
+severity: medium
+source: sshd
+filter:
+  event.action: ssh_login
+  event.outcome: failure
+  user.name: root
+window_seconds: 300
+aggregate:
+  group_by: [source.ip]
+  threshold: 1

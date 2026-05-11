@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import AlertBadge from '@/components/AlertBadge'
 import { ApiError, api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -80,7 +81,8 @@ export default function HostsPage() {
           <h1 className="text-2xl font-bold">Hosts</h1>
           <p className="text-sm text-zinc-500">{hosts.length} cadastrado(s)</p>
         </div>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-4 text-sm">
+          <AlertBadge />
           <span className="text-zinc-500">{user?.email}</span>
           <button
             type="button"

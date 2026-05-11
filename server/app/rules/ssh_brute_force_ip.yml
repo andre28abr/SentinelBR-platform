@@ -1,0 +1,14 @@
+id: ssh_brute_force_ip
+name: SSH brute-force do mesmo IP
+description: |
+  5 ou mais falhas de login SSH originadas do mesmo IP em 60 segundos.
+  Padrao classico de ataque automatizado tentando senhas em sequencia.
+severity: high
+source: sshd
+filter:
+  event.action: ssh_login
+  event.outcome: failure
+window_seconds: 60
+aggregate:
+  group_by: [source.ip]
+  threshold: 5
