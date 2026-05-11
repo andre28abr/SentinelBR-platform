@@ -12,6 +12,7 @@ class HostCreate(BaseModel):
 class HostUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     hostname: str | None = Field(default=None, min_length=1, max_length=255)
+    location: str | None = Field(default=None, max_length=255)
 
 
 class HostResponse(BaseModel):
@@ -23,6 +24,9 @@ class HostResponse(BaseModel):
     os_family: str | None
     os_distro: str | None
     os_version: str | None
+    kernel: str | None = None
+    arch: str | None = None
+    location: str | None = None
     status: str
     last_heartbeat: datetime | None
     created_at: datetime

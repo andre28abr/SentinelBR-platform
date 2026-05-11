@@ -14,6 +14,9 @@ interface Host {
   os_family: string | null
   os_distro: string | null
   os_version: string | null
+  kernel: string | null
+  arch: string | null
+  location: string | null
   status: string
   last_heartbeat: string | null
   created_at: string
@@ -182,18 +185,50 @@ function HostCard({ host: h }: { host: Host }) {
             <h2 className="font-semibold truncate">{h.name}</h2>
             <StatusBadge status={h.status} />
           </div>
-          {/* Linha 2: OS + hostname + IP */}
-          <p className="text-xs text-zinc-500 mt-0.5 truncate">
-            {h.os_distro ? osLabel(h.os_distro, h.os_version, h.os_family) : 'OS desconhecido'}
-            {' · '}
-            <span className="font-mono">{h.hostname}</span>
+          {/* Linha 2: OS + hostname + IP + arch + kernel + location */}
+          <div className="text-xs text-zinc-500 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <Tooltip content="Distribuição Linux + versão (vem do enrollment do agente)">
+              <span className="cursor-help">
+                {h.os_distro ? osLabel(h.os_distro, h.os_version, h.os_family) : 'OS desconhecido'}
+              </span>
+            </Tooltip>
+            <Separator />
+            <Tooltip content="Hostname configurado no sistema (resultado de `hostname` na shell)">
+              <span className="font-mono cursor-help">{h.hostname}</span>
+            </Tooltip>
             {h.ip_address && (
               <>
-                {' · '}
-                <span className="font-mono">{h.ip_address}</span>
+                <Separator />
+                <Tooltip content="IP da primeira interface não-loopback. Em VMs/containers pode ser privado.">
+                  <span className="font-mono cursor-help">{h.ip_address}</span>
+                </Tooltip>
               </>
             )}
-          </p>
+            {h.arch && (
+              <>
+                <Separator />
+                <Tooltip content="Arquitetura do CPU (x86_64, arm64, etc)">
+                  <span className="font-mono cursor-help">{h.arch}</span>
+                </Tooltip>
+              </>
+            )}
+            {h.kernel && (
+              <>
+                <Separator />
+                <Tooltip content={`Kernel: ${h.kernel}`}>
+                  <span className="font-mono cursor-help">k{h.kernel.split('-')[0]}</span>
+                </Tooltip>
+              </>
+            )}
+            {h.location && (
+              <>
+                <Separator />
+                <Tooltip content="Localização física/lógica (editável no detalhe do host)">
+                  <span className="cursor-help">📍 {h.location}</span>
+                </Tooltip>
+              </>
+            )}
+          </div>
           {/* Linha 3: mini-stats (so se tiver heartbeat) */}
           {(memPct !== null || diskPct !== null || h.load_avg_1m !== null || h.uptime_seconds !== null) && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-zinc-500">
@@ -236,6 +271,10 @@ function HostCard({ host: h }: { host: Host }) {
       </div>
     </Link>
   )
+}
+
+function Separator() {
+  return <span className="text-zinc-300 dark:text-zinc-700">|</span>
 }
 
 function Stat({ label, pct, extra }: { label: string; pct: number; extra: string }) {

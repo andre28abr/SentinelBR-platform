@@ -65,6 +65,9 @@ async def update_host(
         host.name = payload.name
     if payload.hostname is not None:
         host.hostname = payload.hostname
+    if payload.location is not None:
+        # Vazio "" significa limpar.
+        host.location = payload.location or None
     await db.commit()
     await db.refresh(host)
     return host

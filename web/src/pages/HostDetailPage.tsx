@@ -16,6 +16,9 @@ interface Host {
   os_family: string | null
   os_distro: string | null
   os_version: string | null
+  kernel: string | null
+  arch: string | null
+  location: string | null
   status: string
   last_heartbeat: string | null
   created_at: string
@@ -113,12 +116,22 @@ export default function HostDetailPage() {
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <Row label="Distro" value={`${host.os_distro} ${host.os_version ?? ''}`} />
             <Row label="Familia" value={host.os_family ?? '-'} />
+            <Row label="Kernel" value={host.kernel ?? '-'} />
+            <Row label="Arquitetura" value={host.arch ?? '-'} />
             <Row label="Last heartbeat" value={fmtTime(host.last_heartbeat)} />
             <Row label="Criado em" value={fmtTime(host.created_at)} />
           </dl>
         ) : (
           <p className="text-sm text-zinc-500">Aguardando primeiro heartbeat do agente.</p>
         )}
+      </section>
+
+      <section className="mb-6">
+        <LocationEditor
+          hostId={host.id}
+          initial={host.location}
+          onSaved={(loc) => setHost({ ...host, location: loc })}
+        />
       </section>
 
       {host.status !== 'active' && (
@@ -198,6 +211,93 @@ export default function HostDetailPage() {
         {id && <EventsTab hostId={id} />}
       </section>
     </main>
+  )
+}
+
+function LocationEditor({
+  hostId,
+  initial,
+  onSaved,
+}: {
+  hostId: string
+  initial: string | null
+  onSaved: (loc: string | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(initial ?? '')
+  const [saving, setSaving] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function save() {
+    setSaving(true)
+    setErr(null)
+    try {
+      const updated = await api.put<Host>(`/api/v1/hosts/${hostId}`, { location: value })
+      onSaved(updated.location)
+      setEditing(false)
+    } catch (e) {
+      setErr(e instanceof ApiError ? String(e.detail) : 'erro')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+          Localização:
+        </span>
+        <span className="text-sm">
+          {initial ? <>📍 {initial}</> : <span className="text-zinc-400 italic">não definida</span>}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(initial ?? '')
+            setEditing(true)
+          }}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          editar
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-semibold text-zinc-500 uppercase tracking-wide">
+        Localização
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="ex: DC-São Paulo / Rack A12 / U23"
+          maxLength={255}
+          autoFocus
+          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 bg-transparent text-sm"
+        />
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="px-3 py-1.5 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-sm disabled:opacity-50"
+        >
+          {saving ? 'Salvando…' : 'Salvar'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="px-3 py-1.5 rounded-md border border-zinc-300 dark:border-zinc-700 text-sm"
+        >
+          Cancelar
+        </button>
+      </div>
+      {err && <p className="text-xs text-red-600">{err}</p>}
+    </div>
   )
 }
 

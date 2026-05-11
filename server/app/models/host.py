@@ -22,6 +22,11 @@ class Host(Base):
     os_family: Mapped[str | None] = mapped_column(String(50))
     os_distro: Mapped[str | None] = mapped_column(String(100))
     os_version: Mapped[str | None] = mapped_column(String(100))
+    kernel: Mapped[str | None] = mapped_column(String(100))
+    arch: Mapped[str | None] = mapped_column(String(50))
+
+    # Localizacao fisica/logica do host (DC, sala, rack, etc). Editavel pelo user.
+    location: Mapped[str | None] = mapped_column(String(255))
 
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

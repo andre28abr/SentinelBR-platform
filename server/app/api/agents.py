@@ -20,6 +20,8 @@ async def enroll(payload: AgentEnrollRequest, db: DbSession) -> AgentEnrollRespo
     host.os_family = payload.os.family
     host.os_distro = payload.os.distro
     host.os_version = payload.os.version
+    host.kernel = payload.os.kernel
+    host.arch = payload.os.arch
     if not host.hostname:
         host.hostname = payload.hostname
     await db.commit()
