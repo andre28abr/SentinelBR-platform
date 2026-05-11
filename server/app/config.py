@@ -22,10 +22,14 @@ class Settings(BaseSettings):
     redis_url: str = Field(default="redis://localhost:6379/0")
     loki_url: str = Field(default="http://localhost:3100")
 
-    jwt_secret: str = Field(default="change-me-in-prod")
+    jwt_secret: str = Field(default="change-me-in-prod-with-32-bytes-min")
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
     refresh_token_days: int = 7
+
+    public_endpoint: str = Field(default="http://localhost:8000")
+    grpc_public_endpoint: str = Field(default="localhost:9443")
+    grpc_listen_addr: str = Field(default="[::]:9443")
 
 
 @lru_cache

@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { ApiError, api } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -145,9 +146,10 @@ export default function HostsPage() {
       ) : (
         <div className="space-y-2">
           {hosts.map((h) => (
-            <article
+            <Link
               key={h.id}
-              className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800"
+              to={`/hosts/${h.id}`}
+              className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
             >
               <div className="flex items-baseline justify-between">
                 <h2 className="font-semibold">{h.name}</h2>
@@ -159,7 +161,7 @@ export default function HostsPage() {
                   {h.os_distro} {h.os_version} ({h.os_family})
                 </p>
               )}
-            </article>
+            </Link>
           ))}
         </div>
       )}

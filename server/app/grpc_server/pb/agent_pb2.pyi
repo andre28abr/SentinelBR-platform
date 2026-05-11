@@ -1,0 +1,169 @@
+import datetime
+
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
+from google.protobuf.internal import containers as _containers
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from collections.abc import Iterable as _Iterable, Mapping as _Mapping
+from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
+
+DESCRIPTOR: _descriptor.FileDescriptor
+
+class EnrollRequest(_message.Message):
+    __slots__ = ("enrollment_token", "os", "agent_version", "hostname")
+    ENROLLMENT_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    OS_FIELD_NUMBER: _ClassVar[int]
+    AGENT_VERSION_FIELD_NUMBER: _ClassVar[int]
+    HOSTNAME_FIELD_NUMBER: _ClassVar[int]
+    enrollment_token: str
+    os: OSInfo
+    agent_version: str
+    hostname: str
+    def __init__(self, enrollment_token: _Optional[str] = ..., os: _Optional[_Union[OSInfo, _Mapping]] = ..., agent_version: _Optional[str] = ..., hostname: _Optional[str] = ...) -> None: ...
+
+class EnrollResponse(_message.Message):
+    __slots__ = ("host_id", "client_cert_pem", "client_key_pem", "config")
+    HOST_ID_FIELD_NUMBER: _ClassVar[int]
+    CLIENT_CERT_PEM_FIELD_NUMBER: _ClassVar[int]
+    CLIENT_KEY_PEM_FIELD_NUMBER: _ClassVar[int]
+    CONFIG_FIELD_NUMBER: _ClassVar[int]
+    host_id: str
+    client_cert_pem: str
+    client_key_pem: str
+    config: AgentConfig
+    def __init__(self, host_id: _Optional[str] = ..., client_cert_pem: _Optional[str] = ..., client_key_pem: _Optional[str] = ..., config: _Optional[_Union[AgentConfig, _Mapping]] = ...) -> None: ...
+
+class OSInfo(_message.Message):
+    __slots__ = ("family", "distro", "version", "arch", "kernel", "package_manager", "init_system", "firewall_tool", "mac_system")
+    FAMILY_FIELD_NUMBER: _ClassVar[int]
+    DISTRO_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    ARCH_FIELD_NUMBER: _ClassVar[int]
+    KERNEL_FIELD_NUMBER: _ClassVar[int]
+    PACKAGE_MANAGER_FIELD_NUMBER: _ClassVar[int]
+    INIT_SYSTEM_FIELD_NUMBER: _ClassVar[int]
+    FIREWALL_TOOL_FIELD_NUMBER: _ClassVar[int]
+    MAC_SYSTEM_FIELD_NUMBER: _ClassVar[int]
+    family: str
+    distro: str
+    version: str
+    arch: str
+    kernel: str
+    package_manager: str
+    init_system: str
+    firewall_tool: str
+    mac_system: str
+    def __init__(self, family: _Optional[str] = ..., distro: _Optional[str] = ..., version: _Optional[str] = ..., arch: _Optional[str] = ..., kernel: _Optional[str] = ..., package_manager: _Optional[str] = ..., init_system: _Optional[str] = ..., firewall_tool: _Optional[str] = ..., mac_system: _Optional[str] = ...) -> None: ...
+
+class AgentConfig(_message.Message):
+    __slots__ = ("heartbeat_seconds", "collect_journald", "collect_auditd", "watch_paths")
+    HEARTBEAT_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    COLLECT_JOURNALD_FIELD_NUMBER: _ClassVar[int]
+    COLLECT_AUDITD_FIELD_NUMBER: _ClassVar[int]
+    WATCH_PATHS_FIELD_NUMBER: _ClassVar[int]
+    heartbeat_seconds: int
+    collect_journald: bool
+    collect_auditd: bool
+    watch_paths: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, heartbeat_seconds: _Optional[int] = ..., collect_journald: bool = ..., collect_auditd: bool = ..., watch_paths: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class HeartbeatRequest(_message.Message):
+    __slots__ = ("host_id", "ts", "stats")
+    HOST_ID_FIELD_NUMBER: _ClassVar[int]
+    TS_FIELD_NUMBER: _ClassVar[int]
+    STATS_FIELD_NUMBER: _ClassVar[int]
+    host_id: str
+    ts: _timestamp_pb2.Timestamp
+    stats: HostStats
+    def __init__(self, host_id: _Optional[str] = ..., ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., stats: _Optional[_Union[HostStats, _Mapping]] = ...) -> None: ...
+
+class HostStats(_message.Message):
+    __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts")
+    LOAD_AVG_1M_FIELD_NUMBER: _ClassVar[int]
+    MEM_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
+    MEM_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
+    DISK_USED_BYTES_FIELD_NUMBER: _ClassVar[int]
+    DISK_TOTAL_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ACTIVE_ALERTS_FIELD_NUMBER: _ClassVar[int]
+    load_avg_1m: float
+    mem_used_bytes: int
+    mem_total_bytes: int
+    disk_used_bytes: int
+    disk_total_bytes: int
+    active_alerts: int
+    def __init__(self, load_avg_1m: _Optional[float] = ..., mem_used_bytes: _Optional[int] = ..., mem_total_bytes: _Optional[int] = ..., disk_used_bytes: _Optional[int] = ..., disk_total_bytes: _Optional[int] = ..., active_alerts: _Optional[int] = ...) -> None: ...
+
+class HeartbeatResponse(_message.Message):
+    __slots__ = ("server_ts", "pending_commands")
+    SERVER_TS_FIELD_NUMBER: _ClassVar[int]
+    PENDING_COMMANDS_FIELD_NUMBER: _ClassVar[int]
+    server_ts: _timestamp_pb2.Timestamp
+    pending_commands: _containers.RepeatedCompositeFieldContainer[Command]
+    def __init__(self, server_ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., pending_commands: _Optional[_Iterable[_Union[Command, _Mapping]]] = ...) -> None: ...
+
+class Command(_message.Message):
+    __slots__ = ("id", "block_ip", "unblock_ip", "run_check")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    BLOCK_IP_FIELD_NUMBER: _ClassVar[int]
+    UNBLOCK_IP_FIELD_NUMBER: _ClassVar[int]
+    RUN_CHECK_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    block_ip: BlockIPCommand
+    unblock_ip: UnblockIPCommand
+    run_check: RunCheckCommand
+    def __init__(self, id: _Optional[str] = ..., block_ip: _Optional[_Union[BlockIPCommand, _Mapping]] = ..., unblock_ip: _Optional[_Union[UnblockIPCommand, _Mapping]] = ..., run_check: _Optional[_Union[RunCheckCommand, _Mapping]] = ...) -> None: ...
+
+class BlockIPCommand(_message.Message):
+    __slots__ = ("ip", "duration_seconds", "reason")
+    IP_FIELD_NUMBER: _ClassVar[int]
+    DURATION_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    ip: str
+    duration_seconds: int
+    reason: str
+    def __init__(self, ip: _Optional[str] = ..., duration_seconds: _Optional[int] = ..., reason: _Optional[str] = ...) -> None: ...
+
+class UnblockIPCommand(_message.Message):
+    __slots__ = ("ip",)
+    IP_FIELD_NUMBER: _ClassVar[int]
+    ip: str
+    def __init__(self, ip: _Optional[str] = ...) -> None: ...
+
+class RunCheckCommand(_message.Message):
+    __slots__ = ("check_id",)
+    CHECK_ID_FIELD_NUMBER: _ClassVar[int]
+    check_id: str
+    def __init__(self, check_id: _Optional[str] = ...) -> None: ...
+
+class Event(_message.Message):
+    __slots__ = ("event_id", "host_id", "ts", "source", "severity", "raw", "fields")
+    class FieldsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    HOST_ID_FIELD_NUMBER: _ClassVar[int]
+    TS_FIELD_NUMBER: _ClassVar[int]
+    SOURCE_FIELD_NUMBER: _ClassVar[int]
+    SEVERITY_FIELD_NUMBER: _ClassVar[int]
+    RAW_FIELD_NUMBER: _ClassVar[int]
+    FIELDS_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    host_id: str
+    ts: _timestamp_pb2.Timestamp
+    source: str
+    severity: str
+    raw: str
+    fields: _containers.ScalarMap[str, str]
+    def __init__(self, event_id: _Optional[str] = ..., host_id: _Optional[str] = ..., ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., source: _Optional[str] = ..., severity: _Optional[str] = ..., raw: _Optional[str] = ..., fields: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
+class EventAck(_message.Message):
+    __slots__ = ("event_id", "stored")
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    STORED_FIELD_NUMBER: _ClassVar[int]
+    event_id: str
+    stored: bool
+    def __init__(self, event_id: _Optional[str] = ..., stored: bool = ...) -> None: ...

@@ -22,6 +22,8 @@ class Host(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     enrollment_token: Mapped[str | None] = mapped_column(String(64), index=True)
+    enrollment_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    enrolled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     created_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

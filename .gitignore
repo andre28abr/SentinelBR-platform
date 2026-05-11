@@ -52,5 +52,9 @@ proto/gen/
 # Secrets
 *.pem
 *.key
+*.crt
 !*.example.key
 posts-linkedin/
+
+# CA + server certs gerados (ficam em server/data/, regenerados na primeira execucao)
+server/data/

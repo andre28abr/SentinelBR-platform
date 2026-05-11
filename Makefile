@@ -76,6 +76,10 @@ web: ## roda vite dev server
 server: ## roda fastapi local (sem docker, precisa de db rodando via `make dev`)
 	cd $(SERVER_DIR) && $(UV) run uvicorn app.main:app --reload --port 8000
 
+.PHONY: grpc
+grpc: ## roda gRPC server (mTLS) na porta 9443
+	cd $(SERVER_DIR) && $(UV) run python -m app.grpc_server.server
+
 # ─── Quality ──────────────────────────────────────────────────────────────────
 
 .PHONY: lint
@@ -110,15 +114,33 @@ test-web:
 
 # ─── Proto ────────────────────────────────────────────────────────────────────
 
+# Go plugins ficam em $GOPATH/bin (não no PATH por padrão).
+GOBIN := $(shell go env GOPATH)/bin
+AGENT_PB_DIR  := $(AGENT_DIR)/internal/grpc/pb
+SERVER_PB_DIR := $(SERVER_DIR)/app/grpc_server/pb
+
 .PHONY: proto
-proto: ## regera código a partir dos .proto
-	@mkdir -p $(PROTO_DIR)/gen/go $(PROTO_DIR)/gen/python
-	$(PROTOC) -I=$(PROTO_DIR) \
-	  --go_out=$(PROTO_DIR)/gen/go --go_opt=paths=source_relative \
-	  --go-grpc_out=$(PROTO_DIR)/gen/go --go-grpc_opt=paths=source_relative \
-	  --python_out=$(PROTO_DIR)/gen/python \
-	  --grpc_python_out=$(PROTO_DIR)/gen/python \
+proto: proto-go proto-python ## regera Go + Python a partir de proto/*.proto
+
+.PHONY: proto-go
+proto-go:
+	@mkdir -p $(AGENT_PB_DIR)
+	PATH="$(GOBIN):$$PATH" $(PROTOC) -I=$(PROTO_DIR) \
+	  --go_out=$(AGENT_PB_DIR) --go_opt=paths=source_relative \
+	  --go-grpc_out=$(AGENT_PB_DIR) --go-grpc_opt=paths=source_relative \
 	  $(PROTO_DIR)/*.proto
+
+.PHONY: proto-python
+proto-python:
+	@mkdir -p $(SERVER_PB_DIR)
+	@touch $(SERVER_PB_DIR)/__init__.py
+	cd $(SERVER_DIR) && uv run python -m grpc_tools.protoc -I=../$(PROTO_DIR) \
+	  --python_out=app/grpc_server/pb \
+	  --grpc_python_out=app/grpc_server/pb \
+	  --pyi_out=app/grpc_server/pb \
+	  ../$(PROTO_DIR)/agent.proto
+	@# fix imports: gerador escreve `import agent_pb2` mas precisamos `from . import agent_pb2`
+	@sed -i '' 's/^import agent_pb2/from . import agent_pb2/' $(SERVER_PB_DIR)/agent_pb2_grpc.py
 
 # ─── Clean ────────────────────────────────────────────────────────────────────
 

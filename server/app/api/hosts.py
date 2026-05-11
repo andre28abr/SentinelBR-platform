@@ -4,8 +4,11 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.api.deps import CurrentUser, DbSession
+from app.config import get_settings
 from app.models import Host
+from app.schemas.enrollment import EnrollmentTokenResponse
 from app.schemas.host import HostCreate, HostResponse, HostUpdate
+from app.services import enrollment
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["hosts"])
 
@@ -60,3 +63,29 @@ async def delete_host(host_id: uuid.UUID, db: DbSession, _: CurrentUser) -> None
         raise HTTPException(status_code=404, detail="host nao encontrado")
     await db.delete(host)
     await db.commit()
+
+
+@router.post(
+    "/{host_id}/enrollment-token",
+    response_model=EnrollmentTokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def mint_enrollment_token(
+    host_id: uuid.UUID, db: DbSession, _: CurrentUser
+) -> EnrollmentTokenResponse:
+    host = await db.get(Host, host_id)
+    if host is None:
+        raise HTTPException(status_code=404, detail="host nao encontrado")
+
+    token, expires_at = await enrollment.mint_token(db, host)
+    settings = get_settings()
+    return EnrollmentTokenResponse(
+        token=token,
+        expires_at=expires_at,
+        install_command=enrollment.install_command(
+            host_id=host.id,
+            token=token,
+            server_endpoint=settings.public_endpoint,
+            grpc_endpoint=settings.grpc_public_endpoint,
+        ),
+    )

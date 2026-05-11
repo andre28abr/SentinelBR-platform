@@ -1,5 +1,6 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
+import HostDetailPage from '@/pages/HostDetailPage'
 import HostsPage from '@/pages/HostsPage'
 import LoginPage from '@/pages/LoginPage'
 import { useAuthStore } from '@/stores/auth'
@@ -20,6 +21,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <HostsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hosts/:id"
+          element={
+            <ProtectedRoute>
+              <HostDetailPage />
             </ProtectedRoute>
           }
         />

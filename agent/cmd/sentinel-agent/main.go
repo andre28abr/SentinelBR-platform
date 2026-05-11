@@ -6,11 +6,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/sentinelbr/agent/internal/agentstate"
 	"github.com/sentinelbr/agent/internal/config"
+	"github.com/sentinelbr/agent/internal/enrollclient"
 	"github.com/sentinelbr/agent/internal/firewall"
+	"github.com/sentinelbr/agent/internal/grpcclient"
+	"github.com/sentinelbr/agent/internal/heartbeat"
 	"github.com/sentinelbr/agent/internal/logging"
 	"github.com/sentinelbr/agent/internal/mac"
 	"github.com/sentinelbr/agent/internal/osdetect"
@@ -32,6 +37,7 @@ func main() {
 
 	root.AddCommand(versionCmd())
 	root.AddCommand(doctorCmd())
+	root.AddCommand(enrollCmd())
 	root.AddCommand(runCmd())
 
 	if err := root.Execute(); err != nil {
@@ -43,7 +49,7 @@ func main() {
 func versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "imprime a versão",
+		Short: "imprime a versao",
 		Run: func(_ *cobra.Command, _ []string) {
 			fmt.Printf("sentinel-agent %s\n", version)
 		},
@@ -89,6 +95,62 @@ func doctorCmd() *cobra.Command {
 	}
 }
 
+func enrollCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "enroll",
+		Short: "registra esse host no servidor (one-shot, requer token gerado no UI)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			level, _ := cmd.Flags().GetString("log-level")
+			log := logging.New(level)
+
+			server, _ := cmd.Flags().GetString("server")
+			grpcEndpoint, _ := cmd.Flags().GetString("grpc")
+			token, _ := cmd.Flags().GetString("token")
+
+			if server == "" || token == "" {
+				return fmt.Errorf("--server e --token sao obrigatorios")
+			}
+			if grpcEndpoint == "" {
+				grpcEndpoint = "localhost:9443"
+			}
+
+			info, err := osdetect.Detect()
+			if err != nil {
+				return fmt.Errorf("osdetect: %w", err)
+			}
+			hostname, _ := os.Hostname()
+
+			log.Info("enrolling", "server", server, "hostname", hostname, "distro", info.Distro)
+			resp, err := enrollclient.Enroll(server, token, hostname, info)
+			if err != nil {
+				return err
+			}
+
+			dir, err := agentstate.DefaultDir()
+			if err != nil {
+				return err
+			}
+			st := agentstate.State{
+				HostID:       resp.HostID,
+				GRPCEndpoint: orDefault(resp.GRPCEndpoint, grpcEndpoint),
+				ServerURL:    server,
+			}
+			if err := agentstate.Save(dir, st, []byte(resp.CACertPEM), []byte(resp.ClientCertPEM), []byte(resp.ClientKeyPEM)); err != nil {
+				return err
+			}
+
+			fmt.Printf("✓ enrolled como %s\n", resp.HostID)
+			fmt.Printf("  certs salvos em: %s\n", dir)
+			fmt.Printf("  rode: sentinel-agent run\n")
+			return nil
+		},
+	}
+	cmd.Flags().String("server", "", "URL do server REST (ex: http://localhost:8000)")
+	cmd.Flags().String("grpc", "", "endpoint gRPC (default: vem da resposta do enrollment)")
+	cmd.Flags().String("token", "", "enrollment token gerado no UI")
+	return cmd
+}
+
 func runCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "run",
@@ -103,21 +165,43 @@ func runCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("config: %w", err)
 			}
-			log.Info("config carregado", "server", cfg.ServerEndpoint, "interval_s", cfg.HeartbeatSeconds)
 
-			info, err := osdetect.Detect()
+			dir, err := agentstate.DefaultDir()
 			if err != nil {
-				return fmt.Errorf("osdetect: %w", err)
+				return err
 			}
-			log.Info("os detectado", "family", info.Family, "distro", info.Distro)
+			st, paths, err := agentstate.Load(dir)
+			if err != nil {
+				return err
+			}
+			log.Info("state carregado", "host_id", st.HostID, "grpc", st.GRPCEndpoint)
+
+			conn, client, err := grpcclient.Dial(st.GRPCEndpoint, paths.CACert, paths.ClientCert, paths.ClientKey)
+			if err != nil {
+				return fmt.Errorf("dial gRPC: %w", err)
+			}
+			defer conn.Close()
 
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 			defer cancel()
 
-			log.Info("agente rodando — Ctrl+C para parar")
-			<-ctx.Done()
-			log.Info("shutdown solicitado")
-			return nil
+			interval := time.Duration(cfg.HeartbeatSeconds) * time.Second
+			loop := &heartbeat.Loop{
+				Client:   client,
+				HostID:   st.HostID,
+				Interval: interval,
+				Log:      log,
+			}
+
+			log.Info("agente rodando — Ctrl+C para parar", "interval", interval.String())
+			return loop.Run(ctx)
 		},
 	}
+}
+
+func orDefault(v, d string) string {
+	if v == "" {
+		return d
+	}
+	return v
 }
