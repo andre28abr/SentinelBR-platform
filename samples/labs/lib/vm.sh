@@ -39,6 +39,29 @@ vm::install_deps() {
       ;;
     *) echo "pkg_mgr desconhecido: $pkg_mgr" >&2; return 1;;
   esac
+
+  # ClamAV opcional (controlado por INSTALL_CLAMAV=true no .env da distro).
+  # freshclam baixa ~200MB de assinaturas e pode demorar 1-2min — rodamos com
+  # || true pra nao quebrar o provision se a rede falhar.
+  if [[ "${INSTALL_CLAMAV:-false}" == "true" ]]; then
+    echo "  + instalando clamav em $name (freshclam pode demorar ~1min)"
+    case "$pkg_mgr" in
+      apt)
+        orb -m "$name" -u root bash -c \
+          'export DEBIAN_FRONTEND=noninteractive && \
+           apt-get install -y -qq clamav clamav-daemon >/dev/null && \
+           (systemctl stop clamav-freshclam 2>/dev/null || true) && \
+           (freshclam --quiet || true) && \
+           (systemctl start clamav-freshclam 2>/dev/null || true)'
+        ;;
+      dnf)
+        orb -m "$name" -u root bash -c \
+          'dnf install -y -q clamav clamav-update >/dev/null && \
+           (sed -i "s/^Example/#Example/" /etc/freshclam.conf 2>/dev/null || true) && \
+           (freshclam --quiet || true)'
+        ;;
+    esac
+  fi
 }
 
 vm::push_agent() {

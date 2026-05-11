@@ -8,7 +8,7 @@
  * visual e evita duplicar codigo de menu.
  */
 
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import AlertBadge from '@/components/AlertBadge'
 import Logo from '@/components/Logo'
@@ -53,55 +53,55 @@ export default function AppHeader() {
       <nav className="flex items-center gap-1 text-sm">
         <AlertBadge />
         <span className="text-zinc-300 dark:text-zinc-700 mx-2">|</span>
-        <Tooltip content="Lista de servidores monitorados">
-          <Link
-            to="/"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Hosts
-          </Link>
-        </Tooltip>
-        <Tooltip content="Alertas de segurança disparados pelas regras de detecção">
-          <Link
-            to="/alerts"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Alertas
-          </Link>
-        </Tooltip>
-        <Tooltip content="MITRE ATT&CK em PT-BR — catálogo de técnicas de ataque que o SentinelBR detecta">
-          <Link
-            to="/kb"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            ATT&CK
-          </Link>
-        </Tooltip>
-        <Tooltip content="Threat Hunting — queries pré-prontas para investigação proativa">
-          <Link
-            to="/hunting"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Hunting
-          </Link>
-        </Tooltip>
-        <Tooltip content="Purple Team — simulações de ataque + detecção esperada">
-          <Link
-            to="/purple-team"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Purple Team
-          </Link>
-        </Tooltip>
-        <Tooltip content="Relatórios de compliance LGPD (audit log, MTTR, retenção)">
-          <Link
-            to="/compliance"
-            className="px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            LGPD
-          </Link>
-        </Tooltip>
+        <NavItem to="/" label="Hosts" tooltip="Lista de servidores monitorados" />
+        <NavItem
+          to="/alerts"
+          label="Alertas"
+          tooltip="Alertas de segurança disparados pelas regras de detecção"
+        />
+        <NavItem
+          to="/kb"
+          label="ATT&CK"
+          tooltip="MITRE ATT&CK em PT-BR — catálogo de técnicas de ataque que o SentinelBR detecta"
+        />
+        <NavItem
+          to="/hunting"
+          label="Hunting"
+          tooltip="Threat Hunting — queries pré-prontas para investigação proativa"
+        />
+        <NavItem
+          to="/purple-team"
+          label="Purple Team"
+          tooltip="Purple Team — simulações de ataque + detecção esperada"
+        />
+        <NavItem
+          to="/compliance"
+          label="LGPD"
+          tooltip="Relatórios de compliance LGPD (audit log, MTTR, retenção)"
+        />
       </nav>
     </header>
   )
+}
+
+function NavItem({ to, label, tooltip }: { to: string; label: string; tooltip: string }) {
+  const { pathname } = useLocation()
+  const active = isActive(pathname, to)
+  const cls = active
+    ? 'px-2 py-1 rounded bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium'
+    : 'px-2 py-1 rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100'
+  return (
+    <Tooltip content={tooltip}>
+      <Link to={to} className={cls} aria-current={active ? 'page' : undefined}>
+        {label}
+      </Link>
+    </Tooltip>
+  )
+}
+
+function isActive(pathname: string, to: string): boolean {
+  if (to === '/') {
+    return pathname === '/' || pathname.startsWith('/hosts')
+  }
+  return pathname === to || pathname.startsWith(`${to}/`)
 }
