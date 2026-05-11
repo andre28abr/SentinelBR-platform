@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
+import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
 import { ApiError, api } from '@/lib/api'
 
 interface EventItem {
@@ -118,9 +119,19 @@ export default function EventsTab({ hostId }: { hostId: string }) {
       <p className="text-xs text-zinc-500">
         {events.length} eventos · últimas {HOURS}h · auto-refresh a cada {REFRESH_MS / 1000}s
       </p>
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <EventsTable events={events} />
+    </div>
+  )
+}
+
+function EventsTable({ events }: { events: EventItem[] }) {
+  const { visible, hasMore, expanded, toggle, containerClass, collapsedCount } =
+    useTableLimit(events, { defaultVisible: 10 })
+  return (
+    <>
+      <div className={`rounded-lg border border-zinc-200 dark:border-zinc-800 ${containerClass}`}>
         <table className="w-full text-xs">
-          <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
+          <thead className="bg-zinc-50 dark:bg-zinc-900 text-left sticky top-0">
             <tr>
               <th className="px-4 py-3 font-medium text-zinc-500">Quando</th>
               <th className="px-4 py-3 font-medium text-zinc-500">Severidade</th>
@@ -130,7 +141,7 @@ export default function EventsTab({ hostId }: { hostId: string }) {
             </tr>
           </thead>
           <tbody>
-            {events.map((e) => (
+            {visible.map((e) => (
               <tr
                 key={e.event_id || `${e.timestamp}-${e.raw}`}
                 className="border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
@@ -163,7 +174,15 @@ export default function EventsTab({ hostId }: { hostId: string }) {
           </tbody>
         </table>
       </div>
-    </div>
+      {hasMore && (
+        <TableLimitFooter
+          total={events.length}
+          expanded={expanded}
+          onToggle={toggle}
+          collapsedCount={collapsedCount}
+        />
+      )}
+    </>
   )
 }
 

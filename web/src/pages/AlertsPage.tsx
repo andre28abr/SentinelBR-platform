@@ -5,6 +5,7 @@ import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import ExplainPopover from '@/components/ExplainPopover'
 import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
+import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
 import { ApiError, api } from '@/lib/api'
 
 interface Alert {
@@ -102,51 +103,75 @@ export default function AlertsPage() {
           Nenhum alerta {statusFilter === 'all' ? '' : statusFilter}. Tudo tranquilo.
         </p>
       ) : (
-        <div className="space-y-2">
-          {alerts.map((a) => (
-            <article
-              key={a.id}
-              className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <SeverityBadge severity={a.severity} />
-                    <Link
-                      to={`/hosts/${a.host_id}`}
-                      className="text-xs text-zinc-500 hover:underline font-mono"
-                    >
-                      host: {a.host_id.slice(0, 8)}…
-                    </Link>
-                    <span className="text-xs text-zinc-500">
-                      · {fmtRelative(a.last_event_at)}
-                    </span>
-                  </div>
-                  <p className="font-semibold">{a.rule_name}</p>
-                  <p className="text-sm text-zinc-500">{a.description}</p>
-                  {Object.entries(a.context).length > 0 && (
-                    <p className="text-xs text-zinc-500 mt-1 font-mono">
-                      {Object.entries(a.context)
-                        .map(([k, v]) => `${k}=${v}`)
-                        .join(' · ')}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-start gap-3 text-xs">
-                  <ExplainPopover
-                    kind="rule"
-                    ruleId={a.rule_id}
-                    variant="link"
-                    label="ver detalhes"
-                  />
-                  <RowActionsMenu items={buildAlertActions(a, changeStatus)} />
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <AlertsList alerts={alerts} changeStatus={changeStatus} />
       )}
     </main>
+  )
+}
+
+function AlertsList({
+  alerts,
+  changeStatus,
+}: {
+  alerts: Alert[]
+  changeStatus: (id: string, status: 'acknowledged' | 'resolved') => Promise<void>
+}) {
+  const { visible, hasMore, expanded, toggle, containerClass, collapsedCount } =
+    useTableLimit(alerts, { defaultVisible: 10, collapsedMaxHeight: 'max-h-[700px]' })
+  return (
+    <>
+      <div className={`space-y-2 ${containerClass}`}>
+        {visible.map((a) => (
+          <article
+            key={a.id}
+            className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-800"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <SeverityBadge severity={a.severity} />
+                  <Link
+                    to={`/hosts/${a.host_id}`}
+                    className="text-xs text-zinc-500 hover:underline font-mono"
+                  >
+                    host: {a.host_id.slice(0, 8)}…
+                  </Link>
+                  <span className="text-xs text-zinc-500">
+                    · {fmtRelative(a.last_event_at)}
+                  </span>
+                </div>
+                <p className="font-semibold">{a.rule_name}</p>
+                <p className="text-sm text-zinc-500">{a.description}</p>
+                {Object.entries(a.context).length > 0 && (
+                  <p className="text-xs text-zinc-500 mt-1 font-mono">
+                    {Object.entries(a.context)
+                      .map(([k, v]) => `${k}=${v}`)
+                      .join(' · ')}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-start gap-3 text-xs">
+                <ExplainPopover
+                  kind="rule"
+                  ruleId={a.rule_id}
+                  variant="link"
+                  label="ver detalhes"
+                />
+                <RowActionsMenu items={buildAlertActions(a, changeStatus)} />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      {hasMore && (
+        <TableLimitFooter
+          total={alerts.length}
+          expanded={expanded}
+          onToggle={toggle}
+          collapsedCount={collapsedCount}
+        />
+      )}
+    </>
   )
 }
 

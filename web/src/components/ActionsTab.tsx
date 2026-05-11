@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
 import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
+import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
 import { ApiError, api } from '@/lib/api'
 
 interface Action {
@@ -97,9 +98,25 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
       <p className="text-xs text-zinc-500">
         {actions.length} ações · auto-refresh {REFRESH_MS / 1000}s
       </p>
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-visible">
+      <ActionsTable actions={actions} buildActions={buildActions} />
+    </div>
+  )
+}
+
+function ActionsTable({
+  actions,
+  buildActions,
+}: {
+  actions: Action[]
+  buildActions: (a: Action) => MenuItem[]
+}) {
+  const { visible, hasMore, expanded, toggle, containerClass, collapsedCount } =
+    useTableLimit(actions, { defaultVisible: 10 })
+  return (
+    <>
+      <div className={`rounded-lg border border-zinc-200 dark:border-zinc-800 ${containerClass}`}>
         <table className="w-full text-xs">
-          <thead className="bg-zinc-50 dark:bg-zinc-900 text-left">
+          <thead className="bg-zinc-50 dark:bg-zinc-900 text-left sticky top-0">
             <tr>
               <th className="px-4 py-3 font-medium text-zinc-500">Quando</th>
               <th className="px-4 py-3 font-medium text-zinc-500">Tipo</th>
@@ -111,11 +128,8 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
             </tr>
           </thead>
           <tbody>
-            {actions.map((a) => (
-              <tr
-                key={a.id}
-                className="border-t border-zinc-100 dark:border-zinc-800"
-              >
+            {visible.map((a) => (
+              <tr key={a.id} className="border-t border-zinc-100 dark:border-zinc-800">
                 <td className="px-4 py-3 text-zinc-500 whitespace-nowrap">
                   {fmtTimeShort(a.created_at)}
                 </td>
@@ -129,11 +143,7 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
                 </td>
                 <td className="px-4 py-3 text-zinc-500 max-w-xs truncate">{a.reason}</td>
                 <td className="px-4 py-3">
-                  <ExplainPopover
-                    kind="action"
-                    actionType={a.action_type}
-                    variant="link"
-                  />
+                  <ExplainPopover kind="action" actionType={a.action_type} variant="link" />
                 </td>
                 <td className="px-4 py-3 text-right">
                   <RowActionsMenu items={buildActions(a)} />
@@ -143,7 +153,15 @@ export default function ActionsTab({ hostId }: { hostId: string }) {
           </tbody>
         </table>
       </div>
-    </div>
+      {hasMore && (
+        <TableLimitFooter
+          total={actions.length}
+          expanded={expanded}
+          onToggle={toggle}
+          collapsedCount={collapsedCount}
+        />
+      )}
+    </>
   )
 }
 
