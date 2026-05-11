@@ -1,0 +1,29 @@
+id: webshell-deployment
+name: Deploy de Webshell e Quarentena Automática
+description: |
+  Atacante consegue acesso ao web server e deixa um webshell PHP em
+  /var/www/html. SentinelBR detecta via YARA (manual, agendado ou
+  filewatcher) e a policy dispara auto-quarantine.
+
+  No lab as VMs estão com --quarantine-dry-run pra não mover arquivos
+  de verdade (senão precisaria re-plantar a cada teste). O log mostra
+  "DRY-RUN quarantine" — em prod, o arquivo seria movido pra
+  /var/sentinelbr/quarantine/ com sidecar JSON.
+mitre: T1505.003
+expected_alerts:
+  - yara_critical_match (rule_name=WebshellPHP, severity=critical)
+expected_actions:
+  - quarantine_file /var/www/html/admin.php (auto, pela policy)
+how_to_run: |
+  Pré-req: lab de pé.
+
+  Opção 1 — scan manual via UI:
+    1. Abra /hosts/<id>
+    2. Seção "Anti-malware (YARA)" → "Escanear pasta…"
+    3. Path = /var/www → Iniciar scan
+    4. Aguarde 30s — action passa pra executed
+    5. Aba "Ações de resposta" mostra quarantine_file pending (auto)
+
+  Opção 2 — filewatcher (real-time):
+    orb -m lab-debian-11 -u root bash -c 'echo "<?php system(\$_GET[c]); ?>" > /var/www/newshell.php'
+    # detection em ~3s

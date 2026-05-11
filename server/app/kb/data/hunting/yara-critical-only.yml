@@ -1,0 +1,11 @@
+id: yara-critical-only
+name: Apenas matches YARA críticos (webshell, ransomware)
+description: |
+  Filtra YARA matches de severidade critical — webshells ativos, ransomware,
+  malware com tag critical. Cada um disparou auto-quarantine pela policy
+  (verificar aba Actions).
+mitre: T1505.003
+events_filter:
+  source: yara
+  severity: critical
+  hours: 168

@@ -1,0 +1,37 @@
+id: T1486
+name: Data Encrypted for Impact (Ransomware)
+tactic: Impact (Impacto)
+url: https://attack.mitre.org/techniques/T1486/
+severity: critical
+description: |
+  Ransomware encripta arquivos da vítima e exige resgate (geralmente em
+  cripto). A maioria dos ataques no Brasil em SMBs vem por (1) phishing
+  com macro Office, (2) RDP exposto com senha fraca, (3) supply chain
+  via plugin vulnerável.
+
+  Famílias ativas em 2024-2025: LockBit (Russia), BlackCat/ALPHV, Conti
+  (vazada), Royal, Akira. Todas seguem o mesmo padrão: ganhar acesso →
+  reconhecer rede → exfiltrar dados → encriptar → deixar nota de resgate.
+
+detection:
+  rules:
+    - yara_critical_match
+  signals: |
+    YARA matches em arquivos com padrões de nota de resgate (RECOVER_FILES.txt,
+    !!!READ_ME!!!.html, .lockbit, etc) ou binários de famílias conhecidas.
+    SentinelBR também alertaria pelo file watcher: massa de WRITEs em
+    /home, /var/www em segundos = sinal de encriptação ativa.
+
+mitigation:
+  - Backup OFFSITE (3-2-1: 3 cópias, 2 mídias, 1 offsite — rule of thumb)
+  - Backups TESTADOS (restore drill mensal) — backup que nunca testou pode estar quebrado
+  - Imutabilidade: S3 Object Lock, ZFS snapshots, restic com prune controlado
+  - Princípio do menor privilégio: backup user não deve ter delete em destination
+  - Patches em dia (foi um dos vetores de Conti — ZeroLogon)
+  - Segmentação de rede: VLAN separada pra backup, sem ICMP da DMZ
+  - Plano de IR escrito + ensaiado: NÃO PAGAR (estatisticamente, muitos não recebem chave funcionando)
+
+references:
+  - https://attack.mitre.org/techniques/T1486/
+  - https://www.cisa.gov/stopransomware
+  - https://www.gov.br/gsi/pt-br/composicao/dsi/incidentes-em-redes (CTIR.gov.br)

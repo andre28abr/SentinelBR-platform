@@ -1,0 +1,12 @@
+id: root-login-attempts
+name: Tentativas de login direto como root
+description: |
+  Sistema bem-configurado nunca deveria ver tentativa root via SSH (
+  PermitRootLogin=no). Cada ocorrência merece investigação manual mesmo
+  se for tentativa única.
+mitre: T1078.003
+events_filter:
+  source: sshd
+  severity: error
+  hours: 168
+search_text: "root"

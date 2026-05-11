@@ -1,0 +1,41 @@
+id: T1068
+name: Exploitation for Privilege Escalation
+tactic: Privilege Escalation (Escalação de Privilégio)
+url: https://attack.mitre.org/techniques/T1068/
+severity: critical
+description: |
+  Após ganhar acesso inicial (web user, conta de serviço), atacante explora
+  vulnerabilidade local pra virar root. Exemplos no Linux:
+    - CVE-2021-3156 (Baron Samedit / sudo heap overflow) — décadas exposto
+    - CVE-2022-0847 (DirtyPipe) — escrita arbitrária via splice
+    - CVE-2023-32233 (nftables UAF)
+    - Misconfigured SUID binaries (gtfobins.github.io)
+
+  Em distros mantidas, esses CVEs são patcheados rápido. SentinelBR ajuda
+  detectando o reflexo: SELinux/AppArmor denials que indicam que o
+  atacante tentou ação fora do perfil esperado, ou alertas AV em payloads
+  de exploit.
+
+detection:
+  rules:
+    - selinux_denials_burst
+    - apparmor_denials_burst
+    - yara_critical_match
+  signals: |
+    Burst de "type=AVC denied" do mesmo source_type (selinux) ou
+    apparmor=DENIED do mesmo profile em janela de 5min — indica que
+    processo tentou ações fora do contexto autorizado. Não é prova de
+    exploit, mas é forte sinal de "alguma coisa errada".
+
+mitigation:
+  - Patches em dia (SentinelBR mostra CVEs do host — priorizar Critical)
+  - SELinux ENFORCING em prod (não Permissive)
+  - SUID minimal — auditar com `find / -perm -4000 -type f`
+  - Kernel hardening: KASLR, SMAP, SMEP, KASAN se possível
+  - Princípio do menor privilégio: serviço web não roda como root, tem capabilities mínimas
+  - Containers: drop-all + add only what's needed
+
+references:
+  - https://attack.mitre.org/techniques/T1068/
+  - https://github.com/SecWiki/linux-kernel-exploits
+  - https://gtfobins.github.io

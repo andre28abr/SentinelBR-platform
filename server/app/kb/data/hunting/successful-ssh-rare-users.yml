@@ -1,0 +1,12 @@
+id: successful-ssh-rare-users
+name: Logins SSH bem-sucedidos (revisar quem entrou)
+description: |
+  Lista todos os "Accepted password" / "Accepted publickey". Em servidor
+  bem-administrado a lista é curta e estável — anomalia indica credencial
+  comprometida ou novo deploy não-documentado.
+mitre: T1078.003
+events_filter:
+  source: sshd
+  severity: info
+  hours: 168
+search_text: "Accepted"

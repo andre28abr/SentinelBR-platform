@@ -1,0 +1,33 @@
+id: T1496
+name: Resource Hijacking (Cryptojacking)
+tactic: Impact (Impacto)
+url: https://attack.mitre.org/techniques/T1496/
+severity: high
+description: |
+  Atacante usa recursos do servidor comprometido pra minerar criptomoeda
+  (Monero é a queridinha — algoritmo RandomX roda bem em CPU). Vítima vê
+  CPU 100%, conta de eletricidade/cloud explodindo, mas o sistema fica
+  "funcionando" — atacante quer manter discreto.
+
+  Indicadores: processo xmrig/cgmining/minerd, conexão pra pools
+  (pool.minexmr.com:4444, pool.supportxmr.com), arquivo de config com
+  wallet address, cron suspeito ressuscitando o miner se você matar.
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA matches em arquivos de config do XMRig (donate-level, algo: rx/0,
+    stratum+tcp). Em vuln-lab tem exemplo em /tmp/lab-bait/xmrig.json.
+
+mitigation:
+  - SentinelBR YARA scan + auto-quarantine
+  - Bloquear ranges conhecidos de pools no firewall (lista feed feeds.dnsbl.cm)
+  - Monitor de CPU sustentada >80% por mais de 30min em servidor que não roda batch
+  - Auditd em execve pra processos não-listados
+  - Container/VM com cgroup limits pra evitar dano em caso de comprometimento
+
+references:
+  - https://attack.mitre.org/techniques/T1496/
+  - https://github.com/xmrig/xmrig (oficial — útil pra entender o setup do atacante)

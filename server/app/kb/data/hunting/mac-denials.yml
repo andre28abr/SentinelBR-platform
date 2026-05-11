@@ -1,0 +1,10 @@
+id: mac-denials
+name: SELinux/AppArmor denials (escalada de privilégio)
+description: |
+  Denials do MAC layer indicam processo tentando ação fora do contexto
+  autorizado. 1 ou 2 podem ser ruído (rule incompleta), mas burst é
+  sinal de exploit ou misconfiguration séria.
+mitre: T1068
+events_filter:
+  source: selinux  # ou apparmor — filtre pela aba
+  hours: 168

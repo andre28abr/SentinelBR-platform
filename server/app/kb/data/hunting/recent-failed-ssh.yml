@@ -1,0 +1,10 @@
+id: recent-failed-ssh
+name: Falhas SSH nas últimas 24h
+description: |
+  Lista todas as falhas de autenticação SSH no período. Útil pra ver
+  volume baseline (esperado vs anomalia) e identificar IPs que reincidem.
+mitre: T1110.001
+events_filter:
+  source: sshd
+  severity: error
+  hours: 24

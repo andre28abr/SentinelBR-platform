@@ -1,0 +1,33 @@
+id: T1110.001
+name: Brute Force - Adivinhação de Senha
+tactic: Credential Access (Acesso a Credenciais)
+url: https://attack.mitre.org/techniques/T1110/001/
+severity: high
+description: |
+  Atacante tenta adivinhar senhas válidas em loop, geralmente via SSH, RDP,
+  SMB ou serviços web. Em SMBs brasileiras o vetor mais comum é SSH exposto
+  na internet sem fail2ban, com dicionários conhecidos (admin, root, postgres,
+  password123).
+
+  O ataque é "barulhento": gera dezenas/centenas de tentativas falhas em
+  poucos segundos, fácil de detectar via log de autenticação.
+
+detection:
+  rules:
+    - ssh_brute_force_ip
+    - ssh_brute_force_user
+  signals: |
+    Múltiplas linhas "Failed password" no /var/log/auth.log do mesmo source
+    IP em janela curta (5+ em 5 min).
+
+mitigation:
+  - Desabilitar autenticação por senha SSH (PasswordAuthentication no), aceitar só chave
+  - SentinelBR auto-block via firewall após detecção (já configurado)
+  - Mover SSH pra porta não-padrão (reduz volume de scans automatizados, não para alvos direcionados)
+  - Fail2ban ou crowdsec como segunda linha de defesa
+  - VPN ou bastion na frente do SSH em vez de exposição direta
+  - MFA com Google Authenticator (libpam-google-authenticator) ou Yubikey
+
+references:
+  - https://attack.mitre.org/techniques/T1110/001/
+  - https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-074a

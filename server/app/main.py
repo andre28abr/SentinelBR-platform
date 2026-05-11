@@ -12,6 +12,7 @@ from app.api import (
     events,
     health,
     hosts,
+    kb,
     vulnerabilities,
     yara,
 )
@@ -47,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(audit.router)
     app.include_router(vulnerabilities.router)
     app.include_router(yara.router)
+    app.include_router(kb.router)
     return app
 
 

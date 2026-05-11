@@ -1,0 +1,30 @@
+id: T1110.003
+name: Brute Force - Password Spraying
+tactic: Credential Access (Acesso a Credenciais)
+url: https://attack.mitre.org/techniques/T1110/003/
+severity: high
+description: |
+  Variação do brute-force onde o atacante tenta UMA senha comum
+  (password, admin, 123456) contra MUITOS usuários, em vez de muitas
+  senhas contra um. Foge de bloqueios de conta (lockout) que disparam
+  em N falhas no mesmo user.
+
+  Comum quando o atacante já tem uma lista de e-mails/usuários do alvo
+  (vazada em breaches anteriores) e quer testar senhas fracas.
+
+detection:
+  rules:
+    - ssh_brute_force_ip
+    - ssh_user_enumeration
+  signals: |
+    Mesmo IP fonte tentando login com usuários diferentes em sequência.
+    Sentinel correlaciona por source.ip independente de user.name.
+
+mitigation:
+  - Mesmo do T1110.001 (chave SSH, MFA, auto-block)
+  - Política de senha forte com bloqueio progressivo (aumentar delay após cada falha)
+  - Monitorar logins bem-sucedidos de usuários "raros" (admin, postgres, deploy) que costumam ser silenciosos
+  - Ter inventário de usuários autorizados — alertar quando user inexistente é tentado
+
+references:
+  - https://attack.mitre.org/techniques/T1110/003/

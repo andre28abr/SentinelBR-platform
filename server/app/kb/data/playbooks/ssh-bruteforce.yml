@@ -1,0 +1,28 @@
+id: ssh-bruteforce
+name: SSH Brute-force End-to-End
+description: |
+  Cenário: atacante tenta força bruta SSH no host. Validamos toda a cadeia:
+  evento chega → detection rule dispara alerta → policy cria action block_ip
+  → agente executa no firewall → IP fica bloqueado.
+
+  Em vez de ataque real, o lab "injeta" linhas falsas de Failed password
+  no /var/log/auth.log. Resultado é idêntico (parser não diferencia).
+mitre: T1110.001
+expected_alerts:
+  - ssh_brute_force_ip (high)
+  - ssh_brute_force_user (high)
+  - ssh_root_login_failure (medium)
+expected_actions:
+  - block_ip 203.0.113.99 (auto, pela policy)
+how_to_run: |
+  Pré-req: o lab precisa estar de pé (`make lab-up`).
+
+  Roda:
+      samples/labs/attack.sh debian-11
+
+  Ou só plant manual numa VM:
+      samples/labs/lib/plant.sh && plant::bruteforce lab-debian-11 12
+
+  Aguarde ~1min e cheque:
+    - /alerts (3 alertas)
+    - /hosts/<id> → aba Ações de resposta (block_ip executed)

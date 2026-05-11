@@ -4,7 +4,10 @@ import AlertsPage from '@/pages/AlertsPage'
 import CompliancePage from '@/pages/CompliancePage'
 import HostDetailPage from '@/pages/HostDetailPage'
 import HostsPage from '@/pages/HostsPage'
+import HuntingPage from '@/pages/HuntingPage'
+import KbPage from '@/pages/KbPage'
 import LoginPage from '@/pages/LoginPage'
+import PurpleTeamPage from '@/pages/PurpleTeamPage'
 import { useAuthStore } from '@/stores/auth'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,6 +50,30 @@ export default function App() {
           element={
             <ProtectedRoute>
               <CompliancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/kb"
+          element={
+            <ProtectedRoute>
+              <KbPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hunting"
+          element={
+            <ProtectedRoute>
+              <HuntingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purple-team"
+          element={
+            <ProtectedRoute>
+              <PurpleTeamPage />
             </ProtectedRoute>
           }
         />

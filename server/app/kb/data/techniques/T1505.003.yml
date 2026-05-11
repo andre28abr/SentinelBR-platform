@@ -1,0 +1,36 @@
+id: T1505.003
+name: Server Software Component - Web Shell
+tactic: Persistence (Persistência)
+url: https://attack.mitre.org/techniques/T1505/003/
+severity: critical
+description: |
+  Atacante coloca um arquivo executável remoto (PHP, JSP, ASPX) num
+  diretório acessível pelo web server. Permite executar comandos
+  arbitrários via HTTP — backdoor persistente que sobrevive a reboot
+  e patch da vulnerabilidade original.
+
+  No Brasil, vetor super comum em sites WordPress/Joomla mal-mantidos:
+  exploit de plugin vulnerável → upload de webshell em wp-content/uploads/
+  → atacante volta semanas depois usando GET ?cmd=...
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA match em /var/www, /opt/*/uploads, /tmp com regras como
+    WebshellPHP (eval, system, base64_decode em PHP). Severidade
+    critical — dispara auto-quarantine pela policy.
+
+mitigation:
+  - SentinelBR YARA scheduled scan (já configurado, 1x/dia)
+  - SentinelBR YARA filewatcher em /var/www (real-time)
+  - Auto-quarantine ativo em alertas críticos
+  - WAF (mod_security, naxsi) rejeitando payloads conhecidos
+  - Inventário do que deveria estar em /var/www — diff contra git
+  - Permissões: web user não deve poder escrever fora de uploads/
+  - Sandbox uploads (extensões permitidas, validação de magic bytes)
+
+references:
+  - https://attack.mitre.org/techniques/T1505/003/
+  - https://github.com/Yara-Rules/rules/tree/master/webshells

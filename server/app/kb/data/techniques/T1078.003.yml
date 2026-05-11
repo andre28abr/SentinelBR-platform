@@ -1,0 +1,30 @@
+id: T1078.003
+name: Valid Accounts - Local Accounts
+tactic: Defense Evasion (Evasão de Defesa) / Initial Access
+url: https://attack.mitre.org/techniques/T1078/003/
+severity: critical
+description: |
+  Atacante usa credenciais válidas de uma conta local pra acessar o sistema.
+  Sem o flag "invalid user" do log SSH, parece login legítimo.
+
+  O caso mais grave: tentativa de login direto como root via SSH. Mesmo que
+  /etc/ssh/sshd_config tenha "PermitRootLogin no" (deveria), uma tentativa
+  na log já indica reconhecimento ou comprometimento de credenciais.
+
+detection:
+  rules:
+    - ssh_root_login_failure
+  signals: |
+    Linha "Failed password for root from <ip>" no auth.log. Mesmo 1 ocorrência
+    é alerta — root SSH não deveria ser nem tentado em sistema bem configurado.
+
+mitigation:
+  - PermitRootLogin no no /etc/ssh/sshd_config (block direto pelo daemon)
+  - Sudo com NOPASSWD apenas pra comandos específicos (sudoers)
+  - Auditd no audit.rules pra logar uso de su/sudo
+  - SELinux/AppArmor confinando contas privilegiadas
+  - Rotação periódica de credenciais (90 dias)
+
+references:
+  - https://attack.mitre.org/techniques/T1078/003/
+  - https://www.linux.com/news/openssh-best-security-practices/

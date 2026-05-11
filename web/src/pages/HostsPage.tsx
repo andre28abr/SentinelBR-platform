@@ -83,6 +83,15 @@ export default function HostsPage() {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <AlertBadge />
+          <Link to="/kb" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+            ATT&CK
+          </Link>
+          <Link to="/hunting" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+            Hunting
+          </Link>
+          <Link to="/purple-team" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
+            Purple Team
+          </Link>
           <Link to="/compliance" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
             LGPD
           </Link>

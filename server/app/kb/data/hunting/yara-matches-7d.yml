@@ -1,0 +1,9 @@
+id: yara-matches-7d
+name: Matches YARA nos últimos 7 dias
+description: |
+  Todos os detections YARA recentes. Inspecionar pra confirmar verdadeiros
+  positivos ou ajustar regra se for falso positivo.
+mitre: T1505.003
+events_filter:
+  source: yara
+  hours: 168
