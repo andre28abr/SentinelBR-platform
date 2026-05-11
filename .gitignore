@@ -58,3 +58,6 @@ posts-linkedin/
 
 # CA + server certs gerados (ficam em server/data/, regenerados na primeira execucao)
 server/data/
+
+# Celery beat schedule files (gerados em runtime)
+server/celerybeat-schedule*
