@@ -12,10 +12,11 @@ import uuid
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
+from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.grpc_server.pb import agent_pb2, agent_pb2_grpc
-from app.models import Host
+from app.models import Action, Host
 from app.services import loki
 
 log = logging.getLogger(__name__)
@@ -36,6 +37,47 @@ def _peer_host_id(context: grpc.aio.ServicerContext) -> uuid.UUID | None:
         return None
 
 
+def _action_to_command(action: Action) -> agent_pb2.Command:
+    cmd = agent_pb2.Command(id=str(action.id))
+    if action.action_type == "block_ip":
+        cmd.block_ip.CopyFrom(agent_pb2.BlockIPCommand(
+            ip=action.target,
+            duration_seconds=0,
+            reason=action.reason,
+        ))
+    elif action.action_type == "unblock_ip":
+        cmd.unblock_ip.CopyFrom(agent_pb2.UnblockIPCommand(ip=action.target))
+    return cmd
+
+
+async def _apply_command_results(
+    db, host_id: uuid.UUID, results: list[agent_pb2.CommandResult]
+) -> None:
+    """Marca actions como executed/failed conforme o agente reportou."""
+    if not results:
+        return
+    for result in results:
+        try:
+            action_id = uuid.UUID(result.command_id)
+        except ValueError:
+            continue
+        action = await db.get(Action, action_id)
+        if action is None or action.host_id != host_id:
+            continue
+        if result.status == agent_pb2.COMMAND_STATUS_OK:
+            action.status = "executed"
+        elif result.status == agent_pb2.COMMAND_STATUS_FAILED:
+            action.status = "failed"
+            action.error_message = result.error_message
+        elif result.status == agent_pb2.COMMAND_STATUS_UNSUPPORTED:
+            action.status = "failed"
+            action.error_message = f"unsupported: {result.error_message}"
+        if result.executed_at.seconds or result.executed_at.nanos:
+            action.executed_at = result.executed_at.ToDatetime().replace(tzinfo=dt.UTC)
+        else:
+            action.executed_at = dt.datetime.now(dt.UTC)
+
+
 class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
     async def Heartbeat(  # noqa: N802 (nome vem do proto)
         self,
@@ -51,18 +93,41 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
                 f"cert CN ({peer_id}) nao bate com host_id do request ({request_id})",
             )
 
+        pending_pb_commands: list[agent_pb2.Command] = []
         async with SessionLocal() as db:
             host = await db.get(Host, request_id)
             if host is None:
                 await context.abort(grpc.StatusCode.NOT_FOUND, "host nao registrado")
             host.last_heartbeat = dt.datetime.now(dt.UTC)
             host.status = "active"
+
+            # 1) processa CommandResults reportados pelo agente
+            await _apply_command_results(db, request_id, request.command_results)
+
+            # 2) busca actions ainda nao executadas pra esse host e marca como 'sent'
+            pending = (
+                await db.execute(
+                    select(Action).where(
+                        Action.host_id == request_id,
+                        Action.status == "pending",
+                    )
+                )
+            ).scalars().all()
+            now = dt.datetime.now(dt.UTC)
+            for action in pending:
+                pending_pb_commands.append(_action_to_command(action))
+                action.status = "sent"
+                action.sent_at = now
+
             await db.commit()
-            log.info("heartbeat", extra={"host_id": str(request_id)})
+            log.info(
+                "heartbeat",
+                extra={"host_id": str(request_id), "pending_commands": len(pending_pb_commands)},
+            )
 
         ts = Timestamp()
         ts.GetCurrentTime()
-        return agent_pb2.HeartbeatResponse(server_ts=ts)
+        return agent_pb2.HeartbeatResponse(server_ts=ts, pending_commands=pending_pb_commands)
 
     async def Enroll(  # noqa: N802
         self,

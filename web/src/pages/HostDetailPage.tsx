@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import ActionsTab from '@/components/ActionsTab'
 import EventsTab from '@/components/EventsTab'
 import { ApiError, api } from '@/lib/api'
 
@@ -166,6 +167,13 @@ export default function HostDetailPage() {
           </p>
         </section>
       )}
+
+      <section className="mb-6">
+        <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">
+          Ações de resposta
+        </h2>
+        {id && <ActionsTab hostId={id} />}
+      </section>
 
       <section className="mb-6">
         <h2 className="text-sm font-semibold mb-3 text-zinc-500 uppercase tracking-wide">

@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import SessionLocal
 from app.models import Alert, Host
-from app.services import loki
+from app.services import loki, policy
 from app.services.rules.evaluator import AlertCandidate, evaluate
 from app.services.rules.loader import Rule, load_default_rules
 
@@ -85,6 +85,8 @@ async def evaluate_for_host(db: AsyncSession, host: Host, rules: list[Rule]) -> 
 
         for candidate in evaluate(rule, events):
             alert = await _upsert_alert(db, str(host.id), candidate)
+            await db.flush()  # garante alert.id pra usar como FK na Action
+            await policy.maybe_create_action(db, alert)
             alerts_changed.append(alert)
 
     return alerts_changed

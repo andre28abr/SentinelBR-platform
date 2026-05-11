@@ -22,6 +22,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type CommandStatus int32
+
+const (
+	CommandStatus_COMMAND_STATUS_UNSPECIFIED CommandStatus = 0
+	CommandStatus_COMMAND_STATUS_OK          CommandStatus = 1
+	CommandStatus_COMMAND_STATUS_FAILED      CommandStatus = 2
+	CommandStatus_COMMAND_STATUS_UNSUPPORTED CommandStatus = 3 // OS/firewall nao suporta a operacao
+)
+
+// Enum value maps for CommandStatus.
+var (
+	CommandStatus_name = map[int32]string{
+		0: "COMMAND_STATUS_UNSPECIFIED",
+		1: "COMMAND_STATUS_OK",
+		2: "COMMAND_STATUS_FAILED",
+		3: "COMMAND_STATUS_UNSUPPORTED",
+	}
+	CommandStatus_value = map[string]int32{
+		"COMMAND_STATUS_UNSPECIFIED": 0,
+		"COMMAND_STATUS_OK":          1,
+		"COMMAND_STATUS_FAILED":      2,
+		"COMMAND_STATUS_UNSUPPORTED": 3,
+	}
+)
+
+func (x CommandStatus) Enum() *CommandStatus {
+	p := new(CommandStatus)
+	*p = x
+	return p
+}
+
+func (x CommandStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CommandStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_proto_enumTypes[0].Descriptor()
+}
+
+func (CommandStatus) Type() protoreflect.EnumType {
+	return &file_agent_proto_enumTypes[0]
+}
+
+func (x CommandStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CommandStatus.Descriptor instead.
+func (CommandStatus) EnumDescriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{0}
+}
+
 type EnrollRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	EnrollmentToken string                 `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken,proto3" json:"enrollment_token,omitempty"` // token one-time gerado no server
@@ -335,12 +387,15 @@ func (x *AgentConfig) GetWatchPaths() []string {
 }
 
 type HeartbeatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HostId        string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
-	Ts            *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=ts,proto3" json:"ts,omitempty"`
-	Stats         *HostStats             `protobuf:"bytes,3,opt,name=stats,proto3" json:"stats,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	HostId string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	Ts     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=ts,proto3" json:"ts,omitempty"`
+	Stats  *HostStats             `protobuf:"bytes,3,opt,name=stats,proto3" json:"stats,omitempty"`
+	// Resultados de Commands recebidos em heartbeats anteriores. Agente executa
+	// localmente (firewall block, etc) e reporta no proximo tick.
+	CommandResults []*CommandResult `protobuf:"bytes,4,rep,name=command_results,json=commandResults,proto3" json:"command_results,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *HeartbeatRequest) Reset() {
@@ -394,6 +449,81 @@ func (x *HeartbeatRequest) GetStats() *HostStats {
 	return nil
 }
 
+func (x *HeartbeatRequest) GetCommandResults() []*CommandResult {
+	if x != nil {
+		return x.CommandResults
+	}
+	return nil
+}
+
+type CommandResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CommandId     string                 `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Status        CommandStatus          `protobuf:"varint,2,opt,name=status,proto3,enum=sentinelbr.agent.v1.CommandStatus" json:"status,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"` // vazio se status == OK
+	ExecutedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=executed_at,json=executedAt,proto3" json:"executed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommandResult) Reset() {
+	*x = CommandResult{}
+	mi := &file_agent_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommandResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommandResult) ProtoMessage() {}
+
+func (x *CommandResult) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommandResult.ProtoReflect.Descriptor instead.
+func (*CommandResult) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CommandResult) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *CommandResult) GetStatus() CommandStatus {
+	if x != nil {
+		return x.Status
+	}
+	return CommandStatus_COMMAND_STATUS_UNSPECIFIED
+}
+
+func (x *CommandResult) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *CommandResult) GetExecutedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExecutedAt
+	}
+	return nil
+}
+
 type HostStats struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	LoadAvg_1M     float64                `protobuf:"fixed64,1,opt,name=load_avg_1m,json=loadAvg1m,proto3" json:"load_avg_1m,omitempty"`
@@ -408,7 +538,7 @@ type HostStats struct {
 
 func (x *HostStats) Reset() {
 	*x = HostStats{}
-	mi := &file_agent_proto_msgTypes[5]
+	mi := &file_agent_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -420,7 +550,7 @@ func (x *HostStats) String() string {
 func (*HostStats) ProtoMessage() {}
 
 func (x *HostStats) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[5]
+	mi := &file_agent_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -433,7 +563,7 @@ func (x *HostStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostStats.ProtoReflect.Descriptor instead.
 func (*HostStats) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{5}
+	return file_agent_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *HostStats) GetLoadAvg_1M() float64 {
@@ -488,7 +618,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_agent_proto_msgTypes[6]
+	mi := &file_agent_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +630,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[6]
+	mi := &file_agent_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +643,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{6}
+	return file_agent_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HeartbeatResponse) GetServerTs() *timestamppb.Timestamp {
@@ -545,7 +675,7 @@ type Command struct {
 
 func (x *Command) Reset() {
 	*x = Command{}
-	mi := &file_agent_proto_msgTypes[7]
+	mi := &file_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -557,7 +687,7 @@ func (x *Command) String() string {
 func (*Command) ProtoMessage() {}
 
 func (x *Command) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[7]
+	mi := &file_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -570,7 +700,7 @@ func (x *Command) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Command.ProtoReflect.Descriptor instead.
 func (*Command) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{7}
+	return file_agent_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Command) GetId() string {
@@ -647,7 +777,7 @@ type BlockIPCommand struct {
 
 func (x *BlockIPCommand) Reset() {
 	*x = BlockIPCommand{}
-	mi := &file_agent_proto_msgTypes[8]
+	mi := &file_agent_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +789,7 @@ func (x *BlockIPCommand) String() string {
 func (*BlockIPCommand) ProtoMessage() {}
 
 func (x *BlockIPCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[8]
+	mi := &file_agent_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -672,7 +802,7 @@ func (x *BlockIPCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockIPCommand.ProtoReflect.Descriptor instead.
 func (*BlockIPCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{8}
+	return file_agent_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BlockIPCommand) GetIp() string {
@@ -705,7 +835,7 @@ type UnblockIPCommand struct {
 
 func (x *UnblockIPCommand) Reset() {
 	*x = UnblockIPCommand{}
-	mi := &file_agent_proto_msgTypes[9]
+	mi := &file_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -717,7 +847,7 @@ func (x *UnblockIPCommand) String() string {
 func (*UnblockIPCommand) ProtoMessage() {}
 
 func (x *UnblockIPCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[9]
+	mi := &file_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -730,7 +860,7 @@ func (x *UnblockIPCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockIPCommand.ProtoReflect.Descriptor instead.
 func (*UnblockIPCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{9}
+	return file_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UnblockIPCommand) GetIp() string {
@@ -749,7 +879,7 @@ type RunCheckCommand struct {
 
 func (x *RunCheckCommand) Reset() {
 	*x = RunCheckCommand{}
-	mi := &file_agent_proto_msgTypes[10]
+	mi := &file_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -761,7 +891,7 @@ func (x *RunCheckCommand) String() string {
 func (*RunCheckCommand) ProtoMessage() {}
 
 func (x *RunCheckCommand) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[10]
+	mi := &file_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -774,7 +904,7 @@ func (x *RunCheckCommand) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCheckCommand.ProtoReflect.Descriptor instead.
 func (*RunCheckCommand) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{10}
+	return file_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RunCheckCommand) GetCheckId() string {
@@ -799,7 +929,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_agent_proto_msgTypes[11]
+	mi := &file_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -811,7 +941,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[11]
+	mi := &file_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -824,7 +954,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{11}
+	return file_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Event) GetEventId() string {
@@ -886,7 +1016,7 @@ type EventAck struct {
 
 func (x *EventAck) Reset() {
 	*x = EventAck{}
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -898,7 +1028,7 @@ func (x *EventAck) String() string {
 func (*EventAck) ProtoMessage() {}
 
 func (x *EventAck) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -911,7 +1041,7 @@ func (x *EventAck) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EventAck.ProtoReflect.Descriptor instead.
 func (*EventAck) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{12}
+	return file_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EventAck) GetEventId() string {
@@ -960,11 +1090,19 @@ const file_agent_proto_rawDesc = "" +
 	"\x10collect_journald\x18\x02 \x01(\bR\x0fcollectJournald\x12%\n" +
 	"\x0ecollect_auditd\x18\x03 \x01(\bR\rcollectAuditd\x12\x1f\n" +
 	"\vwatch_paths\x18\x04 \x03(\tR\n" +
-	"watchPaths\"\x8d\x01\n" +
+	"watchPaths\"\xda\x01\n" +
 	"\x10HeartbeatRequest\x12\x17\n" +
 	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12*\n" +
 	"\x02ts\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02ts\x124\n" +
-	"\x05stats\x18\x03 \x01(\v2\x1e.sentinelbr.agent.v1.HostStatsR\x05stats\"\xf0\x01\n" +
+	"\x05stats\x18\x03 \x01(\v2\x1e.sentinelbr.agent.v1.HostStatsR\x05stats\x12K\n" +
+	"\x0fcommand_results\x18\x04 \x03(\v2\".sentinelbr.agent.v1.CommandResultR\x0ecommandResults\"\xcc\x01\n" +
+	"\rCommandResult\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x01 \x01(\tR\tcommandId\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".sentinelbr.agent.v1.CommandStatusR\x06status\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12;\n" +
+	"\vexecuted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"executedAt\"\xf0\x01\n" +
 	"\tHostStats\x12\x1e\n" +
 	"\vload_avg_1m\x18\x01 \x01(\x01R\tloadAvg1m\x12$\n" +
 	"\x0emem_used_bytes\x18\x02 \x01(\x04R\fmemUsedBytes\x12&\n" +
@@ -1003,7 +1141,12 @@ const file_agent_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"=\n" +
 	"\bEventAck\x12\x19\n" +
 	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x16\n" +
-	"\x06stored\x18\x02 \x01(\bR\x06stored2\x8c\x02\n" +
+	"\x06stored\x18\x02 \x01(\bR\x06stored*\x81\x01\n" +
+	"\rCommandStatus\x12\x1e\n" +
+	"\x1aCOMMAND_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11COMMAND_STATUS_OK\x10\x01\x12\x19\n" +
+	"\x15COMMAND_STATUS_FAILED\x10\x02\x12\x1e\n" +
+	"\x1aCOMMAND_STATUS_UNSUPPORTED\x10\x032\x8c\x02\n" +
 	"\fAgentService\x12Q\n" +
 	"\x06Enroll\x12\".sentinelbr.agent.v1.EnrollRequest\x1a#.sentinelbr.agent.v1.EnrollResponse\x12Z\n" +
 	"\tHeartbeat\x12%.sentinelbr.agent.v1.HeartbeatRequest\x1a&.sentinelbr.agent.v1.HeartbeatResponse\x12M\n" +
@@ -1021,47 +1164,53 @@ func file_agent_proto_rawDescGZIP() []byte {
 	return file_agent_proto_rawDescData
 }
 
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_agent_proto_goTypes = []any{
-	(*EnrollRequest)(nil),         // 0: sentinelbr.agent.v1.EnrollRequest
-	(*EnrollResponse)(nil),        // 1: sentinelbr.agent.v1.EnrollResponse
-	(*OSInfo)(nil),                // 2: sentinelbr.agent.v1.OSInfo
-	(*AgentConfig)(nil),           // 3: sentinelbr.agent.v1.AgentConfig
-	(*HeartbeatRequest)(nil),      // 4: sentinelbr.agent.v1.HeartbeatRequest
-	(*HostStats)(nil),             // 5: sentinelbr.agent.v1.HostStats
-	(*HeartbeatResponse)(nil),     // 6: sentinelbr.agent.v1.HeartbeatResponse
-	(*Command)(nil),               // 7: sentinelbr.agent.v1.Command
-	(*BlockIPCommand)(nil),        // 8: sentinelbr.agent.v1.BlockIPCommand
-	(*UnblockIPCommand)(nil),      // 9: sentinelbr.agent.v1.UnblockIPCommand
-	(*RunCheckCommand)(nil),       // 10: sentinelbr.agent.v1.RunCheckCommand
-	(*Event)(nil),                 // 11: sentinelbr.agent.v1.Event
-	(*EventAck)(nil),              // 12: sentinelbr.agent.v1.EventAck
-	nil,                           // 13: sentinelbr.agent.v1.Event.FieldsEntry
-	(*timestamppb.Timestamp)(nil), // 14: google.protobuf.Timestamp
+	(CommandStatus)(0),            // 0: sentinelbr.agent.v1.CommandStatus
+	(*EnrollRequest)(nil),         // 1: sentinelbr.agent.v1.EnrollRequest
+	(*EnrollResponse)(nil),        // 2: sentinelbr.agent.v1.EnrollResponse
+	(*OSInfo)(nil),                // 3: sentinelbr.agent.v1.OSInfo
+	(*AgentConfig)(nil),           // 4: sentinelbr.agent.v1.AgentConfig
+	(*HeartbeatRequest)(nil),      // 5: sentinelbr.agent.v1.HeartbeatRequest
+	(*CommandResult)(nil),         // 6: sentinelbr.agent.v1.CommandResult
+	(*HostStats)(nil),             // 7: sentinelbr.agent.v1.HostStats
+	(*HeartbeatResponse)(nil),     // 8: sentinelbr.agent.v1.HeartbeatResponse
+	(*Command)(nil),               // 9: sentinelbr.agent.v1.Command
+	(*BlockIPCommand)(nil),        // 10: sentinelbr.agent.v1.BlockIPCommand
+	(*UnblockIPCommand)(nil),      // 11: sentinelbr.agent.v1.UnblockIPCommand
+	(*RunCheckCommand)(nil),       // 12: sentinelbr.agent.v1.RunCheckCommand
+	(*Event)(nil),                 // 13: sentinelbr.agent.v1.Event
+	(*EventAck)(nil),              // 14: sentinelbr.agent.v1.EventAck
+	nil,                           // 15: sentinelbr.agent.v1.Event.FieldsEntry
+	(*timestamppb.Timestamp)(nil), // 16: google.protobuf.Timestamp
 }
 var file_agent_proto_depIdxs = []int32{
-	2,  // 0: sentinelbr.agent.v1.EnrollRequest.os:type_name -> sentinelbr.agent.v1.OSInfo
-	3,  // 1: sentinelbr.agent.v1.EnrollResponse.config:type_name -> sentinelbr.agent.v1.AgentConfig
-	14, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
-	5,  // 3: sentinelbr.agent.v1.HeartbeatRequest.stats:type_name -> sentinelbr.agent.v1.HostStats
-	14, // 4: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
-	7,  // 5: sentinelbr.agent.v1.HeartbeatResponse.pending_commands:type_name -> sentinelbr.agent.v1.Command
-	8,  // 6: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
-	9,  // 7: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
-	10, // 8: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
-	14, // 9: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
-	13, // 10: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
-	0,  // 11: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
-	4,  // 12: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
-	11, // 13: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
-	1,  // 14: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
-	6,  // 15: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
-	12, // 16: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
-	14, // [14:17] is the sub-list for method output_type
-	11, // [11:14] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	3,  // 0: sentinelbr.agent.v1.EnrollRequest.os:type_name -> sentinelbr.agent.v1.OSInfo
+	4,  // 1: sentinelbr.agent.v1.EnrollResponse.config:type_name -> sentinelbr.agent.v1.AgentConfig
+	16, // 2: sentinelbr.agent.v1.HeartbeatRequest.ts:type_name -> google.protobuf.Timestamp
+	7,  // 3: sentinelbr.agent.v1.HeartbeatRequest.stats:type_name -> sentinelbr.agent.v1.HostStats
+	6,  // 4: sentinelbr.agent.v1.HeartbeatRequest.command_results:type_name -> sentinelbr.agent.v1.CommandResult
+	0,  // 5: sentinelbr.agent.v1.CommandResult.status:type_name -> sentinelbr.agent.v1.CommandStatus
+	16, // 6: sentinelbr.agent.v1.CommandResult.executed_at:type_name -> google.protobuf.Timestamp
+	16, // 7: sentinelbr.agent.v1.HeartbeatResponse.server_ts:type_name -> google.protobuf.Timestamp
+	9,  // 8: sentinelbr.agent.v1.HeartbeatResponse.pending_commands:type_name -> sentinelbr.agent.v1.Command
+	10, // 9: sentinelbr.agent.v1.Command.block_ip:type_name -> sentinelbr.agent.v1.BlockIPCommand
+	11, // 10: sentinelbr.agent.v1.Command.unblock_ip:type_name -> sentinelbr.agent.v1.UnblockIPCommand
+	12, // 11: sentinelbr.agent.v1.Command.run_check:type_name -> sentinelbr.agent.v1.RunCheckCommand
+	16, // 12: sentinelbr.agent.v1.Event.ts:type_name -> google.protobuf.Timestamp
+	15, // 13: sentinelbr.agent.v1.Event.fields:type_name -> sentinelbr.agent.v1.Event.FieldsEntry
+	1,  // 14: sentinelbr.agent.v1.AgentService.Enroll:input_type -> sentinelbr.agent.v1.EnrollRequest
+	5,  // 15: sentinelbr.agent.v1.AgentService.Heartbeat:input_type -> sentinelbr.agent.v1.HeartbeatRequest
+	13, // 16: sentinelbr.agent.v1.AgentService.StreamEvents:input_type -> sentinelbr.agent.v1.Event
+	2,  // 17: sentinelbr.agent.v1.AgentService.Enroll:output_type -> sentinelbr.agent.v1.EnrollResponse
+	8,  // 18: sentinelbr.agent.v1.AgentService.Heartbeat:output_type -> sentinelbr.agent.v1.HeartbeatResponse
+	14, // 19: sentinelbr.agent.v1.AgentService.StreamEvents:output_type -> sentinelbr.agent.v1.EventAck
+	17, // [17:20] is the sub-list for method output_type
+	14, // [14:17] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -1069,7 +1218,7 @@ func file_agent_proto_init() {
 	if File_agent_proto != nil {
 		return
 	}
-	file_agent_proto_msgTypes[7].OneofWrappers = []any{
+	file_agent_proto_msgTypes[8].OneofWrappers = []any{
 		(*Command_BlockIp)(nil),
 		(*Command_UnblockIp)(nil),
 		(*Command_RunCheck)(nil),
@@ -1079,13 +1228,14 @@ func file_agent_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_agent_proto_goTypes,
 		DependencyIndexes: file_agent_proto_depIdxs,
+		EnumInfos:         file_agent_proto_enumTypes,
 		MessageInfos:      file_agent_proto_msgTypes,
 	}.Build()
 	File_agent_proto = out.File

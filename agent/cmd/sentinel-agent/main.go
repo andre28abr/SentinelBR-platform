@@ -14,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/sentinelbr/agent/internal/agentstate"
+	"github.com/sentinelbr/agent/internal/cmddispatcher"
 	"github.com/sentinelbr/agent/internal/collectors"
 	"github.com/sentinelbr/agent/internal/config"
 	"github.com/sentinelbr/agent/internal/enrollclient"
@@ -166,6 +167,7 @@ func runCmd() *cobra.Command {
 			level, _ := cmd.Flags().GetString("log-level")
 			sshSourceFile, _ := cmd.Flags().GetString("ssh-source-file")
 			sshSourceOnce, _ := cmd.Flags().GetBool("ssh-source-once")
+			firewallDryRun, _ := cmd.Flags().GetBool("firewall-dry-run")
 
 			log := logging.New(level)
 
@@ -194,11 +196,25 @@ func runCmd() *cobra.Command {
 			defer cancel()
 
 			interval := time.Duration(cfg.HeartbeatSeconds) * time.Second
-			hbLoop := &heartbeat.Loop{
-				Client:   client,
-				HostID:   st.HostID,
-				Interval: interval,
+			info, _ := osdetect.Detect()
+			fw := firewall.New(info)
+			dispatcher := &cmddispatcher.Dispatcher{
+				Firewall: fw,
+				DryRun:   firewallDryRun,
 				Log:      log,
+			}
+			if firewallDryRun {
+				log.Info("firewall em modo DRY-RUN — nada sera executado de verdade")
+			} else {
+				log.Info("firewall configurado", "backend", fw.Backend())
+			}
+
+			hbLoop := &heartbeat.Loop{
+				Client:     client,
+				Dispatcher: dispatcher,
+				HostID:     st.HostID,
+				Interval:   interval,
+				Log:        log,
 			}
 
 			// fan-in: todos os collectors emitem em `eventBus` que vira o input do stream.
@@ -251,6 +267,7 @@ func runCmd() *cobra.Command {
 	}
 	cmd.Flags().String("ssh-source-file", "", "le eventos sshd desse arquivo (vazio = desabilitado). Em prod: /var/log/auth.log")
 	cmd.Flags().Bool("ssh-source-once", false, "le o arquivo do --ssh-source-file ate EOF e sai (modo replay). Default: tail -F")
+	cmd.Flags().Bool("firewall-dry-run", false, "loga BlockIP/UnblockIP em vez de executar (uso em dev, ou Mac sem nft/firewall-cmd)")
 	return cmd
 }
 

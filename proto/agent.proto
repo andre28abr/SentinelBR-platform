@@ -62,6 +62,24 @@ message HeartbeatRequest {
   string host_id = 1;
   google.protobuf.Timestamp ts = 2;
   HostStats stats = 3;
+
+  // Resultados de Commands recebidos em heartbeats anteriores. Agente executa
+  // localmente (firewall block, etc) e reporta no proximo tick.
+  repeated CommandResult command_results = 4;
+}
+
+message CommandResult {
+  string command_id = 1;
+  CommandStatus status = 2;
+  string error_message = 3;     // vazio se status == OK
+  google.protobuf.Timestamp executed_at = 4;
+}
+
+enum CommandStatus {
+  COMMAND_STATUS_UNSPECIFIED = 0;
+  COMMAND_STATUS_OK = 1;
+  COMMAND_STATUS_FAILED = 2;
+  COMMAND_STATUS_UNSUPPORTED = 3;  // OS/firewall nao suporta a operacao
 }
 
 message HostStats {

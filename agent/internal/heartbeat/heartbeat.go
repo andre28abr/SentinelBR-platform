@@ -1,23 +1,30 @@
 // Package heartbeat roda o loop de heartbeat do agente: a cada N segundos,
-// chama AgentService.Heartbeat via gRPC mTLS e processa comandos pendentes.
+// chama AgentService.Heartbeat via gRPC mTLS, executa pending_commands recebidos
+// e reporta resultados no proximo tick.
 package heartbeat
 
 import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/sentinelbr/agent/internal/cmddispatcher"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 )
 
 type Loop struct {
-	Client   pb.AgentServiceClient
-	HostID   string
-	Interval time.Duration
-	Log      *slog.Logger
+	Client     pb.AgentServiceClient
+	Dispatcher *cmddispatcher.Dispatcher
+	HostID     string
+	Interval   time.Duration
+	Log        *slog.Logger
+
+	mu             sync.Mutex
+	pendingResults []*pb.CommandResult
 }
 
 func (l *Loop) Run(ctx context.Context) error {
@@ -41,21 +48,51 @@ func (l *Loop) Run(ctx context.Context) error {
 }
 
 func (l *Loop) tick(ctx context.Context) error {
-	cctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	results := l.takePendingResults()
+
 	req := &pb.HeartbeatRequest{
-		HostId: l.HostID,
-		Ts:     timestamppb.Now(),
+		HostId:         l.HostID,
+		Ts:             timestamppb.Now(),
+		CommandResults: results,
 	}
 	resp, err := l.Client.Heartbeat(cctx, req)
 	if err != nil {
+		// devolve os resultados pra fila pra retry no proximo tick
+		l.queuePendingResults(results)
 		return fmt.Errorf("Heartbeat RPC: %w", err)
 	}
 
-	if pending := len(resp.PendingCommands); pending > 0 {
-		l.Log.Info("comandos pendentes recebidos (handler em fase futura)", "count", pending)
+	if n := len(resp.PendingCommands); n > 0 && l.Dispatcher != nil {
+		l.Log.Info("processando comandos pendentes", "count", n)
+		newResults := l.Dispatcher.ExecuteAll(resp.PendingCommands)
+		l.queuePendingResults(newResults)
 	}
-	l.Log.Debug("heartbeat ok", "server_ts", resp.ServerTs.AsTime().Format(time.RFC3339))
+
+	l.Log.Debug(
+		"heartbeat ok",
+		"server_ts", resp.ServerTs.AsTime().Format(time.RFC3339),
+		"acked", len(results),
+		"pending", len(resp.PendingCommands),
+	)
 	return nil
+}
+
+func (l *Loop) takePendingResults() []*pb.CommandResult {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	out := l.pendingResults
+	l.pendingResults = nil
+	return out
+}
+
+func (l *Loop) queuePendingResults(results []*pb.CommandResult) {
+	if len(results) == 0 {
+		return
+	}
+	l.mu.Lock()
+	l.pendingResults = append(l.pendingResults, results...)
+	l.mu.Unlock()
 }

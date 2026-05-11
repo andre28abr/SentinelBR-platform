@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\x12\x13sentinelbr.agent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"{\n\rEnrollRequest\x12\x18\n\x10\x65nrollment_token\x18\x01 \x01(\t\x12\'\n\x02os\x18\x02 \x01(\x0b\x32\x1b.sentinelbr.agent.v1.OSInfo\x12\x15\n\ragent_version\x18\x03 \x01(\t\x12\x10\n\x08hostname\x18\x04 \x01(\t\"\x84\x01\n\x0e\x45nrollResponse\x12\x0f\n\x07host_id\x18\x01 \x01(\t\x12\x17\n\x0f\x63lient_cert_pem\x18\x02 \x01(\t\x12\x16\n\x0e\x63lient_key_pem\x18\x03 \x01(\t\x12\x30\n\x06\x63onfig\x18\x04 \x01(\x0b\x32 .sentinelbr.agent.v1.AgentConfig\"\xb0\x01\n\x06OSInfo\x12\x0e\n\x06\x66\x61mily\x18\x01 \x01(\t\x12\x0e\n\x06\x64istro\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0c\n\x04\x61rch\x18\x04 \x01(\t\x12\x0e\n\x06kernel\x18\x05 \x01(\t\x12\x17\n\x0fpackage_manager\x18\x06 \x01(\t\x12\x13\n\x0binit_system\x18\x07 \x01(\t\x12\x15\n\rfirewall_tool\x18\x08 \x01(\t\x12\x12\n\nmac_system\x18\t \x01(\t\"o\n\x0b\x41gentConfig\x12\x19\n\x11heartbeat_seconds\x18\x01 \x01(\x05\x12\x18\n\x10\x63ollect_journald\x18\x02 \x01(\x08\x12\x16\n\x0e\x63ollect_auditd\x18\x03 \x01(\x08\x12\x13\n\x0bwatch_paths\x18\x04 \x03(\t\"z\n\x10HeartbeatRequest\x12\x0f\n\x07host_id\x18\x01 \x01(\t\x12&\n\x02ts\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12-\n\x05stats\x18\x03 \x01(\x0b\x32\x1e.sentinelbr.agent.v1.HostStats\"\x9b\x01\n\tHostStats\x12\x13\n\x0bload_avg_1m\x18\x01 \x01(\x01\x12\x16\n\x0emem_used_bytes\x18\x02 \x01(\x04\x12\x17\n\x0fmem_total_bytes\x18\x03 \x01(\x04\x12\x17\n\x0f\x64isk_used_bytes\x18\x04 \x01(\x04\x12\x18\n\x10\x64isk_total_bytes\x18\x05 \x01(\x04\x12\x15\n\ractive_alerts\x18\x06 \x01(\r\"z\n\x11HeartbeatResponse\x12-\n\tserver_ts\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x36\n\x10pending_commands\x18\x02 \x03(\x0b\x32\x1c.sentinelbr.agent.v1.Command\"\xd1\x01\n\x07\x43ommand\x12\n\n\x02id\x18\x01 \x01(\t\x12\x37\n\x08\x62lock_ip\x18\x02 \x01(\x0b\x32#.sentinelbr.agent.v1.BlockIPCommandH\x00\x12;\n\nunblock_ip\x18\x03 \x01(\x0b\x32%.sentinelbr.agent.v1.UnblockIPCommandH\x00\x12\x39\n\trun_check\x18\x04 \x01(\x0b\x32$.sentinelbr.agent.v1.RunCheckCommandH\x00\x42\t\n\x07payload\"F\n\x0e\x42lockIPCommand\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x02 \x01(\x05\x12\x0e\n\x06reason\x18\x03 \x01(\t\"\x1e\n\x10UnblockIPCommand\x12\n\n\x02ip\x18\x01 \x01(\t\"#\n\x0fRunCheckCommand\x12\x10\n\x08\x63heck_id\x18\x01 \x01(\t\"\xe8\x01\n\x05\x45vent\x12\x10\n\x08\x65vent_id\x18\x01 \x01(\t\x12\x0f\n\x07host_id\x18\x02 \x01(\t\x12&\n\x02ts\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x10\n\x08severity\x18\x05 \x01(\t\x12\x0b\n\x03raw\x18\x06 \x01(\t\x12\x36\n\x06\x66ields\x18\x07 \x03(\x0b\x32&.sentinelbr.agent.v1.Event.FieldsEntry\x1a-\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\",\n\x08\x45ventAck\x12\x10\n\x08\x65vent_id\x18\x01 \x01(\t\x12\x0e\n\x06stored\x18\x02 \x01(\x08\x32\x8c\x02\n\x0c\x41gentService\x12Q\n\x06\x45nroll\x12\".sentinelbr.agent.v1.EnrollRequest\x1a#.sentinelbr.agent.v1.EnrollResponse\x12Z\n\tHeartbeat\x12%.sentinelbr.agent.v1.HeartbeatRequest\x1a&.sentinelbr.agent.v1.HeartbeatResponse\x12M\n\x0cStreamEvents\x12\x1a.sentinelbr.agent.v1.Event\x1a\x1d.sentinelbr.agent.v1.EventAck(\x01\x30\x01\x42\x36Z4github.com/sentinelbr/agent/internal/grpc/pb;agentpbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0b\x61gent.proto\x12\x13sentinelbr.agent.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"{\n\rEnrollRequest\x12\x18\n\x10\x65nrollment_token\x18\x01 \x01(\t\x12\'\n\x02os\x18\x02 \x01(\x0b\x32\x1b.sentinelbr.agent.v1.OSInfo\x12\x15\n\ragent_version\x18\x03 \x01(\t\x12\x10\n\x08hostname\x18\x04 \x01(\t\"\x84\x01\n\x0e\x45nrollResponse\x12\x0f\n\x07host_id\x18\x01 \x01(\t\x12\x17\n\x0f\x63lient_cert_pem\x18\x02 \x01(\t\x12\x16\n\x0e\x63lient_key_pem\x18\x03 \x01(\t\x12\x30\n\x06\x63onfig\x18\x04 \x01(\x0b\x32 .sentinelbr.agent.v1.AgentConfig\"\xb0\x01\n\x06OSInfo\x12\x0e\n\x06\x66\x61mily\x18\x01 \x01(\t\x12\x0e\n\x06\x64istro\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x0c\n\x04\x61rch\x18\x04 \x01(\t\x12\x0e\n\x06kernel\x18\x05 \x01(\t\x12\x17\n\x0fpackage_manager\x18\x06 \x01(\t\x12\x13\n\x0binit_system\x18\x07 \x01(\t\x12\x15\n\rfirewall_tool\x18\x08 \x01(\t\x12\x12\n\nmac_system\x18\t \x01(\t\"o\n\x0b\x41gentConfig\x12\x19\n\x11heartbeat_seconds\x18\x01 \x01(\x05\x12\x18\n\x10\x63ollect_journald\x18\x02 \x01(\x08\x12\x16\n\x0e\x63ollect_auditd\x18\x03 \x01(\x08\x12\x13\n\x0bwatch_paths\x18\x04 \x03(\t\"\xb7\x01\n\x10HeartbeatRequest\x12\x0f\n\x07host_id\x18\x01 \x01(\t\x12&\n\x02ts\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12-\n\x05stats\x18\x03 \x01(\x0b\x32\x1e.sentinelbr.agent.v1.HostStats\x12;\n\x0f\x63ommand_results\x18\x04 \x03(\x0b\x32\".sentinelbr.agent.v1.CommandResult\"\x9f\x01\n\rCommandResult\x12\x12\n\ncommand_id\x18\x01 \x01(\t\x12\x32\n\x06status\x18\x02 \x01(\x0e\x32\".sentinelbr.agent.v1.CommandStatus\x12\x15\n\rerror_message\x18\x03 \x01(\t\x12/\n\x0b\x65xecuted_at\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x9b\x01\n\tHostStats\x12\x13\n\x0bload_avg_1m\x18\x01 \x01(\x01\x12\x16\n\x0emem_used_bytes\x18\x02 \x01(\x04\x12\x17\n\x0fmem_total_bytes\x18\x03 \x01(\x04\x12\x17\n\x0f\x64isk_used_bytes\x18\x04 \x01(\x04\x12\x18\n\x10\x64isk_total_bytes\x18\x05 \x01(\x04\x12\x15\n\ractive_alerts\x18\x06 \x01(\r\"z\n\x11HeartbeatResponse\x12-\n\tserver_ts\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x36\n\x10pending_commands\x18\x02 \x03(\x0b\x32\x1c.sentinelbr.agent.v1.Command\"\xd1\x01\n\x07\x43ommand\x12\n\n\x02id\x18\x01 \x01(\t\x12\x37\n\x08\x62lock_ip\x18\x02 \x01(\x0b\x32#.sentinelbr.agent.v1.BlockIPCommandH\x00\x12;\n\nunblock_ip\x18\x03 \x01(\x0b\x32%.sentinelbr.agent.v1.UnblockIPCommandH\x00\x12\x39\n\trun_check\x18\x04 \x01(\x0b\x32$.sentinelbr.agent.v1.RunCheckCommandH\x00\x42\t\n\x07payload\"F\n\x0e\x42lockIPCommand\x12\n\n\x02ip\x18\x01 \x01(\t\x12\x18\n\x10\x64uration_seconds\x18\x02 \x01(\x05\x12\x0e\n\x06reason\x18\x03 \x01(\t\"\x1e\n\x10UnblockIPCommand\x12\n\n\x02ip\x18\x01 \x01(\t\"#\n\x0fRunCheckCommand\x12\x10\n\x08\x63heck_id\x18\x01 \x01(\t\"\xe8\x01\n\x05\x45vent\x12\x10\n\x08\x65vent_id\x18\x01 \x01(\t\x12\x0f\n\x07host_id\x18\x02 \x01(\t\x12&\n\x02ts\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06source\x18\x04 \x01(\t\x12\x10\n\x08severity\x18\x05 \x01(\t\x12\x0b\n\x03raw\x18\x06 \x01(\t\x12\x36\n\x06\x66ields\x18\x07 \x03(\x0b\x32&.sentinelbr.agent.v1.Event.FieldsEntry\x1a-\n\x0b\x46ieldsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\",\n\x08\x45ventAck\x12\x10\n\x08\x65vent_id\x18\x01 \x01(\t\x12\x0e\n\x06stored\x18\x02 \x01(\x08*\x81\x01\n\rCommandStatus\x12\x1e\n\x1a\x43OMMAND_STATUS_UNSPECIFIED\x10\x00\x12\x15\n\x11\x43OMMAND_STATUS_OK\x10\x01\x12\x19\n\x15\x43OMMAND_STATUS_FAILED\x10\x02\x12\x1e\n\x1a\x43OMMAND_STATUS_UNSUPPORTED\x10\x03\x32\x8c\x02\n\x0c\x41gentService\x12Q\n\x06\x45nroll\x12\".sentinelbr.agent.v1.EnrollRequest\x1a#.sentinelbr.agent.v1.EnrollResponse\x12Z\n\tHeartbeat\x12%.sentinelbr.agent.v1.HeartbeatRequest\x1a&.sentinelbr.agent.v1.HeartbeatResponse\x12M\n\x0cStreamEvents\x12\x1a.sentinelbr.agent.v1.Event\x1a\x1d.sentinelbr.agent.v1.EventAck(\x01\x30\x01\x42\x36Z4github.com/sentinelbr/agent/internal/grpc/pb;agentpbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,6 +35,8 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'Z4github.com/sentinelbr/agent/internal/grpc/pb;agentpb'
   _globals['_EVENT_FIELDSENTRY']._loaded_options = None
   _globals['_EVENT_FIELDSENTRY']._serialized_options = b'8\001'
+  _globals['_COMMANDSTATUS']._serialized_start=1886
+  _globals['_COMMANDSTATUS']._serialized_end=2015
   _globals['_ENROLLREQUEST']._serialized_start=69
   _globals['_ENROLLREQUEST']._serialized_end=192
   _globals['_ENROLLRESPONSE']._serialized_start=195
@@ -43,26 +45,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_OSINFO']._serialized_end=506
   _globals['_AGENTCONFIG']._serialized_start=508
   _globals['_AGENTCONFIG']._serialized_end=619
-  _globals['_HEARTBEATREQUEST']._serialized_start=621
-  _globals['_HEARTBEATREQUEST']._serialized_end=743
-  _globals['_HOSTSTATS']._serialized_start=746
-  _globals['_HOSTSTATS']._serialized_end=901
-  _globals['_HEARTBEATRESPONSE']._serialized_start=903
-  _globals['_HEARTBEATRESPONSE']._serialized_end=1025
-  _globals['_COMMAND']._serialized_start=1028
-  _globals['_COMMAND']._serialized_end=1237
-  _globals['_BLOCKIPCOMMAND']._serialized_start=1239
-  _globals['_BLOCKIPCOMMAND']._serialized_end=1309
-  _globals['_UNBLOCKIPCOMMAND']._serialized_start=1311
-  _globals['_UNBLOCKIPCOMMAND']._serialized_end=1341
-  _globals['_RUNCHECKCOMMAND']._serialized_start=1343
-  _globals['_RUNCHECKCOMMAND']._serialized_end=1378
-  _globals['_EVENT']._serialized_start=1381
-  _globals['_EVENT']._serialized_end=1613
-  _globals['_EVENT_FIELDSENTRY']._serialized_start=1568
-  _globals['_EVENT_FIELDSENTRY']._serialized_end=1613
-  _globals['_EVENTACK']._serialized_start=1615
-  _globals['_EVENTACK']._serialized_end=1659
-  _globals['_AGENTSERVICE']._serialized_start=1662
-  _globals['_AGENTSERVICE']._serialized_end=1930
+  _globals['_HEARTBEATREQUEST']._serialized_start=622
+  _globals['_HEARTBEATREQUEST']._serialized_end=805
+  _globals['_COMMANDRESULT']._serialized_start=808
+  _globals['_COMMANDRESULT']._serialized_end=967
+  _globals['_HOSTSTATS']._serialized_start=970
+  _globals['_HOSTSTATS']._serialized_end=1125
+  _globals['_HEARTBEATRESPONSE']._serialized_start=1127
+  _globals['_HEARTBEATRESPONSE']._serialized_end=1249
+  _globals['_COMMAND']._serialized_start=1252
+  _globals['_COMMAND']._serialized_end=1461
+  _globals['_BLOCKIPCOMMAND']._serialized_start=1463
+  _globals['_BLOCKIPCOMMAND']._serialized_end=1533
+  _globals['_UNBLOCKIPCOMMAND']._serialized_start=1535
+  _globals['_UNBLOCKIPCOMMAND']._serialized_end=1565
+  _globals['_RUNCHECKCOMMAND']._serialized_start=1567
+  _globals['_RUNCHECKCOMMAND']._serialized_end=1602
+  _globals['_EVENT']._serialized_start=1605
+  _globals['_EVENT']._serialized_end=1837
+  _globals['_EVENT_FIELDSENTRY']._serialized_start=1792
+  _globals['_EVENT_FIELDSENTRY']._serialized_end=1837
+  _globals['_EVENTACK']._serialized_start=1839
+  _globals['_EVENTACK']._serialized_end=1883
+  _globals['_AGENTSERVICE']._serialized_start=2018
+  _globals['_AGENTSERVICE']._serialized_end=2286
 # @@protoc_insertion_point(module_scope)

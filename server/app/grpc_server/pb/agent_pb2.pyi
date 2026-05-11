@@ -2,12 +2,24 @@ import datetime
 
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
 from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
+
+class CommandStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    COMMAND_STATUS_UNSPECIFIED: _ClassVar[CommandStatus]
+    COMMAND_STATUS_OK: _ClassVar[CommandStatus]
+    COMMAND_STATUS_FAILED: _ClassVar[CommandStatus]
+    COMMAND_STATUS_UNSUPPORTED: _ClassVar[CommandStatus]
+COMMAND_STATUS_UNSPECIFIED: CommandStatus
+COMMAND_STATUS_OK: CommandStatus
+COMMAND_STATUS_FAILED: CommandStatus
+COMMAND_STATUS_UNSUPPORTED: CommandStatus
 
 class EnrollRequest(_message.Message):
     __slots__ = ("enrollment_token", "os", "agent_version", "hostname")
@@ -68,14 +80,28 @@ class AgentConfig(_message.Message):
     def __init__(self, heartbeat_seconds: _Optional[int] = ..., collect_journald: bool = ..., collect_auditd: bool = ..., watch_paths: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class HeartbeatRequest(_message.Message):
-    __slots__ = ("host_id", "ts", "stats")
+    __slots__ = ("host_id", "ts", "stats", "command_results")
     HOST_ID_FIELD_NUMBER: _ClassVar[int]
     TS_FIELD_NUMBER: _ClassVar[int]
     STATS_FIELD_NUMBER: _ClassVar[int]
+    COMMAND_RESULTS_FIELD_NUMBER: _ClassVar[int]
     host_id: str
     ts: _timestamp_pb2.Timestamp
     stats: HostStats
-    def __init__(self, host_id: _Optional[str] = ..., ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., stats: _Optional[_Union[HostStats, _Mapping]] = ...) -> None: ...
+    command_results: _containers.RepeatedCompositeFieldContainer[CommandResult]
+    def __init__(self, host_id: _Optional[str] = ..., ts: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., stats: _Optional[_Union[HostStats, _Mapping]] = ..., command_results: _Optional[_Iterable[_Union[CommandResult, _Mapping]]] = ...) -> None: ...
+
+class CommandResult(_message.Message):
+    __slots__ = ("command_id", "status", "error_message", "executed_at")
+    COMMAND_ID_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    EXECUTED_AT_FIELD_NUMBER: _ClassVar[int]
+    command_id: str
+    status: CommandStatus
+    error_message: str
+    executed_at: _timestamp_pb2.Timestamp
+    def __init__(self, command_id: _Optional[str] = ..., status: _Optional[_Union[CommandStatus, str]] = ..., error_message: _Optional[str] = ..., executed_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class HostStats(_message.Message):
     __slots__ = ("load_avg_1m", "mem_used_bytes", "mem_total_bytes", "disk_used_bytes", "disk_total_bytes", "active_alerts")
