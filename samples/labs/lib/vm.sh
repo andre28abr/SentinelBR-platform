@@ -62,6 +62,82 @@ vm::install_deps() {
         ;;
     esac
   fi
+
+  # Hardening tools (Tier 1+2): fail2ban + auditd + rkhunter + chkrootkit +
+  # lynis + AIDE + firewall. Opt-in via INSTALL_HARDENING_TOOLS=true.
+  # Hoje so o lab-fedora liga isso pra showcase da aba "Ferramentas".
+  if [[ "${INSTALL_HARDENING_TOOLS:-false}" == "true" ]]; then
+    vm::install_hardening_tools "$name" "$pkg_mgr"
+  fi
+}
+
+# Instala suite Tier 1+2 e configura tudo pra UI mostrar dados nao-vazios:
+# - fail2ban: jail.local minimo + ban manual de 1 IP fake pra UI
+# - firewall: regra de exemplo
+# - auditd: regra de monitoring de /etc/passwd
+# - AIDE: instala mas NAO roda --init (demora ~5min, fica pro user)
+vm::install_hardening_tools() {
+  local name="$1" pkg_mgr="$2"
+  echo "  + instalando suite hardening (fail2ban+auditd+rkhunter+chkrootkit+lynis+aide+firewall) em $name"
+  case "$pkg_mgr" in
+    apt)
+      orb -m "$name" -u root bash -c \
+        'export DEBIAN_FRONTEND=noninteractive && \
+         apt-get install -y -qq fail2ban auditd rkhunter chkrootkit lynis aide ufw apparmor-utils >/dev/null'
+      orb -m "$name" -u root bash -c \
+        '(systemctl enable --now fail2ban 2>/dev/null || true) && \
+         (systemctl enable --now auditd 2>/dev/null || true) && \
+         (ufw --force enable 2>/dev/null || true)'
+      ;;
+    dnf)
+      orb -m "$name" -u root bash -c \
+        'dnf install -y -q fail2ban audit rkhunter chkrootkit lynis aide firewalld >/dev/null'
+      # Service activation — silencia falhas (orbstack containers as vezes nao tem
+      # systemd completo, mas o agente detecta via LookPath de qualquer forma).
+      orb -m "$name" -u root bash -c \
+        '(systemctl enable --now fail2ban 2>/dev/null || true) && \
+         (systemctl enable --now auditd 2>/dev/null || true) && \
+         (systemctl enable --now firewalld 2>/dev/null || true)'
+      ;;
+  esac
+
+  # fail2ban jail.local minimo: ativa sshd jail. Sem isso fail2ban-client status
+  # retorna 0 jails configurados.
+  orb -m "$name" -u root bash -c '
+    cat > /etc/fail2ban/jail.local <<EOF
+[DEFAULT]
+bantime = 600
+findtime = 600
+maxretry = 3
+
+[sshd]
+enabled = true
+EOF
+    (systemctl restart fail2ban 2>/dev/null || true)
+  '
+
+  # Aguarda fail2ban subir e bana 2 IPs fake (RFC 5737 documentation prefix
+  # — IPs reservados pra docs, nao existem). Da dado nao-vazio pra UI mostrar.
+  orb -m "$name" -u root bash -c '
+    sleep 3
+    (fail2ban-client set sshd banip 198.51.100.42 2>/dev/null || true)
+    (fail2ban-client set sshd banip 203.0.113.42 2>/dev/null || true)
+  '
+
+  # Auditd: 1 regra de exemplo monitorando /etc/passwd writes.
+  orb -m "$name" -u root bash -c '
+    (auditctl -w /etc/passwd -p wa -k passwd_changes 2>/dev/null || true)
+  '
+
+  # firewalld: 1 regra de exemplo pra UI mostrar algo.
+  if [[ "$pkg_mgr" == "dnf" ]]; then
+    orb -m "$name" -u root bash -c '
+      (firewall-cmd --permanent --add-rich-rule="rule family=\"ipv4\" source address=\"198.51.100.0/24\" port port=\"22\" protocol=\"tcp\" reject" 2>/dev/null || true) && \
+      (firewall-cmd --reload 2>/dev/null || true)
+    '
+  fi
+
+  echo "  + suite hardening pronta em $name (AIDE precisa 'aide --init' pra primeiro check)"
 }
 
 vm::push_agent() {
