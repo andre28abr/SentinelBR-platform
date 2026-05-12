@@ -2,6 +2,9 @@
 
 > Plataforma de segurança para servidores Linux pensada para a realidade brasileira: **SIEM** com detecção de ameaças em tempo real, **gestão de Firewall**, **SELinux/AppArmor**, **resposta automatizada a incidentes**, **vulnerability management** via OSV.dev, **anti-malware YARA**, **threat knowledge base em PT-BR** (MITRE ATT&CK traduzido) e **compliance LGPD** nativa — multi-tenant, com agente Go cross-compilado e UI React lazy-loaded.
 
+> 👤 **Sobre o autor:** André Augusto Azarias De Souza — DPO, Compliance & GRC com fluência técnica.
+> **[Leia mais →](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
+
 [![ci](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/status-fases%201--11%20completas-success)
 ![Python](https://img.shields.io/badge/python-3.12+-blue)
