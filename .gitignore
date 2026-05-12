@@ -42,6 +42,8 @@ web/*.log
 deploy/data/
 deploy/.env
 *.local.env
+# JWT secret gerado pra dev local pelo start-dev.command
+.env-dev
 
 # Protobuf gerado (regerar via `make proto`)
 proto/gen/

@@ -14,6 +14,20 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 echo "=== SentinelBR dev ==="
 echo
 
+# Dev defaults: barra do JWT_SECRET assert + libera rate limit relaxado.
+# Em prod isso DEVE ser removido (assert do config.py protege).
+export SENTINELBR_DEBUG=true
+# JWT_SECRET fixo em dev — gerado uma vez e salvo em .env-dev local
+# (gitignored). Garante que tokens emitidos sobrevivem a restart.
+DEV_ENV_FILE="$(dirname "$0")/.env-dev"
+if [ ! -f "$DEV_ENV_FILE" ]; then
+    echo "→ Gerando JWT secret aleatorio pra dev (uma vez)..."
+    JWT="$(openssl rand -hex 32)"
+    echo "SENTINELBR_JWT_SECRET=$JWT" > "$DEV_ENV_FILE"
+fi
+# shellcheck source=/dev/null
+set -a; source "$DEV_ENV_FILE"; set +a
+
 # checagem: docker rodando? Se OrbStack instalado, tenta acordar antes de desistir.
 if ! docker info > /dev/null 2>&1; then
     if command -v orb > /dev/null && command -v orbctl > /dev/null; then
