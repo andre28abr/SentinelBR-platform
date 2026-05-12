@@ -28,6 +28,22 @@ vm::create() {
 
 vm::install_deps() {
   local name="$1" pkg_mgr="$2"  # apt | dnf | apk
+  # Rocky/Alma (RHEL clones) nao tem clamav/rkhunter/chkrootkit/lynis no
+  # repo base — esses pacotes ficam no EPEL. Fedora ja vem com tudo.
+  # Habilitamos EPEL aqui pra todo install dnf subsequente encontrar.
+  if [[ "$pkg_mgr" == "dnf" ]]; then
+    # /etc/os-release pode ter ID com ou sem aspas (ID="rocky" no Rocky 9,
+    # ID=fedora no Fedora). Usa ID_LIKE como fallback robusto pra RHEL clones.
+    orb -m "$name" -u root bash -c '
+      if grep -qE "^ID=\"?(rocky|almalinux|centos|ol)\"?" /etc/os-release || \
+         grep -qE "^ID_LIKE=.*rhel" /etc/os-release; then
+        # Fedora tem ID_LIKE com rhel as vezes, entao excluimos explicitamente.
+        if ! grep -qE "^ID=fedora" /etc/os-release; then
+          dnf install -y -q epel-release >/dev/null 2>&1 || true
+        fi
+      fi
+    '
+  fi
   echo "  + instalando yara em $name"
   case "$pkg_mgr" in
     apt)
@@ -100,8 +116,13 @@ vm::install_hardening_tools() {
          (ufw --force enable 2>/dev/null || true)'
       ;;
     dnf)
+      # Instala pacote por pacote — pacotes que faltam (ex: chkrootkit em
+      # Rocky 9 mesmo com EPEL) sao silenciosamente pulados. Agente detecta
+      # via LookPath e UI mostra "nao detectado" pra cards faltantes.
       orb -m "$name" -u root bash -c \
-        'dnf install -y -q fail2ban audit rkhunter chkrootkit lynis aide firewalld >/dev/null'
+        'for pkg in fail2ban audit rkhunter chkrootkit lynis aide firewalld; do
+           dnf install -y -q "$pkg" >/dev/null 2>&1 || echo "  (sem $pkg neste distro)"
+         done'
       # SELinux pacotes — em container OrbStack o kernel nao suporta ativar
       # (selinuxfs ausente), mas instalar getenforce/sestatus deixa o agente
       # detectar e a UI mostrar status "Disabled" + comandos. Em VM real ja
@@ -128,9 +149,11 @@ vm::install_hardening_tools() {
   esac
 
   # fail2ban jail.local minimo: ativa sshd jail. Sem isso fail2ban-client status
-  # retorna 0 jails configurados.
-  orb -m "$name" -u root bash -c '
-    cat > /etc/fail2ban/jail.local <<EOF
+  # retorna 0 jails configurados. Se /etc/fail2ban nao existe (pkg nao
+  # instalado, ex: Alpine repo sem fail2ban), pula sem quebrar.
+  orb -m "$name" -u root sh -c '
+    if [ -d /etc/fail2ban ]; then
+      cat > /etc/fail2ban/jail.local <<EOF
 [DEFAULT]
 bantime = 600
 findtime = 600
@@ -139,19 +162,20 @@ maxretry = 3
 [sshd]
 enabled = true
 EOF
-    (systemctl restart fail2ban 2>/dev/null || true)
+      (systemctl restart fail2ban 2>/dev/null || rc-service fail2ban restart 2>/dev/null || true)
+    fi
   '
 
   # Aguarda fail2ban subir e bana 2 IPs fake (RFC 5737 documentation prefix
   # — IPs reservados pra docs, nao existem). Da dado nao-vazio pra UI mostrar.
-  orb -m "$name" -u root bash -c '
+  orb -m "$name" -u root sh -c '
     sleep 3
     (fail2ban-client set sshd banip 198.51.100.42 2>/dev/null || true)
     (fail2ban-client set sshd banip 203.0.113.42 2>/dev/null || true)
   '
 
   # Auditd: 1 regra de exemplo monitorando /etc/passwd writes.
-  orb -m "$name" -u root bash -c '
+  orb -m "$name" -u root sh -c '
     (auditctl -w /etc/passwd -p wa -k passwd_changes 2>/dev/null || true)
   '
 
@@ -204,7 +228,12 @@ vm::enroll() {
 }
 
 vm::install_systemd() {
-  local name="$1"
+  local name="$1" pkg_mgr="${2:-}"
+  # Alpine usa OpenRC (nao systemd) — usa um init script diferente.
+  if [[ "$pkg_mgr" == "apk" ]]; then
+    vm::install_openrc "$name"
+    return
+  fi
   cat > /tmp/sentinelbr-agent.service <<'EOF'
 [Unit]
 Description=SentinelBR agent (lab)
@@ -234,6 +263,37 @@ EOF
     systemctl enable --now sentinelbr-agent.service
   '
   rm -f /tmp/sentinelbr-agent.service
+}
+
+# vm::install_openrc — supervisor pro agent em Alpine (OpenRC, NAO systemd).
+# Cria init script em /etc/init.d/sentinelbr-agent + rc-update add.
+vm::install_openrc() {
+  local name="$1"
+  cat > /tmp/sentinelbr-agent.openrc <<'EOF'
+#!/sbin/openrc-run
+
+name="sentinelbr-agent"
+description="SentinelBR agent (lab)"
+command="/usr/local/bin/sentinel-agent"
+command_args="run --ssh-source-file=/var/log/auth.log --yara-rules-path=/etc/sentinelbr/yara-rules --yara-watch-dir=/var/www --yara-watch-dir=/tmp --quarantine-dry-run --firewall-dry-run"
+command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/${RC_SVCNAME}.log"
+error_log="/var/log/${RC_SVCNAME}.log"
+
+depend() {
+  need net
+  after firewall
+}
+EOF
+  orbctl push -m "$name" /tmp/sentinelbr-agent.openrc /tmp/sentinelbr-agent.openrc
+  orb -m "$name" -u root sh -c '
+    mv /tmp/sentinelbr-agent.openrc /etc/init.d/sentinelbr-agent &&
+    chmod +x /etc/init.d/sentinelbr-agent &&
+    rc-update add sentinelbr-agent default >/dev/null 2>&1 &&
+    rc-service sentinelbr-agent start
+  '
+  rm -f /tmp/sentinelbr-agent.openrc
 }
 
 vm::status() {

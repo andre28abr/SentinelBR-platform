@@ -58,7 +58,7 @@ for d in "${DISTROS[@]}"; do
     vm::enroll "$VM_NAME" "$token"
   fi
 
-  vm::install_systemd "$VM_NAME"
+  vm::install_systemd "$VM_NAME" "$PKG_MGR"
 
   # Plant vulnerabilities
   plant::yara_targets   "$VM_NAME"
