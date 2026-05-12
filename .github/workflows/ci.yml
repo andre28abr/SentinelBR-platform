@@ -163,14 +163,17 @@ jobs:
         continue-on-error: true  # avisos de transitive deps nao quebram CI
 
       # Trivy filesystem scan — pega segredos commitados, IaC misconfig.
+      # Instalado via script oficial pra evitar dependencia de versao da action.
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
       - name: Trivy fs
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
-          format: 'table'
-          exit-code: '0'  # report-only por enquanto; bumpar pra '1' depois
+        run: |
+          trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format table --exit-code 0 .
 
   agent-on-distros:
     name: agent smoke (${{ matrix.distro }})
