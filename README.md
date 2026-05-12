@@ -2,9 +2,6 @@
 
 > Plataforma de segurança para servidores Linux pensada para a realidade brasileira: **SIEM** com detecção de ameaças em tempo real, **gestão de Firewall**, **SELinux/AppArmor**, **resposta automatizada a incidentes**, **vulnerability management** via OSV.dev, **anti-malware YARA**, **threat knowledge base em PT-BR** (MITRE ATT&CK traduzido) e **compliance LGPD** nativa — multi-tenant, com agente Go cross-compilado e UI React lazy-loaded.
 
-> 👤 **Sobre o autor:** André Augusto Azarias De Souza — DPO, Compliance & GRC com fluência técnica.
-> **[Leia mais →](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
-
 [![ci](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/andre28abr/SentinelBR-platform/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/status-fases%201--11%20completas-success)
 ![Python](https://img.shields.io/badge/python-3.12+-blue)
@@ -12,6 +9,24 @@
 ![React](https://img.shields.io/badge/react-19-61dafb)
 ![Tests](https://img.shields.io/badge/tests-149%20server%20+%20Go%20suite-success)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
+
+---
+
+## 👤 Autor
+
+**André Augusto Azarias De Souza** — DPO / Encarregado de Dados · Compliance & GRC · Privacy Engineering
+
+Profissional com mais de 18 anos de experiência em **gestão administrativa, compliance, governança da informação e proteção de dados pessoais**, com formação dupla em **Direito (Anhanguera)** e **Análise e Desenvolvimento de Sistemas (Mackenzie)**. Atuou por quase duas décadas como **Gerente Administrativo e Encarregado de Dados (DPO)** na APAS Campinas, com foco em adequação à LGPD, governança documental e interface com áreas técnicas.
+
+Atualmente em **transição de carreira, com disponibilidade imediata**, este projeto SentinelBR foi conduzido como **product owner técnico, com auxílio de assistentes de IA generativa para a etapa de codificação** — exercitando a tradução de exigências regulatórias (LGPD) e conceitos de threat detection em uma plataforma funcional, demonstrando fluência técnica suficiente para dialogar com times de engenharia, segurança e operações.
+
+→ **[Bio completa: AUTHOR.md](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
+
+### 📂 Outro projeto do autor
+
+**SC Platform** *(privado, sob NDA — disponível para apresentação em entrevistas mediante solicitação)*
+
+Plataforma SaaS multi-tenant pra gestão de licitações públicas brasileiras (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local, gerador de propostas em PDF, CRM, Telegram). **75k+ linhas, 420 testes, 30 modelos, 245 rotas, 29 migrations.** Stack: Python 3.14 + Flask 3 + SQLAlchemy 2 + PostgreSQL 15 + Redis + Playwright + ReportLab + Docling + ChromaDB + Manifest V3 Chrome Extension.
 
 ---
 
@@ -34,9 +49,7 @@
 15. [Métricas do código](#métricas-do-código)
 16. [Roadmap](#roadmap)
 17. [Documentação interna](#documentação-interna)
-18. [Outro projeto do autor](#outro-projeto-do-autor)
-19. [Licença](#licença)
-20. [Autor](#autor)
+18. [Licença](#licença)
 
 ---
 
@@ -563,26 +576,10 @@ Tudo em `docs/` (também renderizado in-app em `/docs` depois de logar):
 
 ---
 
-## Outro projeto do autor
-
-**SC Platform** — plataforma SaaS para gestão de licitações públicas brasileiras (PNCP, pregão eletrônico, robô de lances, simulador FSM da Lei 14.133, extração de PDF com IA local, multi-tenant).
-
-> *Projeto privado, sob NDA — disponível para apresentação técnica em entrevistas mediante solicitação. 75k+ LOC, 420 testes, 30 modelos, 245 rotas, 29 migrations. Stack: Python 3.14 + Flask 3 + SQLAlchemy 2 + PostgreSQL 15 + Redis + Playwright + ReportLab + Docling + ChromaDB + Manifest V3 Chrome Extension.*
-
----
-
 ## Licença
 
 [AGPL-3.0](LICENSE) — protege contra "AWS effect" (cloud providers fechando forks como SaaS sem contribuir de volta). Se você usa o SentinelBR como serviço de rede, precisa abrir as modificações.
 
 Para reportar vulnerabilidades de segurança, ver [SECURITY.md](SECURITY.md).
 
----
-
-## Autor
-
-**André Augusto Azarias De Souza** — [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub](https://github.com/andre28abr)
-
-Projeto pessoal desenvolvido como portfólio explorando arquitetura SIEM, mTLS, multi-tenancy, agentes Go cross-platform e UX de plataformas de segurança. Conduzido como product owner técnico com auxílio de assistentes de IA generativa para a etapa de codificação, exercitando a tradução de exigências regulatórias (LGPD) e conceitos de threat detection em uma plataforma funcional.
-
-Disponível para oportunidades em **DPO / Encarregado de Dados**, **Compliance & Governança (GRC)**, **Privacy Engineering** e **Security Analyst** — com diferencial de fluência em PT-BR/EN, formação Direito + TI + Administração, e portfólio técnico aplicado.
+Bio do autor: [AUTHOR.md](AUTHOR.md) · Contato: [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza)
