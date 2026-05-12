@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
+import Modal from '@/components/Modal'
 import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
 
@@ -79,10 +80,8 @@ export default function YaraPanel({ hostId }: { hostId: string }) {
         )}
       </div>
 
-      {open && (
-        <Modal onClose={() => setOpen(false)}>
-          <h3 className="text-base font-semibold mb-3">Escanear pasta com YARA</h3>
-          <p className="text-xs text-zinc-500 mb-3">
+      <Modal open={open} onClose={() => setOpen(false)} title="Escanear pasta com YARA">
+        <p className="text-xs text-zinc-500 mb-3">
             Escolha uma sugestão ou digite o caminho a escanear no host.
           </p>
 
@@ -130,24 +129,7 @@ export default function YaraPanel({ hostId }: { hostId: string }) {
               {submitting ? 'Agendando…' : 'Iniciar scan'}
             </button>
           </div>
-        </Modal>
-      )}
-    </div>
-  )
-}
-
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-zinc-950 rounded-lg shadow-xl max-w-md w-full p-5 border border-zinc-200 dark:border-zinc-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+      </Modal>
     </div>
   )
 }

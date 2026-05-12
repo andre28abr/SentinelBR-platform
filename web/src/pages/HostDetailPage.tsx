@@ -326,8 +326,15 @@ function LocationEditor({
         <span className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
           Localização:
         </span>
-        <span className="text-sm">
-          {initial ? <>📍 {initial}</> : <span className="text-zinc-400 italic">não definida</span>}
+        <span className="text-sm inline-flex items-center gap-1">
+          {initial ? (
+            <>
+              <Icon icon="lucide:map-pin" className="text-sm text-zinc-500" aria-hidden />
+              {initial}
+            </>
+          ) : (
+            <span className="text-zinc-400 italic">não definida</span>
+          )}
         </span>
         <button
           type="button"

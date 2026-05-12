@@ -12,6 +12,7 @@
 import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
+import Modal from '@/components/Modal'
 import ScanProgressBadge from '@/components/ScanProgressBadge'
 import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
@@ -139,7 +140,7 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
 
       {dbAgeDays !== null && dbAgeDays !== undefined && (
         <div
-          className={`text-xs px-3 py-2 rounded ${
+          className={`flex items-start gap-2 text-xs px-3 py-2 rounded ${
             dbVeryStale
               ? 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300'
               : dbStale
@@ -147,8 +148,12 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
                 : 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300'
           }`}
         >
+          {dbVeryStale && (
+            <Icon icon="lucide:triangle-alert" className="text-base mt-0.5 flex-shrink-0" aria-hidden />
+          )}
+          <span className="flex-1">
           {dbVeryStale
-            ? `⚠️ Signature DB desatualizado há ${dbAgeDays} dias. Rode `
+            ? `Signature DB desatualizado há ${dbAgeDays} dias. Rode `
             : dbStale
               ? `Signature DB com ${dbAgeDays} dias. Recomendado rodar `
               : `Signature DB com ${dbAgeDays} dia${dbAgeDays === 1 ? '' : 's'}. `}
@@ -158,6 +163,7 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
             </code>
           )}
           {(dbStale || dbVeryStale) && ' no host pra atualizar.'}
+          </span>
         </div>
       )}
 
@@ -181,9 +187,7 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
         </p>
       )}
 
-      {open && (
-        <Modal onClose={() => setOpen(false)}>
-          <h3 className="text-base font-semibold mb-3">Escanear pasta com ClamAV</h3>
+      <Modal open={open} onClose={() => setOpen(false)} title="Escanear pasta com ClamAV">
           <p className="text-xs text-zinc-500 mb-3">
             ClamAV é mais lento que YARA (verifica contra DB extensa). Pra pastas
             grandes pode levar minutos. Resultados aparecem na aba "Eventos".
@@ -233,24 +237,7 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
               {submitting ? 'Agendando…' : 'Iniciar scan'}
             </button>
           </div>
-        </Modal>
-      )}
-    </div>
-  )
-}
-
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-zinc-950 rounded-lg shadow-xl max-w-md w-full p-5 border border-zinc-200 dark:border-zinc-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
+      </Modal>
     </div>
   )
 }

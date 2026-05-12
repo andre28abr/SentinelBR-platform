@@ -9,7 +9,9 @@
  */
 
 import { Icon } from '@iconify/react'
-import { useEffect } from 'react'
+import { useId } from 'react'
+
+import { useModalShell } from '@/lib/useModalShell'
 
 interface Props {
   open: boolean
@@ -33,15 +35,9 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: Props) {
-  // ESC fecha
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onCancel])
+  useModalShell({ open, onClose: onCancel })
+  const titleId = useId()
+  const descId = useId()
 
   if (!open) return null
 
@@ -56,7 +52,8 @@ export default function ConfirmDialog({
       onClick={onCancel}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="confirm-dialog-title"
+      aria-labelledby={titleId}
+      aria-describedby={descId}
     >
       <div
         className="bg-white dark:bg-zinc-950 rounded-lg shadow-xl max-w-md w-full p-5 border border-zinc-200 dark:border-zinc-800"
@@ -69,10 +66,12 @@ export default function ConfirmDialog({
             aria-hidden
           />
           <div>
-            <h3 id="confirm-dialog-title" className="text-base font-semibold mb-1">
+            <h3 id={titleId} className="text-base font-semibold mb-1">
               {title}
             </h3>
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">{message}</div>
+            <div id={descId} className="text-sm text-zinc-600 dark:text-zinc-400">
+              {message}
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-4">

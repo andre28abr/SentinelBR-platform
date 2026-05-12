@@ -1,4 +1,5 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { Icon } from '@iconify/react'
+import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import AppHeader from '@/components/AppHeader'
@@ -6,6 +7,7 @@ import Breadcrumbs from '@/components/Breadcrumbs'
 import OsIcon, { osLabel } from '@/components/OsIcon'
 import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
+import { REFRESH_MS, usePolling } from '@/lib/usePolling'
 
 interface Host {
   id: string
@@ -30,7 +32,6 @@ interface Host {
   uptime_seconds: number | null
 }
 
-const REFRESH_MS = 5_000
 
 export default function HostsPage() {
   const [hosts, setHosts] = useState<Host[]>([])
@@ -54,30 +55,20 @@ export default function HostsPage() {
     }
   }
 
-  useEffect(() => {
-    let cancelled = false
-
-    function load() {
-      api
-        .get<Host[]>('/api/v1/hosts')
-        .then((data) => {
-          if (!cancelled) setHosts(data)
-        })
-        .catch((err) => {
-          if (!cancelled) setError(err instanceof ApiError ? String(err.detail) : 'erro ao carregar')
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false)
-        })
-    }
-
-    load()
-    const t = setInterval(load, REFRESH_MS)
-    return () => {
-      cancelled = true
-      clearInterval(t)
-    }
-  }, [])
+  usePolling(
+    async () => {
+      try {
+        const data = await api.get<Host[]>('/api/v1/hosts')
+        setHosts(data)
+      } catch (err) {
+        setError(err instanceof ApiError ? String(err.detail) : 'erro ao carregar')
+      } finally {
+        setLoading(false)
+      }
+    },
+    REFRESH_MS,
+    [],
+  )
 
   async function onCreate(e: FormEvent) {
     e.preventDefault()
@@ -224,7 +215,10 @@ function HostCard({ host: h }: { host: Host }) {
               <>
                 <Separator />
                 <Tooltip content="Localização física/lógica (editável no detalhe do host)">
-                  <span className="cursor-help">📍 {h.location}</span>
+                  <span className="cursor-help inline-flex items-center gap-1">
+                    <Icon icon="lucide:map-pin" className="text-sm" aria-hidden />
+                    {h.location}
+                  </span>
                 </Tooltip>
               </>
             )}
