@@ -12,6 +12,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 import AlertBadge from '@/components/AlertBadge'
 import Logo from '@/components/Logo'
+import SessionTimer from '@/components/SessionTimer'
 import Tooltip from '@/components/Tooltip'
 import { useAuthStore } from '@/stores/auth'
 
@@ -37,6 +38,7 @@ export default function AppHeader() {
           )}
           <span className="text-zinc-300 dark:text-zinc-700">·</span>
           <span className="text-zinc-500">{user?.email}</span>
+          <SessionTimer />
           <Tooltip content="Encerrar sessão">
             <button
               type="button"
