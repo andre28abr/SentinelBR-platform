@@ -8,6 +8,7 @@
 import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
+import ScanProgressBadge from '@/components/ScanProgressBadge'
 import { ApiError, api } from '@/lib/api'
 
 interface ScanAction {
@@ -70,14 +71,17 @@ export default function AidePanel({ hostId }: Props) {
         <code className="text-xs font-mono">aide --check</code>
       </div>
 
-      <button
-        type="button"
-        onClick={run}
-        disabled={submitting}
-        className="rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 text-sm font-medium disabled:opacity-50"
-      >
-        {submitting ? 'Agendando…' : 'Rodar check agora'}
-      </button>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={run}
+          disabled={submitting}
+          className="rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          {submitting ? 'Agendando…' : 'Rodar check agora'}
+        </button>
+        <ScanProgressBadge hostId={hostId} actionType="run_aide_check" label="Último:" />
+      </div>
 
       {feedback && (
         <p className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-3 py-2 rounded">

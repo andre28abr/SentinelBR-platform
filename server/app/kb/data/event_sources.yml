@@ -79,3 +79,94 @@ quarantine:
     "file.hash.sha256": SHA256 do arquivo
     "quarantine.path": Destino na quarentena
     "quarantine.reason": Por que foi quarantinado
+
+clamav:
+  title: Scan ClamAV — antivírus
+  what: |
+    Resultado de um scan disparado pelo ClamAV (antivírus tradicional). Os
+    eventos vêm em duas formas: 1 evento "scan_completed" no fim de cada
+    scan (informativo, mostra quantos matches), e 1 evento "clamav_match"
+    crítico por arquivo infectado encontrado.
+  fields:
+    "event.action": "Tipo do evento (clamav_match, clamav_scan_completed)"
+    "event.outcome": "Resultado (alert se infectado, success se limpo)"
+    "event.category": Categoria
+    "clamav.signature": "Assinatura que casou (ex Win.Trojan.Agent)"
+    "clamav.path": Pasta escaneada
+    "clamav.matches": Quantidade de arquivos infectados
+    "clamav.scan_reason": "Por que rodou (manual_ui, scheduled)"
+    "scan.reason": Por que rodou
+    "file.path": Caminho do arquivo infectado
+
+fail2ban:
+  title: Ação fail2ban (ban/unban de IP)
+  what: |
+    Registro de quando o agente executou um ban ou unban no fail2ban via
+    fail2ban-client. Disparado pela UI ou por policy automática. Use a aba
+    Ferramentas → fail2ban pra ver IPs banidos no momento.
+  fields:
+    "event.action": "Tipo (fail2ban_ban, fail2ban_unban)"
+    "event.outcome": Resultado
+    "event.category": Categoria
+    "fail2ban.jail": "Jail afetado (sshd, apache-auth, etc.)"
+    "fail2ban.ip": IP envolvido
+    "fail2ban.reason": Motivo
+
+rkhunter:
+  title: Resultado do rkhunter (rootkit hunter)
+  what: |
+    Cada scan emite eventos: 1 "rkhunter_warning" warn por warning encontrado
+    + 1 "rkhunter_scan_completed" final. Warnings aparecem em scans periódicos
+    (default diário) ou manuais. Em sistema saudável, esperam-se ~0-2 warnings
+    falsos positivos comuns (whitelist no /etc/rkhunter.conf).
+  fields:
+    "event.action": "Tipo (rkhunter_warning, rkhunter_scan_completed)"
+    "event.outcome": Resultado
+    "event.category": Categoria
+    "rkhunter.warnings": "Quantidade de warnings (no completed)"
+    "rkhunter.scan_reason": Por que rodou
+    "scan.reason": Por que rodou
+
+chkrootkit:
+  title: Resultado do chkrootkit (rootkit hunter alternativo)
+  what: |
+    Detector de rootkits alternativo ao rkhunter — rodam em paralelo geram
+    warnings ligeiramente diferentes. Cada scan emite "chkrootkit_warning"
+    warn por linha "INFECTED" ou "Warning" no output, + 1 evento final
+    "chkrootkit_scan_completed".
+  fields:
+    "event.action": "Tipo (chkrootkit_warning, chkrootkit_scan_completed)"
+    "event.outcome": Resultado
+    "event.category": Categoria
+    "chkrootkit.warnings": Quantidade de warnings
+    "chkrootkit.scan_reason": Por que rodou
+    "scan.reason": Por que rodou
+
+lynis:
+  title: Auditoria lynis — hardening score
+  what: |
+    Cada audit gera 1 evento de resumo com o "Hardening index" (0-100) e
+    quantidade de findings (warnings + suggestions). Score baixo = muitas
+    melhorias possíveis. Use 'lynis show details TEST-ID' no host pra ver
+    detalhes de cada finding.
+  fields:
+    "event.action": lynis_audit
+    "event.outcome": Resultado
+    "lynis.score": "Hardening index (0-100)"
+    "lynis.findings": Quantidade de recomendações
+    "lynis.reason": Por que rodou
+
+aide:
+  title: AIDE — file integrity check
+  what: |
+    Compara estado atual contra o database (criado por 'aide --init'). 1
+    evento por check com counts de arquivos adicionados, modificados e
+    removidos. Em sistema estável esses counts são 0 — qualquer mudança em
+    /etc, /usr/bin etc. levanta alerta.
+  fields:
+    "event.action": aide_check
+    "event.outcome": "Resultado (alert se houve diff, success se igual)"
+    "aide.added": Arquivos novos detectados
+    "aide.changed": Arquivos modificados
+    "aide.removed": Arquivos deletados
+    "aide.reason": Por que rodou

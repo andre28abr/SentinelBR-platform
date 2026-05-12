@@ -17,7 +17,20 @@ const REFRESH_MS = 5_000
 const HOURS = 24
 const LIMIT = 100
 
-const SOURCES = ['todos', 'sshd', 'selinux', 'apparmor', 'yara'] as const
+const SOURCES = [
+  'todos',
+  'sshd',
+  'selinux',
+  'apparmor',
+  'yara',
+  'clamav',
+  'fail2ban',
+  'rkhunter',
+  'chkrootkit',
+  'lynis',
+  'aide',
+  'quarantine',
+] as const
 type SourceFilter = (typeof SOURCES)[number]
 
 export default function EventsTab({ hostId }: { hostId: string }) {
@@ -195,25 +208,64 @@ function EventDetail({ ev }: { ev: EventItem }) {
   return (
     <div>
       <p className="font-medium">
-        {action ?? 'evento'} {outcome && <span className="text-zinc-500">· {outcome}</span>}
+        {action ?? ev.raw ?? 'evento'}{' '}
+        {outcome && <span className="text-zinc-500">· {outcome}</span>}
         {reason && <span className="text-zinc-500"> ({reason})</span>}
       </p>
       <p className="text-zinc-500 mt-0.5 text-[11px]">
+        {/* SSHD */}
         {f['user.name'] && <span>user=<code>{f['user.name']}</code> </span>}
         {f['source.ip'] && <span>from=<code>{f['source.ip']}</code> </span>}
         {f['process.name'] && <span>proc=<code>{f['process.name']}</code> </span>}
+        {/* SELinux */}
         {f['selinux.source_type'] && (
           <span>
             {f['selinux.source_type']} → {f['selinux.target_type']}
             {f['selinux.permission'] && ` (${f['selinux.permission']})`}{' '}
           </span>
         )}
-        {f['apparmor.profile'] && (
-          <span>profile=<code>{f['apparmor.profile']}</code> </span>
+        {/* AppArmor */}
+        {f['apparmor.profile'] && <span>profile=<code>{f['apparmor.profile']}</code> </span>}
+        {/* YARA */}
+        {f['yara.rule_name'] && <span>rule=<code>{f['yara.rule_name']}</code> </span>}
+        {/* ClamAV */}
+        {f['clamav.signature'] && (
+          <span>sig=<code>{f['clamav.signature']}</code> </span>
         )}
-        {f['yara.rule_name'] && (
-          <span>rule=<code>{f['yara.rule_name']}</code> </span>
+        {f['clamav.matches'] && (
+          <span>matches=<code>{f['clamav.matches']}</code> </span>
         )}
+        {f['clamav.path'] && <span>path=<code>{f['clamav.path']}</code> </span>}
+        {/* fail2ban */}
+        {f['fail2ban.jail'] && <span>jail=<code>{f['fail2ban.jail']}</code> </span>}
+        {f['fail2ban.ip'] && <span>ip=<code>{f['fail2ban.ip']}</code> </span>}
+        {/* rkhunter / chkrootkit */}
+        {f['rkhunter.warnings'] && (
+          <span>warnings=<code>{f['rkhunter.warnings']}</code> </span>
+        )}
+        {f['chkrootkit.warnings'] && (
+          <span>warnings=<code>{f['chkrootkit.warnings']}</code> </span>
+        )}
+        {/* lynis */}
+        {f['lynis.score'] && (
+          <span>
+            score=<code>{f['lynis.score']}</code>{' '}
+            {f['lynis.findings'] && (
+              <>
+                · findings=<code>{f['lynis.findings']}</code>{' '}
+              </>
+            )}
+          </span>
+        )}
+        {/* AIDE */}
+        {(f['aide.added'] || f['aide.changed'] || f['aide.removed']) && (
+          <span>
+            +<code>{f['aide.added'] ?? '0'}</code>/
+            ~<code>{f['aide.changed'] ?? '0'}</code>/
+            -<code>{f['aide.removed'] ?? '0'}</code>{' '}
+          </span>
+        )}
+        {/* file (compartilhado entre yara, clamav, quarantine) */}
         {f['file.path'] && <span>file=<code>{f['file.path']}</code> </span>}
         {f['file.name'] && <span>file=<code>{f['file.name']}</code></span>}
       </p>

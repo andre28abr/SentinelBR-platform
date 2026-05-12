@@ -94,10 +94,6 @@ func (d *Dispatcher) handleClamavScan(c *pb.RunClamavScanCommand) (pb.CommandSta
 	if _, err := exec.LookPath("clamscan"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "clamscan nao instalado"
 	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN clamav_scan", "path", c.Path, "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
-	}
 
 	timeout := d.ScanTimeout
 	if timeout == 0 {
@@ -129,9 +125,37 @@ func (d *Dispatcher) handleClamavScan(c *pb.RunClamavScanCommand) (pb.CommandSta
 			default:
 			}
 		}
+		// Sempre emite event de "scan_completed" pra UI saber que rodou,
+		// mesmo se 0 matches (UX: usuario ve "scan limpo" em vez de silencio).
+		emitScanCompleted(d, "clamav", "clamav_scan", c.Reason, map[string]string{
+			"clamav.path":    c.Path,
+			"clamav.matches": fmt.Sprintf("%d", len(matches)),
+		})
 	}
 	d.Log.Info("clamav_scan completo", "path", c.Path, "matches", len(matches))
 	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("matches=%d", len(matches))
+}
+
+// emitScanCompleted emite 1 event "scan_completed" pra UI saber que terminou.
+// Severity=info (sucesso), upgrade pra warn se tem warnings/matches.
+func emitScanCompleted(d *Dispatcher, source, scanType, reason string, extra map[string]string) {
+	if d.EventBus == nil {
+		return
+	}
+	ev := events.New(d.HostID, source, time.Now().UTC(),
+		fmt.Sprintf("%s concluído", scanType))
+	ev.Severity = events.SeverityInfo
+	ev.Fields["event.category"] = "configuration"
+	ev.Fields["event.action"] = scanType + "_completed"
+	ev.Fields["event.outcome"] = "success"
+	ev.Fields["scan.reason"] = reason
+	for k, v := range extra {
+		ev.Fields[k] = v
+	}
+	select {
+	case d.EventBus <- ev:
+	default:
+	}
 }
 
 // runClamavScan executa clamscan recursivo e parseia "FOUND" lines.
@@ -243,11 +267,6 @@ func (d *Dispatcher) handleYaraScan(c *pb.RunYaraScanCommand) (pb.CommandStatus,
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if d.DryRun {
-		d.Log.Info("DRY-RUN yara_scan", "path", c.Path, "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
-	}
-
 	d.Log.Info("yara_scan iniciado", "path", c.Path, "reason", c.Reason)
 	evs, err := scanner.ScanToEvents(ctx, c.Path)
 	if err != nil {
@@ -321,10 +340,6 @@ func (d *Dispatcher) handleFail2banSet(jail, ip, action, reason string) (pb.Comm
 	if _, err := exec.LookPath("fail2ban-client"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "fail2ban-client nao instalado"
 	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN fail2ban", "action", action, "jail", jail, "ip", ip, "reason", reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
-	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "fail2ban-client", "set", jail, action, ip).CombinedOutput()
@@ -362,10 +377,6 @@ func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.Comman
 	if _, err := exec.LookPath("rkhunter"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "rkhunter nao instalado"
 	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN rkhunter_scan", "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
-	}
 	timeout := d.ScanTimeout
 	if timeout == 0 {
 		timeout = 15 * time.Minute
@@ -397,6 +408,9 @@ func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.Comman
 			default:
 			}
 		}
+		emitScanCompleted(d, "rkhunter", "rkhunter_scan", c.Reason, map[string]string{
+			"rkhunter.warnings": fmt.Sprintf("%d", len(warnings)),
+		})
 	}
 	d.Log.Info("rkhunter_scan completo", "warnings", len(warnings))
 	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("warnings=%d", len(warnings))
@@ -419,10 +433,6 @@ func parseRkhunterWarnings(out string) []string {
 func (d *Dispatcher) handleLynisAudit(c *pb.RunLynisAuditCommand) (pb.CommandStatus, string) {
 	if _, err := exec.LookPath("lynis"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "lynis nao instalado"
-	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN lynis_audit", "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
 	}
 	timeout := d.ScanTimeout
 	if timeout == 0 {
@@ -485,10 +495,6 @@ func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.Co
 	if _, err := exec.LookPath("chkrootkit"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "chkrootkit nao instalado"
 	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN chkrootkit_scan", "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
-	}
 	timeout := d.ScanTimeout
 	if timeout == 0 {
 		timeout = 10 * time.Minute
@@ -511,6 +517,9 @@ func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.Co
 			default:
 			}
 		}
+		emitScanCompleted(d, "chkrootkit", "chkrootkit_scan", c.Reason, map[string]string{
+			"chkrootkit.warnings": fmt.Sprintf("%d", len(warnings)),
+		})
 	}
 	d.Log.Info("chkrootkit_scan completo", "warnings", len(warnings))
 	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("warnings=%d", len(warnings))
@@ -537,10 +546,6 @@ func parseChkrootkitOutput(out string) []string {
 func (d *Dispatcher) handleAideCheck(c *pb.RunAideCheckCommand) (pb.CommandStatus, string) {
 	if _, err := exec.LookPath("aide"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "aide nao instalado"
-	}
-	if d.DryRun {
-		d.Log.Info("DRY-RUN aide_check", "reason", c.Reason)
-		return pb.CommandStatus_COMMAND_STATUS_OK, ""
 	}
 	timeout := d.ScanTimeout
 	if timeout == 0 {

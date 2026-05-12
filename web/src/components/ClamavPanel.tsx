@@ -11,6 +11,7 @@
 
 import { useState } from 'react'
 
+import ScanProgressBadge from '@/components/ScanProgressBadge'
 import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
 
@@ -153,7 +154,7 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -161,13 +162,17 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
         >
           Escanear pasta…
         </button>
-        {lastAction && (
-          <span className="text-xs text-zinc-500">
-            Último scan agendado:{' '}
-            <span className="font-mono">{lastAction.target}</span> ({lastAction.status})
-          </span>
-        )}
+        <ScanProgressBadge
+          hostId={hostId}
+          actionType="run_clamav_scan"
+          label="Último scan:"
+        />
       </div>
+      {lastAction && (
+        <p className="text-xs text-zinc-500">
+          Recém agendado: <span className="font-mono">{lastAction.target}</span>
+        </p>
+      )}
 
       {open && (
         <Modal onClose={() => setOpen(false)}>
