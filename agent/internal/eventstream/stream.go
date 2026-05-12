@@ -33,6 +33,14 @@ func (s *Sender) Run(ctx context.Context, in <-chan *events.Event) error {
 
 	ackErr := make(chan error, 1)
 	go func() {
+		// Recover defensivo: panic aqui (ex: nil deref no parse de ack) nao
+		// pode derrubar o agente inteiro. Loga, retorna o erro pro Run normal.
+		defer func() {
+			if r := recover(); r != nil {
+				s.Log.Error("ackReader panic", "panic", r)
+				ackErr <- fmt.Errorf("ackReader panic: %v", r)
+			}
+		}()
 		ackErr <- s.readAcks(stream)
 	}()
 

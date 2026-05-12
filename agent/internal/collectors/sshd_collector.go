@@ -36,7 +36,14 @@ func (c *SSHDCollector) Run(ctx context.Context) error {
 	defer close(c.Out)
 
 	srcDone := make(chan error, 1)
-	go func() { srcDone <- c.Source.Run(ctx) }()
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				srcDone <- fmt.Errorf("source panic: %v", r)
+			}
+		}()
+		srcDone <- c.Source.Run(ctx)
+	}()
 
 	// Drena a Source ate o channel fechar (Source.Run terminou e fechou Lines()).
 	for line := range c.Source.Lines() {

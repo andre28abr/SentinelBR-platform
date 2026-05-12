@@ -3,12 +3,19 @@
 package firewall
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os/exec"
 	"strings"
 	"time"
 )
+
+func runNft(args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), firewallCmdTimeout)
+	defer cancel()
+	return exec.CommandContext(ctx, "nft", args...).CombinedOutput() // #nosec G204
+}
 
 // nftablesReal usa o comando `nft` pra manipular um set proprio em uma table
 // nossa (inet sentinelbr). Vantagens: nao mexe nas regras existentes do user,
@@ -39,7 +46,7 @@ func (n *nftablesReal) init() error {
 	}
 	for _, s := range steps {
 		// nft retorna nao-zero se ja existe — silenciamos esses casos via prefix do stderr.
-		out, err := exec.Command(s[0], s[1:]...).CombinedOutput() // #nosec G204 — args sao constantes
+		out, err := runNft(s[1:]...)
 		if err != nil && !strings.Contains(string(out), "exists") {
 			return fmt.Errorf("nft bootstrap %v: %w (%s)", s[1:], err, strings.TrimSpace(string(out)))
 		}
@@ -52,7 +59,7 @@ func (n *nftablesReal) BlockIP(ip net.IP, _ time.Duration) error {
 	if err := n.init(); err != nil {
 		return err
 	}
-	out, err := exec.Command("nft", "add", "element", "inet", "sentinelbr", "blocked_ips", "{ "+ip.String()+" }").CombinedOutput() // #nosec G204
+	out, err := runNft("add", "element", "inet", "sentinelbr", "blocked_ips", "{ "+ip.String()+" }")
 	if err != nil && !strings.Contains(string(out), "exists") {
 		return fmt.Errorf("nft add element %s: %w (%s)", ip, err, strings.TrimSpace(string(out)))
 	}
@@ -63,7 +70,7 @@ func (n *nftablesReal) UnblockIP(ip net.IP) error {
 	if err := n.init(); err != nil {
 		return err
 	}
-	out, err := exec.Command("nft", "delete", "element", "inet", "sentinelbr", "blocked_ips", "{ "+ip.String()+" }").CombinedOutput() // #nosec G204
+	out, err := runNft("delete", "element", "inet", "sentinelbr", "blocked_ips", "{ "+ip.String()+" }")
 	if err != nil && !strings.Contains(string(out), "No such") {
 		return fmt.Errorf("nft delete element %s: %w (%s)", ip, err, strings.TrimSpace(string(out)))
 	}

@@ -43,7 +43,14 @@ func (c *MACCollector) Run(ctx context.Context) error {
 	defer close(c.Out)
 
 	srcDone := make(chan error, 1)
-	go func() { srcDone <- c.Source.Run(ctx) }()
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				srcDone <- fmt.Errorf("source panic: %v", r)
+			}
+		}()
+		srcDone <- c.Source.Run(ctx)
+	}()
 
 	parse := c.pickParser()
 

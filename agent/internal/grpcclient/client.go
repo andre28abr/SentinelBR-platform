@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
 )
@@ -40,7 +42,20 @@ func Dial(endpoint, caPath, certPath, keyPath string) (*grpc.ClientConn, pb.Agen
 		MinVersion:   tls.VersionTLS13,
 	}
 
-	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	// Keepalive: garante que conexoes ociosas nao morrem em silencio (NAT
+	// timeout, load balancer idle drop). Time=30s = ping a cada 30s; Timeout=10s
+	// = considera dead se ping nao responder. PermitWithoutStream=true permite
+	// keepalive mesmo sem RPC ativo (heartbeat eh esporadico).
+	kp := keepalive.ClientParameters{
+		Time:                30 * time.Second,
+		Timeout:             10 * time.Second,
+		PermitWithoutStream: true,
+	}
+	conn, err := grpc.NewClient(
+		endpoint,
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+		grpc.WithKeepaliveParams(kp),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("dial gRPC %s: %w", endpoint, err)
 	}
