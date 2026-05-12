@@ -1,5 +1,7 @@
+import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
+import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
 
 interface ScanAction {
@@ -41,7 +43,21 @@ export default function YaraPanel({ hostId }: { hostId: string }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-sm font-semibold inline-flex items-center gap-1.5">
+          <Tooltip content="YARA — engine de detecção por regras (assinaturas customizáveis). Pega webshells, miners, ransomware e padrões customizados. Complementa o ClamAV (que cobre malware já catalogado globalmente).">
+            <span className="cursor-help inline-flex items-center gap-1.5">
+              <Icon icon="lucide:scan-search" className="text-base" aria-hidden />
+              YARA
+            </span>
+          </Tooltip>
+        </h3>
+        <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 font-normal">
+          ativo
+        </span>
+      </div>
+
       <p className="text-sm text-zinc-500">
         Procura padrões de webshell, miner, ransomware e dropper em arquivos do host.
         O scan roda no agente e gera alertas se encontrar algo crítico.

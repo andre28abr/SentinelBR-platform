@@ -9,6 +9,7 @@
  * ser atualizada diariamente via `freshclam` pra ser efetiva.
  */
 
+import { Icon } from '@iconify/react'
 import { useState } from 'react'
 
 import ScanProgressBadge from '@/components/ScanProgressBadge'
@@ -47,9 +48,12 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
     return (
       <div className="space-y-3 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-baseline gap-2">
-          <h3 className="text-sm font-semibold">
+          <h3 className="text-sm font-semibold inline-flex items-center gap-1.5">
             <Tooltip content="ClamAV — antivírus open-source com 1M+ assinaturas atualizadas diariamente. Complementa o YARA detectando malware já catalogado globalmente.">
-              <span className="cursor-help">🛡 ClamAV</span>
+              <span className="cursor-help inline-flex items-center gap-1.5">
+                <Icon icon="lucide:shield-check" className="text-base" aria-hidden />
+                ClamAV
+              </span>
             </Tooltip>
           </h3>
           <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-normal">
@@ -109,7 +113,10 @@ export default function ClamavPanel({ hostId, installed, version, dbAgeDays }: P
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Tooltip content="ClamAV — antivírus open-source. Detecta malware conhecido via assinaturas atualizadas diariamente.">
-            <span className="cursor-help">🛡 ClamAV</span>
+            <span className="cursor-help inline-flex items-center gap-1.5">
+              <Icon icon="lucide:shield-check" className="text-base" aria-hidden />
+              ClamAV
+            </span>
           </Tooltip>
           <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 font-normal">
             instalado
