@@ -27,7 +27,7 @@ vm::create() {
 }
 
 vm::install_deps() {
-  local name="$1" pkg_mgr="$2"  # apt | dnf
+  local name="$1" pkg_mgr="$2"  # apt | dnf | apk
   echo "  + instalando yara em $name"
   case "$pkg_mgr" in
     apt)
@@ -36,6 +36,11 @@ vm::install_deps() {
       ;;
     dnf)
       orb -m "$name" -u root dnf install -y -q yara curl ca-certificates >/dev/null
+      ;;
+    apk)
+      # Alpine: musl libc + busybox. apk eh super rapido.
+      orb -m "$name" -u root sh -c \
+        'apk add --quiet --no-cache yara curl ca-certificates bash'
       ;;
     *) echo "pkg_mgr desconhecido: $pkg_mgr" >&2; return 1;;
   esac
@@ -58,6 +63,11 @@ vm::install_deps() {
         orb -m "$name" -u root bash -c \
           'dnf install -y -q clamav clamav-update >/dev/null && \
            (sed -i "s/^Example/#Example/" /etc/freshclam.conf 2>/dev/null || true) && \
+           (freshclam --quiet || true)'
+        ;;
+      apk)
+        orb -m "$name" -u root sh -c \
+          'apk add --quiet --no-cache clamav clamav-libunrar && \
            (freshclam --quiet || true)'
         ;;
     esac
@@ -104,6 +114,16 @@ vm::install_hardening_tools() {
         '(systemctl enable --now fail2ban 2>/dev/null || true) && \
          (systemctl enable --now auditd 2>/dev/null || true) && \
          (systemctl enable --now firewalld 2>/dev/null || true)'
+      ;;
+    apk)
+      # Alpine: pacotes disponiveis no community/main repos.
+      # rkhunter/chkrootkit/lynis NAO existem no Alpine (silencia gracefully —
+      # cards do UI mostram "nao detectado" + hint de install).
+      orb -m "$name" -u root sh -c \
+        'apk add --quiet --no-cache fail2ban audit aide nftables ip6tables 2>/dev/null || true'
+      orb -m "$name" -u root sh -c \
+        '(rc-update add fail2ban default 2>/dev/null || true) && \
+         (rc-service fail2ban start 2>/dev/null || true)'
       ;;
   esac
 
