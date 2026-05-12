@@ -381,10 +381,18 @@ func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.Comman
 	if timeout == 0 {
 		timeout = 15 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	// Wrap com `timeout` do coreutils — Go ctx.cancel() nao mata processos
+	// em I/O bloqueante (estado D). Veja handleChkrootkitScan pra detalhes.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout+1*time.Minute)
 	defer cancel()
-	d.Log.Info("rkhunter_scan iniciado", "reason", c.Reason)
-	out, err := exec.CommandContext(ctx, "rkhunter", "--check", "--sk", "--rwo").CombinedOutput()
+	d.Log.Info("rkhunter_scan iniciado", "reason", c.Reason, "timeout", timeout)
+	cmd := exec.CommandContext(ctx, "timeout", "--kill-after=30s",
+		fmt.Sprintf("%ds", int(timeout.Seconds())),
+		"rkhunter", "--check", "--sk", "--rwo")
+	if _, err := exec.LookPath("timeout"); err != nil {
+		cmd = exec.CommandContext(ctx, "rkhunter", "--check", "--sk", "--rwo")
+	}
+	out, err := cmd.CombinedOutput()
 	// rkhunter exit codes: 0 = clean, 1 = warnings, 2 = error. Aceita 0 e 1.
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
@@ -491,6 +499,19 @@ func parseLynisOutput(out string) (int, []string) {
 }
 
 // handleChkrootkitScan roda `chkrootkit -q` (quiet — so warnings).
+//
+// IMPORTANTE — wrap com `timeout` do coreutils:
+// um teste do chkrootkit ('chkutmp') faz `find /dev -type f -exec grep ...`
+// que em CONTAINER (OrbStack/Docker) trava lendo /dev/console (device de
+// I/O bloqueante). exec.CommandContext do Go envia SIGKILL quando ctx
+// expira, mas SIGKILL nao interrompe processos em estado D (uninterruptible
+// sleep waiting on syscall). Resultado: scan zumbi de 30+min.
+//
+// Solucao: GNU coreutils `timeout --kill-after=30s 8m chkrootkit ...`
+// envia SIGTERM ao process group inteiro ao expirar 8min, depois SIGKILL
+// no group apos 30s adicionais. Process group inclui todos os filhos
+// (`find`, `grep`), então até travas em I/O eventualmente sao mortas
+// pelo kernel quando o pai morre.
 func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.CommandStatus, string) {
 	if _, err := exec.LookPath("chkrootkit"); err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_UNSUPPORTED, "chkrootkit nao instalado"
@@ -499,10 +520,16 @@ func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.Co
 	if timeout == 0 {
 		timeout = 10 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout+1*time.Minute)
 	defer cancel()
-	d.Log.Info("chkrootkit_scan iniciado", "reason", c.Reason)
-	out, _ := exec.CommandContext(ctx, "chkrootkit", "-q").CombinedOutput()
+	d.Log.Info("chkrootkit_scan iniciado", "reason", c.Reason, "timeout", timeout)
+	cmd := exec.CommandContext(ctx, "timeout", "--kill-after=30s",
+		fmt.Sprintf("%ds", int(timeout.Seconds())), "chkrootkit", "-q")
+	if _, err := exec.LookPath("timeout"); err != nil {
+		// fallback se coreutils ausente — sem wrap, mas com ctx do Go
+		cmd = exec.CommandContext(ctx, "chkrootkit", "-q")
+	}
+	out, _ := cmd.CombinedOutput()
 	warnings := parseChkrootkitOutput(string(out))
 	if d.EventBus != nil {
 		for _, w := range warnings {
