@@ -11,6 +11,7 @@
 import { Icon } from '@iconify/react'
 
 import AidePanel from '@/components/AidePanel'
+import AppArmorPanel from '@/components/AppArmorPanel'
 import AuditdPanel from '@/components/AuditdPanel'
 import ChkrootkitPanel from '@/components/ChkrootkitPanel'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -18,6 +19,7 @@ import Fail2banPanel from '@/components/Fail2banPanel'
 import FirewallPanel from '@/components/FirewallPanel'
 import LynisPanel from '@/components/LynisPanel'
 import RkhunterPanel from '@/components/RkhunterPanel'
+import SELinuxPanel from '@/components/SELinuxPanel'
 import Tabs from '@/components/Tabs'
 import Tooltip from '@/components/Tooltip'
 
@@ -149,6 +151,30 @@ export default function ToolsPanel({ host }: Props) {
       content: (
         <Guarded>
           <AidePanel hostId={host.id} />
+        </Guarded>
+      ),
+    })
+  }
+  // SELinux/AppArmor: aparecem como sub-aba se o agente reportou modo
+  // (mesmo que "Disabled" — pra mostrar status + comandos pra ativar).
+  if (host.selinux_mode) {
+    items.push({
+      value: 'selinux',
+      label: <SubTabLabel icon="lucide:shield-check" text="SELinux" />,
+      content: (
+        <Guarded>
+          <SELinuxPanel mode={host.selinux_mode} />
+        </Guarded>
+      ),
+    })
+  }
+  if (host.apparmor_mode) {
+    items.push({
+      value: 'apparmor',
+      label: <SubTabLabel icon="lucide:shield-check" text="AppArmor" />,
+      content: (
+        <Guarded>
+          <AppArmorPanel mode={host.apparmor_mode} />
         </Guarded>
       ),
     })

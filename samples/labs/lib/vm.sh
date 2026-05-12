@@ -92,6 +92,12 @@ vm::install_hardening_tools() {
     dnf)
       orb -m "$name" -u root bash -c \
         'dnf install -y -q fail2ban audit rkhunter chkrootkit lynis aide firewalld >/dev/null'
+      # SELinux pacotes — em container OrbStack o kernel nao suporta ativar
+      # (selinuxfs ausente), mas instalar getenforce/sestatus deixa o agente
+      # detectar e a UI mostrar status "Disabled" + comandos. Em VM real ja
+      # vem instalado.
+      orb -m "$name" -u root bash -c \
+        'dnf install -y -q policycoreutils selinux-policy selinux-policy-targeted >/dev/null 2>&1 || true'
       # Service activation — silencia falhas (orbstack containers as vezes nao tem
       # systemd completo, mas o agente detecta via LookPath de qualquer forma).
       orb -m "$name" -u root bash -c \
