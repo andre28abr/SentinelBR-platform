@@ -19,10 +19,10 @@ from app.services.auth import hash_password
 
 async def seed() -> int:
     email = os.environ.get("SEED_EMAIL", "admin@sentinelbr.io")
-    password = os.environ.get("SEED_PASSWORD", "admin1234")
-    name = os.environ.get("SEED_NAME", "Admin")
-    org_name = os.environ.get("SEED_ORG_NAME", "Default Organization")
-    org_slug = os.environ.get("SEED_ORG_SLUG", "default")
+    password = os.environ.get("SEED_PASSWORD", "admin1234")  # noqa: S105
+    name = os.environ.get("SEED_NAME", "Andre Souza")
+    org_name = os.environ.get("SEED_ORG_NAME", "andre28abr")
+    org_slug = os.environ.get("SEED_ORG_SLUG", "andre28abr")
 
     async with SessionLocal() as db:
         # garante org

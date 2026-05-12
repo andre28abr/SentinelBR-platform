@@ -147,3 +147,7 @@ Roadmap fechado:
 ## Licença
 
 [AGPL-3.0](LICENSE) — protege contra "AWS effect" (cloud providers fechando forks como SaaS sem contribuir de volta). Se você usa o SentinelBR como serviço de rede, precisa abrir as modificações.
+
+## Autor
+
+Projeto pessoal de [André Souza](https://github.com/andre28abr) — desenvolvido como portfólio explorando arquitetura SIEM, mTLS, multi-tenancy, agentes Go cross-platform e UX de plataformas de segurança.

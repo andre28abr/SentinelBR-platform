@@ -30,7 +30,9 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('admin@sentinelbr.io')
   const [password, setPassword] = useState('')
-  const [orgSlug, setOrgSlug] = useState('')
+  // Default = slug do dono do projeto (andre28abr) — pre-preenche em dev.
+  // Em prod multi-tenant deixa vazio (qualquer org valida).
+  const [orgSlug, setOrgSlug] = useState('andre28abr')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
