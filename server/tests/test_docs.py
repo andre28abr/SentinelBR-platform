@@ -28,7 +28,7 @@ async def test_list_docs_ordered_numerically(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_docs_skips_README(client: AsyncClient) -> None:
+async def test_list_docs_skips_readme(client: AsyncClient) -> None:
     r = await client.get("/api/v1/docs")
     slugs = {d["slug"] for d in r.json()}
     # README*.md sao filtrados — sao indice do GitHub, nao do app
