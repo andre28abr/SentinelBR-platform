@@ -271,7 +271,16 @@ function parseJails(json: string | null): JailDetail[] {
   try {
     const parsed = JSON.parse(json) as { jails?: JailDetail[] }
     if (!Array.isArray(parsed.jails)) return []
-    return parsed.jails.filter((j) => typeof j?.name === 'string')
+    // Normaliza cada jail: garante name string + banned_ips array + count number.
+    // Sem essa defesa, jail com `banned_ips: null` (agente velho ou bug) causa
+    // crash em jail.banned_ips.length no JailCard.
+    return parsed.jails
+      .filter((j) => typeof j?.name === 'string')
+      .map((j) => ({
+        name: j.name,
+        banned_count: typeof j.banned_count === 'number' ? j.banned_count : 0,
+        banned_ips: Array.isArray(j.banned_ips) ? j.banned_ips : [],
+      }))
   } catch {
     return []
   }

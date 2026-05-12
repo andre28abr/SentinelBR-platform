@@ -13,12 +13,20 @@ import { Icon } from '@iconify/react'
 import AidePanel from '@/components/AidePanel'
 import AuditdPanel from '@/components/AuditdPanel'
 import ChkrootkitPanel from '@/components/ChkrootkitPanel'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import Fail2banPanel from '@/components/Fail2banPanel'
 import FirewallPanel from '@/components/FirewallPanel'
 import LynisPanel from '@/components/LynisPanel'
 import RkhunterPanel from '@/components/RkhunterPanel'
 import Tabs from '@/components/Tabs'
 import Tooltip from '@/components/Tooltip'
+
+/** Wrap defensivo: se o panel crashar, mostra fallback amigavel em vez de
+ *  tela preta. Cada sub-aba tem boundary isolado — bug em fail2ban nao
+ *  derruba a aba inteira de Ferramentas. */
+function Guarded({ children }: { children: React.ReactNode }) {
+  return <ErrorBoundary>{children}</ErrorBoundary>
+}
 
 interface ToolsHost {
   id: string
@@ -64,12 +72,14 @@ export default function ToolsPanel({ host }: Props) {
       value: 'fail2ban',
       label: <SubTabLabel icon="lucide:shield-ban" text="fail2ban" />,
       content: (
-        <Fail2banPanel
-          hostId={host.id}
-          statusJson={host.fail2ban_status_json}
-          jailsActive={host.fail2ban_jails_active ?? 0}
-          bannedIps={host.fail2ban_banned_ips ?? 0}
-        />
+        <Guarded>
+          <Fail2banPanel
+            hostId={host.id}
+            statusJson={host.fail2ban_status_json}
+            jailsActive={host.fail2ban_jails_active ?? 0}
+            bannedIps={host.fail2ban_banned_ips ?? 0}
+          />
+        </Guarded>
       ),
     })
   }
@@ -78,11 +88,13 @@ export default function ToolsPanel({ host }: Props) {
       value: 'firewall',
       label: <SubTabLabel icon="lucide:brick-wall" text="Firewall" />,
       content: (
-        <FirewallPanel
-          hostId={host.id}
-          backend={host.firewall_active}
-          statusJson={host.firewall_status_json}
-        />
+        <Guarded>
+          <FirewallPanel
+            hostId={host.id}
+            backend={host.firewall_active}
+            statusJson={host.firewall_status_json}
+          />
+        </Guarded>
       ),
     })
   }
@@ -90,35 +102,55 @@ export default function ToolsPanel({ host }: Props) {
     items.push({
       value: 'auditd',
       label: <SubTabLabel icon="lucide:file-search" text="auditd" />,
-      content: <AuditdPanel statusJson={host.auditd_status_json} />,
+      content: (
+        <Guarded>
+          <AuditdPanel statusJson={host.auditd_status_json} />
+        </Guarded>
+      ),
     })
   }
   if (host.rkhunter_installed) {
     items.push({
       value: 'rkhunter',
       label: <SubTabLabel icon="lucide:bug-play" text="rkhunter" />,
-      content: <RkhunterPanel hostId={host.id} />,
+      content: (
+        <Guarded>
+          <RkhunterPanel hostId={host.id} />
+        </Guarded>
+      ),
     })
   }
   if (host.chkrootkit_installed) {
     items.push({
       value: 'chkrootkit',
       label: <SubTabLabel icon="lucide:bug-off" text="chkrootkit" />,
-      content: <ChkrootkitPanel hostId={host.id} />,
+      content: (
+        <Guarded>
+          <ChkrootkitPanel hostId={host.id} />
+        </Guarded>
+      ),
     })
   }
   if (host.lynis_installed) {
     items.push({
       value: 'lynis',
       label: <SubTabLabel icon="lucide:clipboard-check" text="lynis" />,
-      content: <LynisPanel hostId={host.id} />,
+      content: (
+        <Guarded>
+          <LynisPanel hostId={host.id} />
+        </Guarded>
+      ),
     })
   }
   if (host.aide_installed) {
     items.push({
       value: 'aide',
       label: <SubTabLabel icon="lucide:database" text="AIDE" />,
-      content: <AidePanel hostId={host.id} />,
+      content: (
+        <Guarded>
+          <AidePanel hostId={host.id} />
+        </Guarded>
+      ),
     })
   }
 

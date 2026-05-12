@@ -59,8 +59,10 @@ export default function AuditdPanel({ statusJson }: Props) {
 function parseRules(json: string | null): string[] {
   if (!json) return []
   try {
-    const parsed = JSON.parse(json) as { rules?: string[] }
-    return Array.isArray(parsed.rules) ? parsed.rules : []
+    const parsed = JSON.parse(json) as { rules?: unknown }
+    if (!Array.isArray(parsed.rules)) return []
+    // Filtra so strings — defensive contra rules malformados.
+    return parsed.rules.filter((r): r is string => typeof r === 'string')
   } catch {
     return []
   }
