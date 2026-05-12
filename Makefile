@@ -104,30 +104,30 @@ beat: ## roda Celery beat scheduler (dispara periodicas — detection cycle 30s)
 lint: lint-agent lint-server lint-web ## roda linters em todos componentes
 
 .PHONY: lint-agent
-lint-agent:
+lint-agent: ## go vet + go fmt no agente
 	cd $(AGENT_DIR) && $(GO) vet ./... && $(GO) fmt ./...
 
 .PHONY: lint-server
-lint-server:
+lint-server: ## ruff + mypy no server
 	cd $(SERVER_DIR) && $(UV) run ruff check . && $(UV) run mypy app
 
 .PHONY: lint-web
-lint-web:
+lint-web: ## eslint no web
 	cd $(WEB_DIR) && $(PNPM) lint
 
 .PHONY: test
 test: test-agent test-server test-web ## roda testes em todos componentes
 
 .PHONY: test-agent
-test-agent:
+test-agent: ## go test -race com coverage
 	cd $(AGENT_DIR) && $(GO) test -race -coverprofile=coverage.out ./...
 
 .PHONY: test-server
-test-server:
+test-server: ## pytest do server (requer Docker stack via 'make dev')
 	cd $(SERVER_DIR) && $(UV) run pytest
 
 .PHONY: test-web
-test-web:
+test-web: ## vitest do web
 	cd $(WEB_DIR) && $(PNPM) test
 
 # ─── Proto ────────────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ SERVER_PB_DIR := $(SERVER_DIR)/app/grpc_server/pb
 proto: proto-go proto-python ## regera Go + Python a partir de proto/*.proto
 
 .PHONY: proto-go
-proto-go:
+proto-go: ## gera stubs Go do agente em internal/grpc/pb/
 	@mkdir -p $(AGENT_PB_DIR)
 	PATH="$(GOBIN):$$PATH" $(PROTOC) -I=$(PROTO_DIR) \
 	  --go_out=$(AGENT_PB_DIR) --go_opt=paths=source_relative \
@@ -149,7 +149,7 @@ proto-go:
 	  $(PROTO_DIR)/*.proto
 
 .PHONY: proto-python
-proto-python:
+proto-python: ## gera stubs Python do server em app/grpc_server/pb/
 	@mkdir -p $(SERVER_PB_DIR)
 	@touch $(SERVER_PB_DIR)/__init__.py
 	cd $(SERVER_DIR) && uv run python -m grpc_tools.protoc -I=../$(PROTO_DIR) \

@@ -44,9 +44,16 @@ services:
       - "3100:3100"
     volumes:
       - loki_data:/loki
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
+  # Pinada na mesma versao do prod (compose.yml) — evita drift silencioso
+  # entre dev e prod quando 'latest' rolar.
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:

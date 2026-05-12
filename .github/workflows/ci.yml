@@ -192,6 +192,7 @@ jobs:
           - debian:12
           - rockylinux:9
           - almalinux:9
+          - fedora:latest  # cobre lab-fedora (DNF5/SELinux pode quebrar agente)
     container:
       image: ${{ matrix.distro }}
     steps:
