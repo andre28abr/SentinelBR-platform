@@ -8,12 +8,11 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
 
 from app.api.deps import DbSession, OperatorUser
-from app.models import Action, Host
+from app.models import Action
 from app.schemas.action import ActionResponse
-from app.services import audit
+from app.services.actions import create_pending_action, get_host_in_org_or_404
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["fail2ban"])
 
@@ -41,58 +40,29 @@ class Fail2banActionRequest(BaseModel):
         return v
 
 
-async def _create_fail2ban_action(
-    db,
-    host_id: uuid.UUID,
-    action_type: str,
-    payload: Fail2banActionRequest,
-    request: Request,
-    current,
+async def _trigger_fail2ban(
+    db, host_id: uuid.UUID, action_type: str,
+    payload: Fail2banActionRequest, request: Request, current,
 ) -> Action:
-    host = await db.get(Host, host_id)
-    if host is None or host.org_id != current.org_id:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await get_host_in_org_or_404(db, host_id, current.org_id)
     if not host.fail2ban_installed:
         raise HTTPException(
             status_code=400,
             detail="fail2ban nao esta instalado no host",
         )
-
     target = f"{payload.jail}:{payload.ip}"
-
-    # Idempotencia: nao cria 2 actions do mesmo type+target pendentes.
-    existing = await db.execute(
-        select(Action.id).where(
-            Action.host_id == host_id,
-            Action.action_type == action_type,
-            Action.target == target,
-            Action.status.in_(("pending", "sent")),
-        )
-    )
-    if existing.first() is not None:
-        raise HTTPException(
-            status_code=409,
-            detail=f"ja existe '{action_type}' pendente pra {target}",
-        )
-
-    action = Action(
-        host_id=host_id,
+    return await create_pending_action(
+        db,
+        host=host,
+        actor=current,
+        request=request,
         action_type=action_type,
         target=target,
         reason=payload.reason,
-        status="pending",
+        audit_action=f"{action_type}_triggered",
+        audit_details={"jail": payload.jail, "ip": payload.ip},
+        conflict_detail=f"ja existe '{action_type}' pendente pra {target}",
     )
-    db.add(action)
-    await db.flush()
-
-    await audit.log_action(
-        db, action=f"{action_type}_triggered", actor=current, request=request,
-        target_type="host", target_id=host_id,
-        details={"jail": payload.jail, "ip": payload.ip, "action_id": str(action.id)},
-    )
-    await db.commit()
-    await db.refresh(action)
-    return action
 
 
 @router.post(
@@ -101,14 +71,11 @@ async def _create_fail2ban_action(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def trigger_fail2ban_unban(
-    host_id: uuid.UUID,
-    payload: Fail2banActionRequest,
-    request: Request,
-    db: DbSession,
-    current: OperatorUser,
+    host_id: uuid.UUID, payload: Fail2banActionRequest, request: Request,
+    db: DbSession, current: OperatorUser,
 ) -> Action:
     """Desbloqueia IP num jail do fail2ban (action enviada ao agente)."""
-    return await _create_fail2ban_action(
+    return await _trigger_fail2ban(
         db, host_id, "fail2ban_unban", payload, request, current,
     )
 
@@ -119,13 +86,10 @@ async def trigger_fail2ban_unban(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def trigger_fail2ban_ban(
-    host_id: uuid.UUID,
-    payload: Fail2banActionRequest,
-    request: Request,
-    db: DbSession,
-    current: OperatorUser,
+    host_id: uuid.UUID, payload: Fail2banActionRequest, request: Request,
+    db: DbSession, current: OperatorUser,
 ) -> Action:
     """Bloqueia IP manualmente num jail (action enviada ao agente)."""
-    return await _create_fail2ban_action(
+    return await _trigger_fail2ban(
         db, host_id, "fail2ban_ban", payload, request, current,
     )

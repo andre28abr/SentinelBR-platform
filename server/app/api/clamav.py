@@ -6,12 +6,11 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 
 from app.api.deps import DbSession, OperatorUser
-from app.models import Action, Host
+from app.models import Action
 from app.schemas.action import ActionResponse
-from app.services import audit
+from app.services.actions import create_pending_action, get_host_in_org_or_404
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["clamav"])
 
@@ -34,46 +33,21 @@ async def trigger_clamav_scan(
     current: OperatorUser,
 ) -> Action:
     """Cria Action 'run_clamav_scan' enviada ao agente no proximo heartbeat."""
-    host = await db.get(Host, host_id)
-    if host is None or host.org_id != current.org_id:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
-
+    host = await get_host_in_org_or_404(db, host_id, current.org_id)
     if not host.clamav_installed:
         raise HTTPException(
             status_code=400,
             detail="ClamAV nao esta instalado no host (sudo apt install clamav)",
         )
-
-    # Idempotencia: nao cria 2 scans pendentes pro mesmo path no mesmo host.
-    existing = await db.execute(
-        select(Action.id).where(
-            Action.host_id == host_id,
-            Action.action_type == "run_clamav_scan",
-            Action.target == payload.path,
-            Action.status.in_(("pending", "sent")),
-        )
-    )
-    if existing.first() is not None:
-        raise HTTPException(
-            status_code=409,
-            detail="ja existe scan pendente desse path nesse host",
-        )
-
-    action = Action(
-        host_id=host_id,
+    return await create_pending_action(
+        db,
+        host=host,
+        actor=current,
+        request=request,
         action_type="run_clamav_scan",
         target=payload.path,
         reason=payload.reason,
-        status="pending",
+        audit_action="clamav_scan_triggered",
+        audit_details={"path": payload.path, "reason": payload.reason},
+        conflict_detail="ja existe scan pendente desse path nesse host",
     )
-    db.add(action)
-    await db.flush()
-
-    await audit.log_action(
-        db, action="clamav_scan_triggered", actor=current, request=request,
-        target_type="host", target_id=host_id,
-        details={"path": payload.path, "reason": payload.reason, "action_id": str(action.id)},
-    )
-    await db.commit()
-    await db.refresh(action)
-    return action

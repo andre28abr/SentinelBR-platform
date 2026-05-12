@@ -13,12 +13,11 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
 
 from app.api.deps import DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse
-from app.services import audit
+from app.services.actions import create_pending_action, get_host_in_org_or_404
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["firewall"])
 
@@ -73,55 +72,30 @@ def _check_firewall_supported(host: Host) -> str:
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def add_firewall_rule(
-    host_id: uuid.UUID,
-    payload: FirewallAddRuleRequest,
-    request: Request,
-    db: DbSession,
-    current: OperatorUser,
+    host_id: uuid.UUID, payload: FirewallAddRuleRequest, request: Request,
+    db: DbSession, current: OperatorUser,
 ) -> Action:
     """Adiciona regra ao firewall ativo (ufw ou firewalld) via Action."""
-    host = await db.get(Host, host_id)
-    if host is None or host.org_id != current.org_id:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await get_host_in_org_or_404(db, host_id, current.org_id)
     backend = _check_firewall_supported(host)
-
     target = "|".join(
         [backend, payload.verb, payload.protocol, payload.port, payload.source_cidr],
     )
-
-    # Idempotencia: nao cria 2 actions da mesma regra simultaneamente.
-    existing = await db.execute(
-        select(Action.id).where(
-            Action.host_id == host_id,
-            Action.action_type == "add_firewall_rule",
-            Action.target == target,
-            Action.status.in_(("pending", "sent")),
-        )
-    )
-    if existing.first() is not None:
-        raise HTTPException(status_code=409, detail="regra ja pendente")
-
-    action = Action(
-        host_id=host_id,
+    return await create_pending_action(
+        db,
+        host=host,
+        actor=current,
+        request=request,
         action_type="add_firewall_rule",
         target=target,
         reason=payload.reason,
-        status="pending",
-    )
-    db.add(action)
-    await db.flush()
-    await audit.log_action(
-        db, action="firewall_rule_add_triggered", actor=current, request=request,
-        target_type="host", target_id=host_id,
-        details={
+        audit_action="firewall_rule_add_triggered",
+        audit_details={
             "backend": backend, "verb": payload.verb, "protocol": payload.protocol,
             "port": payload.port, "source_cidr": payload.source_cidr,
-            "action_id": str(action.id),
         },
+        conflict_detail="regra ja pendente",
     )
-    await db.commit()
-    await db.refresh(action)
-    return action
 
 
 @router.delete(
@@ -130,48 +104,22 @@ async def add_firewall_rule(
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def remove_firewall_rule(
-    host_id: uuid.UUID,
-    payload: FirewallRemoveRuleRequest,
-    request: Request,
-    db: DbSession,
-    current: OperatorUser,
+    host_id: uuid.UUID, payload: FirewallRemoveRuleRequest, request: Request,
+    db: DbSession, current: OperatorUser,
 ) -> Action:
     """Remove regra do firewall ativo via Action."""
-    host = await db.get(Host, host_id)
-    if host is None or host.org_id != current.org_id:
-        raise HTTPException(status_code=404, detail="host nao encontrado")
+    host = await get_host_in_org_or_404(db, host_id, current.org_id)
     backend = _check_firewall_supported(host)
-
     target = f"{backend}|{payload.rule_id}"
-
-    existing = await db.execute(
-        select(Action.id).where(
-            Action.host_id == host_id,
-            Action.action_type == "remove_firewall_rule",
-            Action.target == target,
-            Action.status.in_(("pending", "sent")),
-        )
-    )
-    if existing.first() is not None:
-        raise HTTPException(status_code=409, detail="remocao ja pendente")
-
-    action = Action(
-        host_id=host_id,
+    return await create_pending_action(
+        db,
+        host=host,
+        actor=current,
+        request=request,
         action_type="remove_firewall_rule",
         target=target,
         reason=payload.reason,
-        status="pending",
+        audit_action="firewall_rule_remove_triggered",
+        audit_details={"backend": backend, "rule_id": payload.rule_id},
+        conflict_detail="remocao ja pendente",
     )
-    db.add(action)
-    await db.flush()
-    await audit.log_action(
-        db, action="firewall_rule_remove_triggered", actor=current, request=request,
-        target_type="host", target_id=host_id,
-        details={
-            "backend": backend, "rule_id": payload.rule_id,
-            "action_id": str(action.id),
-        },
-    )
-    await db.commit()
-    await db.refresh(action)
-    return action
