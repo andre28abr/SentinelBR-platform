@@ -137,11 +137,14 @@ vm::install_hardening_tools() {
          (systemctl enable --now firewalld 2>/dev/null || true)'
       ;;
     apk)
-      # Alpine: pacotes disponiveis no community/main repos.
-      # rkhunter/chkrootkit/lynis NAO existem no Alpine (silencia gracefully —
-      # cards do UI mostram "nao detectado" + hint de install).
-      orb -m "$name" -u root sh -c \
-        'apk add --quiet --no-cache fail2ban audit aide nftables ip6tables 2>/dev/null || true'
+      # Alpine: instala pacote-por-pacote pra que falha de um nao afete os
+      # outros. rkhunter/chkrootkit/lynis/aide NAO existem no Alpine repos
+      # (silencia gracefully — cards do UI mostram "nao detectado" + hint).
+      orb -m "$name" -u root sh -c '
+        for pkg in fail2ban audit nftables iptables; do
+          apk add --quiet --no-cache "$pkg" 2>/dev/null || echo "  (sem $pkg neste Alpine)"
+        done
+      '
       orb -m "$name" -u root sh -c \
         '(rc-update add fail2ban default 2>/dev/null || true) && \
          (rc-service fail2ban start 2>/dev/null || true)'
