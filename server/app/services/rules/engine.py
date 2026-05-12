@@ -14,6 +14,7 @@ Eh chamado pela tarefa Celery 'detect.run_cycle' a cada N segundos.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import logging
 
@@ -92,30 +93,56 @@ async def evaluate_for_host(db: AsyncSession, host: Host, rules: list[Rule]) -> 
     return alerts_changed
 
 
+_MAX_PARALLEL_HOSTS = 8  # limita conexoes DB simultaneas no pool
+
+
+async def _evaluate_host_isolated(host: Host, rules: list[Rule]) -> int:
+    """Roda evaluate_for_host pra 1 host com session isolada.
+
+    Cada host usa sua propria session — async sessions do SQLAlchemy nao
+    sao safe entre tasks. Isolar permite asyncio.gather sem corrupcao.
+    """
+    async with SessionLocal() as db:
+        try:
+            changed = await evaluate_for_host(db, host, rules)
+            await db.commit()
+            return len(changed)
+        except Exception:
+            await db.rollback()
+            log.exception("falha avaliando host %s", host.id)
+            return 0
+
+
 async def run_cycle() -> int:
     """Roda um ciclo completo de deteccao em todos hosts ativos.
 
-    Retorna numero de alerts criados/atualizados.
+    Hosts sao avaliados em paralelo (limitado a _MAX_PARALLEL_HOSTS pra nao
+    exaurir o pool DB). Retorna numero de alerts criados/atualizados.
     """
     rules = load_default_rules()
     if not rules:
         log.warning("nenhuma regra carregada — pulando ciclo")
         return 0
 
-    total = 0
     async with SessionLocal() as db:
         hosts = (
             await db.execute(select(Host).where(Host.status == "active"))
         ).scalars().all()
 
-        for host in hosts:
-            changed = await evaluate_for_host(db, host, rules)
-            total += len(changed)
+    if not hosts:
+        return 0
 
-        await db.commit()
+    sem = asyncio.Semaphore(_MAX_PARALLEL_HOSTS)
+
+    async def _bounded(host: Host) -> int:
+        async with sem:
+            return await _evaluate_host_isolated(host, rules)
+
+    counts = await asyncio.gather(*(_bounded(h) for h in hosts))
+    total = sum(counts)
 
     log.info(
-        "detection cycle: %d alerts em %d hosts e %d regras",
-        total, len(hosts), len(rules),
+        "detection cycle: %d alerts em %d hosts (paralelo %d) e %d regras",
+        total, len(hosts), _MAX_PARALLEL_HOSTS, len(rules),
     )
     return total

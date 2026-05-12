@@ -23,6 +23,7 @@ async def _schedule_tool_async(action_type: str, require_field: str) -> dict:
     """Cria 1 Action(action_type) por host ATIVO que tenha require_field=True.
 
     Idempotente: pula se ja existe Action do mesmo type pending/sent pro host.
+    Usa 1 SELECT batch (em vez de N+1) pra checar duplicatas em massa.
     """
     created = 0
     skipped = 0
@@ -32,17 +33,26 @@ async def _schedule_tool_async(action_type: str, require_field: str) -> dict:
                 select(Host).where(Host.status == "active")
             )
         ).scalars().all()
-
         eligible = [h for h in hosts if getattr(h, require_field, None)]
-        for host in eligible:
-            existing = await db.execute(
-                select(Action.id).where(
-                    Action.host_id == host.id,
-                    Action.action_type == action_type,
-                    Action.status.in_(("pending", "sent")),
+        if not eligible:
+            return {"eligible": 0, "actions_created": 0, "skipped": 0}
+
+        eligible_ids = [h.id for h in eligible]
+        # Batch: pega host_ids que JA tem action pending/sent desse tipo.
+        existing_host_ids = set(
+            (
+                await db.execute(
+                    select(Action.host_id).where(
+                        Action.host_id.in_(eligible_ids),
+                        Action.action_type == action_type,
+                        Action.status.in_(("pending", "sent")),
+                    )
                 )
-            )
-            if existing.first() is not None:
+            ).scalars().all()
+        )
+
+        for host in eligible:
+            if host.id in existing_host_ids:
                 skipped += 1
                 continue
             db.add(Action(

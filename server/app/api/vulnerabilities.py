@@ -14,7 +14,8 @@ from app.schemas.vulnerability import (
     HostVulnerabilityResponse,
     HostVulnerabilitySummary,
 )
-from app.services.vuln_scan import compute_risk_score, scan_host
+from app.services.vuln_scan import compute_risk_score
+from app.workers.vuln import scan_host as scan_host_task
 
 router = APIRouter(prefix="/api/v1/hosts", tags=["vulnerabilities"])
 
@@ -80,12 +81,13 @@ async def list_vulnerabilities(
 async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: OperatorUser) -> dict:
     """Dispara scan manual (mesmo task que roda apos SubmitInventory).
 
-    NB: chamada inline (await) — para hosts grandes, considerar mover pra
-    Celery delay() em fase futura (vide auditoria Fase 3).
+    Async via Celery: retorna 202 imediatamente; resultado fica disponivel
+    via GET /vulnerabilities apos o worker terminar (~10s pra hosts pequenos,
+    ate ~60s pra hosts com muitos pacotes).
     """
     host = await db.get(Host, host_id)
     if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")
 
-    summary = await scan_host(host_id)
-    return summary
+    task = scan_host_task.delay(str(host_id))
+    return {"task_id": task.id, "status": "queued", "host_id": str(host_id)}

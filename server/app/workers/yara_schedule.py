@@ -37,19 +37,27 @@ async def _schedule_async() -> dict:
         hosts = (
             await db.execute(select(Host).where(Host.status == "active"))
         ).scalars().all()
+        if not hosts:
+            return {"hosts": 0, "actions_created": 0, "skipped": 0}
+
+        host_ids = [h.id for h in hosts]
+        # Antes: 1 SELECT por host x path (N x M queries). Agora: 1 SELECT batch
+        # que pega todas as actions pending/sent yara desses hosts pra esses paths.
+        existing_rows = (
+            await db.execute(
+                select(Action.host_id, Action.target).where(
+                    Action.host_id.in_(host_ids),
+                    Action.action_type == "run_yara_scan",
+                    Action.target.in_(paths),
+                    Action.status.in_(("pending", "sent")),
+                )
+            )
+        ).all()
+        existing_keys = {(r.host_id, r.target) for r in existing_rows}
 
         for host in hosts:
             for path in paths:
-                # idempotencia: pula se ja tem scan pending/sent desse path nesse host
-                existing = await db.execute(
-                    select(Action.id).where(
-                        Action.host_id == host.id,
-                        Action.action_type == "run_yara_scan",
-                        Action.target == path,
-                        Action.status.in_(("pending", "sent")),
-                    )
-                )
-                if existing.first() is not None:
+                if (host.id, path) in existing_keys:
                     skipped += 1
                     continue
                 db.add(Action(

@@ -59,9 +59,19 @@ async def log_action(
     org_id default vem de actor.org_id (multi-tenancy). Pode ser sobrescrito
     explicitamente via parametro — usado em casos como login_failed onde
     nao sabemos a qual org o tentante pertence (registramos como global, NULL).
+
+    Sanity check: se org_id for passado E actor existir, eles DEVEM bater.
+    Cruzar org_id com actor de outra org seria leak de identidade no audit
+    trail e abre brecha pra attacks privilege-escalation. Levanta ValueError
+    se inconsistente — caller deve tratar (raise HTTP 400 ou similar).
     """
-    if org_id is None and actor is not None:
-        org_id = actor.org_id
+    if actor is not None:
+        if org_id is None:
+            org_id = actor.org_id
+        elif org_id != actor.org_id:
+            raise ValueError(
+                f"audit org_id mismatch: param={org_id} != actor.org_id={actor.org_id}"
+            )
     entry = AuditLog(
         org_id=org_id,
         actor_user_id=actor.id if actor else None,

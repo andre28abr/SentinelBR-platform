@@ -151,23 +151,25 @@ async def compliance_report(
         )
     ) or 0
 
-    # MTTR — filtra ambos lados via JOIN host
-    mttr_secs: float | None = None
-    join_rows = (
-        await db.execute(
-            select(Alert.created_at, Action.executed_at)
-            .join(Action, Action.alert_id == Alert.id, isouter=False)
-            .join(Host, Alert.host_id == Host.id)
-            .where(
-                Host.org_id == org_id,
-                Alert.created_at >= start,
-                Action.executed_at.is_not(None),
+    # MTTR computado direto no SQL — antes carregava todas as linhas em
+    # Python e calculava sum/len, custoso pra orgs com milhares de alerts.
+    # AVG(EXTRACT(EPOCH FROM diff)) faz tudo no Postgres.
+    mttr_secs = await db.scalar(
+        select(
+            func.avg(
+                func.extract("epoch", Action.executed_at - Alert.created_at)
             )
         )
-    ).all()
-    if join_rows:
-        diffs = [(act - alr).total_seconds() for alr, act in join_rows]
-        mttr_secs = sum(diffs) / len(diffs)
+        .select_from(Alert)
+        .join(Action, Action.alert_id == Alert.id)
+        .join(Host, Alert.host_id == Host.id)
+        .where(
+            Host.org_id == org_id,
+            Alert.created_at >= start,
+            Action.executed_at.is_not(None),
+        )
+    )
+    mttr_secs = float(mttr_secs) if mttr_secs is not None else None
 
     audit_entries = await db.scalar(
         select(func.count()).select_from(AuditLog).where(

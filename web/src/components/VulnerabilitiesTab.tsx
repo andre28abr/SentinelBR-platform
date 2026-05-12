@@ -14,7 +14,7 @@ interface Vulnerability {
   severity: string
   cvss_score: number | null
   summary: string | null
-  references: string | null
+  references: string[] | null
   discovered_at: string
 }
 

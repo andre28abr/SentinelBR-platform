@@ -28,7 +28,9 @@ class Host(Base):
     # Localizacao fisica/logica do host (DC, sala, rack, etc). Editavel pelo user.
     location: Mapped[str | None] = mapped_column(String(255))
 
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="pending", server_default="pending",
+    )
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     enrollment_token: Mapped[str | None] = mapped_column(String(64), index=True)
     enrollment_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

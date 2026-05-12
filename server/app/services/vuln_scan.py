@@ -105,7 +105,7 @@ async def _persist_results(
                 severity=v.severity,
                 cvss_score=v.cvss_score,
                 summary=v.summary,
-                references="\n".join(v.references[:5]),
+                references=v.references[:5] if v.references else None,
                 discovered_at=dt.datetime.now(dt.UTC),
             ))
             severities.append(v.severity)

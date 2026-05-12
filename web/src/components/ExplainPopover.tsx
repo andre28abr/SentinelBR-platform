@@ -43,7 +43,7 @@ interface CveData {
   fixed_version: string | null
   severity: string
   summary: string | null
-  references?: string | null
+  references?: string[] | null
 }
 
 interface EventData {
@@ -219,7 +219,7 @@ function ActionExplain({ actionType }: { actionType: string }) {
 }
 
 function CveExplain({ cve }: { cve: CveData }) {
-  const refs = (cve.references ?? '').split('\n').map((r) => r.trim()).filter(Boolean).slice(0, 5)
+  const refs = (cve.references ?? []).filter((r): r is string => typeof r === 'string' && r.length > 0).slice(0, 5)
   return (
     <Body
       title={cve.cve_id}
