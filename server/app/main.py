@@ -11,6 +11,7 @@ from app.api import (
     audit,
     auth,
     clamav,
+    docs,
     events,
     fail2ban,
     firewall,
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(kb.router)
     app.include_router(organizations.router)
     app.include_router(lab.router)
+    app.include_router(docs.router)
     return app
 
 

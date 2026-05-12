@@ -16,6 +16,7 @@ const KbPage = lazy(() => import('@/pages/KbPage'))
 const HuntingPage = lazy(() => import('@/pages/HuntingPage'))
 const PurpleTeamPage = lazy(() => import('@/pages/PurpleTeamPage'))
 const LabPage = lazy(() => import('@/pages/LabPage'))
+const DocsPage = lazy(() => import('@/pages/DocsPage'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -98,6 +99,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <LabPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/docs"
+            element={
+              <ProtectedRoute>
+                <DocsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/docs/:slug"
+            element={
+              <ProtectedRoute>
+                <DocsPage />
               </ProtectedRoute>
             }
           />

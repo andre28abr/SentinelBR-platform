@@ -64,7 +64,8 @@ server/data/
 # Celery beat schedule files (gerados em runtime)
 server/celerybeat-schedule*
 
-# Docs de planejamento — mantidos local enquanto o projeto nao termina.
-# Versao polida vai voltar pro repo no fim.
-docs/
+# Notas/rascunhos pessoais que nao vao pro repo. Docs publicas (numeradas
+# 01- ate 18-) sao TRACKED e renderizadas em /docs do app + ficam no GitHub.
+docs/scratch/
+docs/notes/
 samples/labs/bin/

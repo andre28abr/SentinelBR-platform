@@ -86,6 +86,11 @@ export default function AppHeader() {
           label="LGPD"
           tooltip="Relatórios de compliance LGPD (audit log, MTTR, retenção)"
         />
+        <NavItem
+          to="/docs"
+          label="Docs"
+          tooltip="Documentação completa do projeto (arquitetura, deployment, glossário, etc)"
+        />
         {labMode.enabled && (
           <>
             <span className="text-zinc-300 dark:text-zinc-700 mx-2">|</span>
