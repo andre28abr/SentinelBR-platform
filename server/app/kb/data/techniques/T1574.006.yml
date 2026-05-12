@@ -1,0 +1,76 @@
+id: T1574.006
+name: Hijack Execution Flow - Dynamic Linker Hijacking
+tactic: Persistence (Persistência)
+url: https://attack.mitre.org/techniques/T1574/006/
+severity: critical
+description: |
+  Atacante usa LD_PRELOAD (ou /etc/ld.so.preload) pra forçar o linker
+  dinâmico do Linux a carregar uma biblioteca .so MALICIOSA antes das
+  bibliotecas normais. Resultado: a .so do atacante intercepta chamadas
+  de TODO programa que roda na máquina (cat, ls, ps, ssh, sudo).
+
+  Caso clássico — rootkit hide-process:
+
+    /etc/ld.so.preload:
+      /lib/.libudev.so
+
+    /lib/.libudev.so (compilada do C):
+      // Sobrescreve readdir() pra esconder PIDs do atacante
+      // Sobrescreve open() em /proc pra mascarar conexões de rede
+      // Sobrescreve unlink() pra impedir deleção de si mesma
+
+  Por que é crítico: invisibiliza o atacante. `ps aux` não mostra o
+  miner, `netstat` não mostra a conexão C2, `ls /tmp` não mostra a
+  pasta de payloads. Análise forense fica muito mais difícil.
+
+  Variantes:
+  - `LD_PRELOAD` env var por shell (volátil — somem com logout)
+  - `/etc/ld.so.preload` (persistente, afeta todo binário dinâmico)
+  - Modificação de ld.so binary direto (mais raro, mais furtivo)
+
+detection:
+  rules:
+    - yara_critical_match
+  signals: |
+    YARA match com PersistenceLdPreload (busca string "/etc/ld.so.preload"
+    + arquivo .so com prefixo "." que indica hidden). chkrootkit verifica
+    /etc/ld.so.preload por padrão. Detecção mais robusta: AIDE/Tripwire
+    com ld.so.preload em hash baseline.
+
+mitigation:
+  - chkrootkit + rkhunter rodando diariamente (pega assinaturas conhecidas)
+  - AIDE com /etc/ld.so.preload na baseline (qualquer modificação alerta)
+  - Comparação de readdir() vs ls direto via syscall pra detectar hide
+  - SELinux/AppArmor: bibliotecas .so devem estar em /lib paths conhecidos
+  - Em containers: imagem read-only impede modificação em runtime
+  - Permissões: /etc/ld.so.preload deve ser 644 root:root
+
+references:
+  - https://attack.mitre.org/techniques/T1574/006/
+  - https://man7.org/linux/man-pages/man8/ld.so.8.html
+  - https://github.com/Yara-Rules/rules/tree/master/malware/RAT
+
+summary_simple:
+  what_happened: |
+    Encontramos sinal de um ROOTKIT — um tipo avançado de malware que
+    "se esconde" do sistema. Ele intercepta comandos básicos (ls, ps,
+    netstat) pra você NÃO ver os arquivos/processos/conexões dele.
+    Usa uma técnica do Linux chamada LD_PRELOAD pra fazer isso.
+  should_worry: |
+    Crítico — provavelmente o pior cenário. Rootkit indica atacante
+    avançado e comprometimento PROFUNDO. Não dá pra confiar em mais
+    NADA do servidor: o ps mente, o netstat mente, até o sha256sum
+    pode ter sido comprometido. O único caminho seguro é reinstalar.
+  what_to_do:
+    - "NÃO continue investigando dentro do servidor — ferramentas nele estão comprometidas"
+    - "Tire snapshot do disco (preservar pra forense post-mortem)"
+    - "Reinstale o sistema do zero (do ISO, não restore — backup pode ter o rootkit)"
+    - "Investigue origem: vulnerabilidade explorada (cheque CVEs)? credencial vazada? ataque interno?"
+    - "Troque TODAS as credenciais que estavam na máquina (chaves SSH, API keys, certs)"
+    - "Avise outros admins — se tinha .ssh, atacante pode ter as suas chaves"
+    - "Considere notificar autoridades se houver dados de clientes (ANPD/LGPD)"
+  jargon:
+    rootkit: "Malware avançado que esconde sua presença do sistema. Geralmente vem com kernel module ou shared library injetada"
+    LD_PRELOAD: "Mecanismo do Linux pra forçar uma biblioteca a ser carregada ANTES das normais. Útil pra debugging, devastador como vetor de rootkit"
+    shared library (.so): "Biblioteca compartilhada — código que vários programas reutilizam. Equivalente Linux dos .DLL do Windows"
+    syscall: "Chamada direta ao kernel (sem passar por bibliotecas). Mais difícil pro rootkit interceptar"
