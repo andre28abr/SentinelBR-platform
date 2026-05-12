@@ -1,69 +1,56 @@
-# SentinelBR
+# SentinelBR — Documentação
 
 > Plataforma open-source de segurança para servidores Linux, com foco na realidade brasileira (LGPD, idioma português, SMBs).
 
-## ✨ O que é
+Para visão executiva do projeto, veja o [README raiz](../README.md). Para roteiro de quickstart técnico, idem.
 
-Uma plataforma única que reúne SIEM, gestão de Firewall, gestão de SELinux, resposta automatizada a incidentes e compliance LGPD — tudo em português, com interface amigável e sem depender de ferramentas pagas.
+Esta pasta concentra a **documentação completa** — também renderizada in-app na aba `/docs` (com sidebar TOC) depois de logar.
 
-## 🎯 Para quem é
+## Índice (18 documentos)
 
-- Pequenas e médias empresas brasileiras que precisam de segurança séria sem orçamento de multinacional
-- DPOs e times de TI que querem operacionalizar a LGPD
-- Profissionais de segurança que querem uma stack open-source nacional
-
-## 🧩 Módulos
-
-1. **SIEM** — coleta e correlaciona logs, detecta ameaças
-2. **Firewall** — interface amigável para iptables/nftables
-3. **SELinux** — tradutor humano para o SELinux
-4. **Resposta a Incidentes** — playbooks automáticos de reação
-5. **Compliance LGPD** — auditoria contínua e relatórios para a ANPD
-
-## 📚 Documentação
-
-A documentação está organizada em 9 documentos progressivos:
-
-| # | Documento | Descrição |
+| # | Documento | Para quem |
 |---|-----------|-----------|
-| 01 | [Visão geral dos módulos](docs/01-visao-geral-modulos.md) | Explicação leiga dos 5 módulos |
-| 02 | [Funcionalidades detalhadas](docs/02-funcionalidades-detalhadas.md) | 50+ features catalogadas com prioridade |
-| 03 | [Interface gráfica](docs/03-interface-grafica.md) | Design system, telas, UX |
-| 04 | [Arquitetura de dados](docs/04-arquitetura-dados.md) | Bancos, schemas, retenção |
-| 05 | [Arquitetura técnica](docs/05-arquitetura-tecnica.md) | Componentes, padrões, comunicação |
-| 06 | [API Reference](docs/06-api-reference.md) | Endpoints REST completos |
-| 07 | [Roadmap detalhado](docs/07-roadmap-detalhado.md) | Fases, sprints, marcos |
-| 08 | [Stack decisions (ADRs)](docs/08-stack-decisions.md) | 20 decisões arquiteturais |
-| 09 | [Deployment](docs/09-deployment.md) | Instalação em todos os cenários |
+| 01 | [Visão geral dos módulos](01-visao-geral-modulos.md) | Recrutador / curioso |
+| 02 | [Funcionalidades detalhadas](02-funcionalidades-detalhadas.md) | Avaliador técnico |
+| 03 | [Interface gráfica](03-interface-grafica.md) | Designer / UX |
+| 04 | [Arquitetura de dados](04-arquitetura-dados.md) | DBA / dev backend |
+| 05 | [Arquitetura técnica](05-arquitetura-tecnica.md) | Tech lead / arquiteto |
+| 06 | [API Reference](06-api-reference.md) | Quem vai integrar |
+| 07 | [Roadmap detalhado](07-roadmap-detalhado.md) | Quem vai contribuir |
+| 08 | [Stack decisions (ADRs)](08-stack-decisions.md) | Tech lead avaliando |
+| 09 | [Deployment](09-deployment.md) | DevOps / SRE |
+| 10 | [Diagramas visuais](10-diagramas-visuais.md) | Apresentação |
+| 11 | [Glossário](11-glossario.md) | Quem está chegando agora |
+| 12 | [Fixtures de eventos](12-fixtures-eventos.md) | QA / testador |
+| 13 | [Interface gráfica terminal](13-interface-grafica-terminal.md) | Designer dark theme |
+| 14 | [Vulnerability management](14-vulnerability-management.md) | Security analyst |
+| 15 | [Suporte multi-OS](15-suporte-multi-os.md) | Multi-platform dev |
+| 16 | [Antivírus / malware](16-antivirus-malware.md) | Detection engineer |
+| 17 | [Threat knowledge base](17-threat-knowledge-base.md) | Threat hunter |
+| 18 | [Demo Mode (lab)](18-demo-mode.md) | Pra rodar a demo localmente |
 
-### Por onde começar?
+## Por onde começar?
 
-- **Recrutador / curioso**: leia o [01-visao-geral](docs/01-visao-geral-modulos.md) (visão executiva)
-- **Desenvolvedor avaliando**: leia [05-arquitetura](docs/05-arquitetura-tecnica.md) e [08-stack-decisions](docs/08-stack-decisions.md)
-- **Quem vai contribuir**: comece pelo [07-roadmap](docs/07-roadmap-detalhado.md)
-- **Quem vai instalar**: vá direto pro [09-deployment](docs/09-deployment.md)
+- **Recrutador / curioso**: comece pelo [01-visao-geral](01-visao-geral-modulos.md)
+- **Desenvolvedor avaliando**: leia [05-arquitetura-tecnica](05-arquitetura-tecnica.md) + [08-stack-decisions](08-stack-decisions.md)
+- **Quem vai contribuir**: comece pelo [07-roadmap-detalhado](07-roadmap-detalhado.md)
+- **Quem vai instalar**: vá direto pro [09-deployment](09-deployment.md)
+- **Quem quer ver rodando**: [18-demo-mode](18-demo-mode.md) explica como ativar o lab
 
-## 📁 Estrutura do repositório
+## Status do projeto
 
-```
-sentinelbr/
-├── README.md                    ← você está aqui
-├── docs/                        ← documentação do projeto (9 arquivos)
-├── server/                      ← API e backend Python (em breve)
-├── agent/                       ← coletor Go (em breve)
-├── web/                         ← interface React (em breve)
-├── proto/                       ← schemas Protobuf compartilhados
-└── deploy/                      ← Docker Compose, Helm, Terraform
-```
+🟢 **Implementado.** Fases 1-11 fechadas. CI matriz multi-OS (Linux/macOS/Windows) verde, 149 testes server, agent Go suite verde, build web sem warnings.
 
-## 🚧 Status
+Componentes prontos:
 
-Projeto em fase de **planejamento e documentação**. Próximo passo: começar o MVP (ver roadmap).
+- **`server/`** — FastAPI + Pydantic v2 + SQLAlchemy 2 async + Celery + grpcio mTLS
+- **`agent/`** — Go 1.25 cross-compilado, coletor SSH + YARA + inventory
+- **`web/`** — React 19 + Vite 8 + Tailwind 4, lazy-loaded por rota
+- **`proto/`** — Contratos gRPC compartilhados (mTLS)
+- **`samples/labs/`** — 6 VMs OrbStack propositalmente vulneráveis pra demo
 
-## 📜 Licença
+Ver [07-roadmap-detalhado](07-roadmap-detalhado.md) para o histórico completo.
 
-A definir (provavelmente AGPL-3.0). Ver ADR-018.
+## Licença
 
----
-
-*Construído com ❤️ no Brasil.*
+[AGPL-3.0](../LICENSE) — ver [ADR-018 em 08-stack-decisions](08-stack-decisions.md).

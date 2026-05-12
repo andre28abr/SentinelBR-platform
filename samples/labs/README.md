@@ -1,7 +1,8 @@
 # Lab — VMs vulneráveis pra testar SentinelBR end-to-end
 
-Este lab sobe 4 VMs Linux no OrbStack, cada uma com vulnerabilidades **plantadas
-de propósito**, pra você ver o SentinelBR detectar e responder de verdade.
+Este lab sobe 6 VMs Linux no OrbStack, cada uma com cenário diferente
+e vulnerabilidades **plantadas de propósito**, pra você ver o SentinelBR
+detectar e responder de verdade.
 
 ## Pré-requisitos
 
@@ -15,7 +16,7 @@ de propósito**, pra você ver o SentinelBR detectar e responder de verdade.
 ## Comandos
 
 ```bash
-make lab-up          # cross-compila agente + cria 4 VMs + planta vulns (~5min total)
+make lab-up          # cross-compila agente + cria 6 VMs + planta vulns (~10min primeira vez)
 make lab-status      # mostra estado das VMs + status no DB
 make lab-attack      # re-planta vulns (renova webshells, brute-force, etc)
 make lab-down        # destrói todas as VMs (libera disco)
@@ -31,14 +32,20 @@ samples/labs/attack.sh debian-11 vuln-lab
 
 ## O que cada VM tem
 
-| VM | Distro | Plantação | Detecções esperadas |
-|----|--------|-----------|---------------------|
-| **lab-debian-11** | Debian 11 (bullseye) | webshell + miner + brute-force + pkgs vulneráveis | YARA matches, alerta brute-force, vulns OSV |
-| **lab-ubuntu-22** | Ubuntu 22.04 LTS | mesmo da Debian | mesmo |
-| **lab-fedora** | Fedora (latest) | mesmo da Debian (testa ecosystem RPM) | mesmo + cobertura RPM no scan OSV |
-| **lab-vuln** | Debian 11 + extras | tudo do acima + backdoor cron + miner em /opt/.hidden + perms erradas + webshell extra | YARA crítico (auto-quarantine dispara) |
+Cada VM ganha as iscas universais (webshell + brute-force SSH + EICAR + dropper bash + reverse shell Python + cron backdoor + pacotes congelados com CVEs reais via OSV) e, dependendo do `.env`, suite hardening completa.
 
-Detalhes do que está plantado e como verificar: [EXPECTED.md](EXPECTED.md).
+| VM | Distro | Cenário focal | Detecções esperadas |
+|----|--------|---------------|---------------------|
+| **lab-debian-11** | Debian 11 (apt + systemd) | Brute-force SSH + auto-block IP | alerta `ssh_brute_force_ip`, action `block_ip` |
+| **lab-ubuntu-22** | Ubuntu 22.04 (apt + systemd) | Webshell + auto-quarantine + LGPD/PII | YARA critical, action `quarantine_file`, audit log |
+| **lab-fedora** | Fedora (dnf + systemd) | Hardening showcase (SELinux, auditd, rkhunter) | aba Ferramentas com 9 cards verdes |
+| **lab-rocky-9** | Rocky 9 (dnf+EPEL + systemd) | CVE/vulnerability management | Risk score elevado, vulns na aba dedicada |
+| **lab-alpine-3** | Alpine (apk + OpenRC) | Container/edge (musl libc) | testa cross-compile + footprint pequeno |
+| **lab-vuln** | Debian 11 + extras agressivos | Buffet de ataques (estilo Metasploitable) | 6+ alertas simultâneos, auto-quarantine, block_ip |
+
+Cada VM tem doc detalhado em [`scenarios/`](scenarios/) (plantio + UI esperado + repro + porquê).
+
+Visão consolidada do que esperar na UI: [EXPECTED.md](EXPECTED.md).
 
 ## Arquitetura
 
@@ -60,11 +67,21 @@ VMs alcançam o Mac via `host.orb.internal`. O Mac alcança as VMs via
 
 ## Custo de recursos
 
-- **Disco**: ~1.5GB por VM. 4 VMs ≈ 6GB.
+- **Disco**: 500MB-1.2GB por VM. 6 VMs ≈ 5-6GB total.
 - **RAM**: ~300MB por VM enquanto rodando.
-- **CPU**: zero quando idle. Subir as 4 leva ~5min na primeira vez.
+- **CPU**: zero quando idle. Subir as 6 leva ~10min na primeira vez (download das imagens + install hardening); reattach é ~10s.
 
 `make lab-down` libera tudo. As VMs ficam isoladas — não afetam o Mac.
+
+## Controle pela UI (Lab Mode)
+
+Com `SENTINELBR_LAB_MODE=true` no backend, a aba **Lab** aparece no header do app (`/lab`) com:
+
+- Lista das 6 VMs com estado (running/stopped)
+- Botões Iniciar / Parar / Re-atacar por VM
+- Botão **Resetar demo** que apaga alertas + ações pra recomeçar gravação do zero
+
+Detalhes em [docs/18-demo-mode.md](../../docs/18-demo-mode.md).
 
 ## Troubleshooting
 
