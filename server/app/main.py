@@ -23,6 +23,7 @@ from app.api import (
     yara,
 )
 from app.config import get_settings
+from app.services.observability import setup_observability
 from app.services.ratelimit import limiter, rate_limit_handler
 
 
@@ -53,6 +54,8 @@ def create_app() -> FastAPI:
     # via decorator @limiter.limit. Handler 429 retorna detail amigavel.
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+    # Observabilidade: structlog + X-Request-ID middleware + /metrics Prometheus
+    setup_observability(app)
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(hosts.router)
