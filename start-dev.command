@@ -17,6 +17,9 @@ echo
 # Dev defaults: barra do JWT_SECRET assert + libera rate limit relaxado.
 # Em prod isso DEVE ser removido (assert do config.py protege).
 export SENTINELBR_DEBUG=true
+# Lab Mode liberado em dev — banner aparece no LoginPage avisando que eh demo.
+# Pra desligar: comente a linha abaixo. Em prod NUNCA setar (default false).
+export SENTINELBR_LAB_MODE=true
 # JWT_SECRET fixo em dev — gerado uma vez e salvo em .env-dev local
 # (gitignored). Garante que tokens emitidos sobrevivem a restart.
 DEV_ENV_FILE="$(dirname "$0")/.env-dev"

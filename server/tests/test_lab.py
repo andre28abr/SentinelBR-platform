@@ -35,39 +35,25 @@ def _disable_lab_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(s, "lab_mode", False)
 
 
-# /lab/status — sempre acessivel pra logados, retorna estado real do flag
+# /lab/status — PUBLICO (sem auth), pra LoginPage mostrar banner antes do login
 
 
 @pytest.mark.asyncio
-async def test_status_requires_auth(client: AsyncClient) -> None:
-    r = await client.get("/api/v1/lab/status")
-    assert r.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_status_returns_disabled_by_default(
-    client: AsyncClient, admin_user: User, monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_status_is_public(client: AsyncClient,
+                                  monkeypatch: pytest.MonkeyPatch) -> None:
+    """Sem token deve retornar 200 (LoginPage le antes de logar)."""
     _disable_lab_mode(monkeypatch)
-    token = await _login(client, admin_user)
-    r = await client.get(
-        "/api/v1/lab/status",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    r = await client.get("/api/v1/lab/status")
     assert r.status_code == 200
     assert r.json() == {"enabled": False}
 
 
 @pytest.mark.asyncio
 async def test_status_returns_enabled_when_flag_on(
-    client: AsyncClient, admin_user: User, monkeypatch: pytest.MonkeyPatch,
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _enable_lab_mode(monkeypatch)
-    token = await _login(client, admin_user)
-    r = await client.get(
-        "/api/v1/lab/status",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    r = await client.get("/api/v1/lab/status")
     assert r.status_code == 200
     assert r.json() == {"enabled": True}
 

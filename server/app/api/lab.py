@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import delete
 
-from app.api.deps import AdminUser, CurrentUser, DbSession
+from app.api.deps import AdminUser, DbSession
 from app.config import get_settings
 from app.models import Action, Alert, Host
 from app.services import audit, lab
@@ -67,11 +67,12 @@ class ResetResponse(BaseModel):
 
 
 @router.get("/status", response_model=LabStatusResponse)
-async def status_endpoint(_: CurrentUser) -> LabStatusResponse:
+async def status_endpoint() -> LabStatusResponse:
     """Single-source-of-truth pro frontend: lab_mode ligado?
 
-    Sem `require_lab_mode` aqui — esse endpoint EXISTE pra UI saber se
-    deve mostrar a aba /lab. CurrentUser garante que so logados leem.
+    PUBLICO (sem auth) de proposito: a LoginPage precisa do flag pra
+    mostrar o banner "demo environment" antes do user logar. Vazar o
+    boolean nao eh sensivel — qualquer um que toque /lab/* ja descobriria.
     """
     return LabStatusResponse(enabled=get_settings().lab_mode)
 

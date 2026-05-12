@@ -8,6 +8,7 @@
  * visual e evita duplicar codigo de menu.
  */
 
+import { Icon } from '@iconify/react'
 import { Link, useLocation } from 'react-router-dom'
 
 import AlertBadge from '@/components/AlertBadge'
@@ -15,10 +16,13 @@ import Logo from '@/components/Logo'
 import SessionTimer from '@/components/SessionTimer'
 import Tooltip from '@/components/Tooltip'
 import { logout as apiLogout } from '@/lib/api'
+import { useLabMode } from '@/lib/useLabMode'
 import { useAuthStore } from '@/stores/auth'
 
 export default function AppHeader() {
   const { user } = useAuthStore()
+  const labMode = useLabMode()
+  const { pathname } = useLocation()
   return (
     <header className="mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
       {/* Linha 1: logo + org + user + sair */}
@@ -82,6 +86,24 @@ export default function AppHeader() {
           label="LGPD"
           tooltip="Relatórios de compliance LGPD (audit log, MTTR, retenção)"
         />
+        {labMode.enabled && (
+          <>
+            <span className="text-zinc-300 dark:text-zinc-700 mx-2">|</span>
+            <Tooltip content="Lab Mode — controle de VMs OrbStack do demo (start/stop/atacar de novo + reset)">
+              <Link
+                to="/lab"
+                className={
+                  isActive(pathname, '/lab')
+                    ? 'px-2 py-1 rounded bg-amber-600 text-white font-medium flex items-center gap-1'
+                    : 'px-2 py-1 rounded text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex items-center gap-1'
+                }
+              >
+                <Icon icon="lucide:flask-conical" aria-hidden />
+                Lab
+              </Link>
+            </Tooltip>
+          </>
+        )}
       </nav>
     </header>
   )

@@ -1,8 +1,10 @@
+import { Icon } from '@iconify/react'
 import { type FormEvent, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 
 import Logo from '@/components/Logo'
 import { ApiError, api } from '@/lib/api'
+import { useLabMode } from '@/lib/useLabMode'
 import { useAuthStore } from '@/stores/auth'
 
 interface TokenPair {
@@ -28,6 +30,7 @@ interface MeResponse {
 export default function LoginPage() {
   const { accessToken, setAccessToken, setUser } = useAuthStore()
   const navigate = useNavigate()
+  const labMode = useLabMode()
   const [email, setEmail] = useState('admin@sentinelbr.io')
   const [password, setPassword] = useState('')
   // Default = slug do dono do projeto (andre28abr) — pre-preenche em dev.
@@ -75,6 +78,26 @@ export default function LoginPage() {
           </div>
           <p className="text-sm text-zinc-500">Entre na sua conta</p>
         </div>
+
+        {labMode.enabled && (
+          <div
+            role="alert"
+            className="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2"
+          >
+            <Icon
+              icon="lucide:flask-conical"
+              className="text-base mt-0.5 flex-shrink-0"
+              aria-hidden
+            />
+            <div>
+              <strong className="font-semibold">Modo Laboratório ativo</strong>
+              <p className="mt-0.5">
+                Esta instância roda em ambiente de demonstração com VMs propositalmente
+                vulneráveis. NÃO use credenciais reais nem dados sensíveis.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">Email</label>

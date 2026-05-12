@@ -15,6 +15,7 @@ const CompliancePage = lazy(() => import('@/pages/CompliancePage'))  // recharts
 const KbPage = lazy(() => import('@/pages/KbPage'))
 const HuntingPage = lazy(() => import('@/pages/HuntingPage'))
 const PurpleTeamPage = lazy(() => import('@/pages/PurpleTeamPage'))
+const LabPage = lazy(() => import('@/pages/LabPage'))
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -89,6 +90,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <PurpleTeamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lab"
+            element={
+              <ProtectedRoute>
+                <LabPage />
               </ProtectedRoute>
             }
           />
