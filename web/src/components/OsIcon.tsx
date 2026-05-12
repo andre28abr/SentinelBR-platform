@@ -5,6 +5,10 @@
  * Ubuntu circle laranja, Fedora F azul, etc). Cache automatico pelo
  * Iconify apos primeira renderizacao.
  *
+ * Algumas distros (Alpine, Rocky) tem logo oficial muito escuro/preto,
+ * o que fica ilegivel em dark mode. Pra essas usamos `simple-icons:*`
+ * (monocromaticos via currentColor) que se adaptam ao tema.
+ *
  * Fallback: pinguim Tux generico quando distro nao mapeado.
  */
 
@@ -16,27 +20,33 @@ interface Props {
   size?: 'sm' | 'md' | 'lg'
 }
 
-/** Mapeamento distro/family -> nome de icone Iconify (pack "logos:*"). */
+/** Mapeamento distro/family -> nome de icone Iconify.
+ *
+ * Maioria usa pack "logos:*" (logo oficial colorido). Exceções monocromaticas
+ * via "simple-icons:*" pra distros cujos logos oficiais sao muito escuros e
+ * ficariam invisiveis em dark mode (Alpine, Rocky, Void). simple-icons
+ * renderiza em currentColor — herda a cor do CSS pai e se adapta ao tema.
+ */
 const ICONS: Record<string, string> = {
   debian: 'logos:debian',
   ubuntu: 'logos:ubuntu',
   fedora: 'logos:fedora',
-  rocky: 'logos:rocky-linux',
-  rockylinux: 'logos:rocky-linux',
+  rocky: 'simple-icons:rockylinux',
+  rockylinux: 'simple-icons:rockylinux',
   alma: 'logos:almalinux',
   almalinux: 'logos:almalinux',
   centos: 'logos:centos-icon',
   opensuse: 'logos:opensuse',
   arch: 'logos:archlinux',
   archlinux: 'logos:archlinux',
-  alpine: 'logos:alpinelinux',
-  alpinelinux: 'logos:alpinelinux',
+  alpine: 'simple-icons:alpinelinux',
+  alpinelinux: 'simple-icons:alpinelinux',
   redhat: 'logos:redhat',
   rhel: 'logos:redhat',
   oracle: 'logos:oracle',
   kali: 'logos:kali-linux',
   gentoo: 'logos:gentoo',
-  void: 'logos:void',
+  void: 'simple-icons:voidlinux',
   // SO genericos
   macos: 'logos:apple',
   darwin: 'logos:apple',
@@ -44,6 +54,18 @@ const ICONS: Record<string, string> = {
   windows: 'logos:microsoft-windows-icon',
   linux: 'logos:linux-tux',
 }
+
+/** Distros usando simple-icons (monocromaticos) que precisam de cor explicita
+ * pra ficarem visiveis no tema. simple-icons renderiza em currentColor por
+ * default — se nao definirmos, herda a cor do pai (que pode ser branco em
+ * dark mode dentro de fundo branco = invisivel). Forcamos zinc-700 (light)
+ * + zinc-300 (dark) pra contraste consistente independente do contexto pai.
+ */
+const MONO_ICONS = new Set([
+  'simple-icons:rockylinux',
+  'simple-icons:alpinelinux',
+  'simple-icons:voidlinux',
+])
 
 const NAMES: Record<string, string> = {
   debian: 'Debian',
@@ -83,10 +105,15 @@ export default function OsIcon({ distro, family, size = 'md' }: Props) {
   const iconName = ICONS[key] || 'logos:linux-tux'
   const label = NAMES[key] || distro || family || 'Linux'
   const sizeCls = SIZES[size]
+  // Pra simple-icons (monocromaticos) forcamos cor zinc adaptada ao tema.
+  // Logos coloridos do pack "logos:" usam SVG fill proprio — herdam nada.
+  const iconColorCls = MONO_ICONS.has(iconName)
+    ? 'text-zinc-700 dark:text-zinc-300'
+    : ''
 
   return (
     <div
-      className={`${sizeCls} flex items-center justify-center flex-shrink-0`}
+      className={`${sizeCls} flex items-center justify-center flex-shrink-0 ${iconColorCls}`}
       title={label}
       aria-label={label}
     >
