@@ -13,6 +13,9 @@ block_ip:
     - Veja o tempo entre primeiro evento e o bloqueio na aba "Ações"
     - "Para REMOVER o bloqueio: clique em \"desbloquear\" se foi falso positivo"
     - "Para tornar PERMANENTE: o block_ip atual expira no reboot. Adicione regra fixa: sudo nft add element inet sentinelbr blocked_ips { '<IP>' }"
+  references:
+    - https://wiki.nftables.org/wiki-nftables/index.php/Main_Page
+    - https://firewalld.org/documentation/man-pages/firewall-cmd.html
 
 unblock_ip:
   title: Desbloqueio de IP
@@ -25,6 +28,8 @@ unblock_ip:
   what_to_do:
     - Se foi por engano, basta criar novo bloqueio via /alerts
     - "Audite quem reverteu: aba LGPD mostra audit log com timestamp + IP"
+  references:
+    - https://wiki.nftables.org/wiki-nftables/index.php/Sets
 
 run_yara_scan:
   title: Scan YARA agendado
@@ -39,6 +44,9 @@ run_yara_scan:
     - Aguarde o scan terminar (geralmente <1min por pasta)
     - "Se vier matches críticos: aba \"Eventos\" filtre por source=yara"
     - "Para scan periódico: configure SENTINELBR_YARA_SCHEDULED_PATHS no .env"
+  references:
+    - https://yara.readthedocs.io/
+    - https://github.com/Yara-Rules/rules
 
 quarantine_file:
   title: Quarentena de arquivo malicioso
@@ -54,6 +62,9 @@ quarantine_file:
     - "Sidecar JSON ao lado tem: caminho original, sha256, motivo, timestamp"
     - "Para restaurar (se foi falso positivo): cp /var/sentinelbr/quarantine/<hash>.bin <caminho-original>"
     - "Para preservar pra polícia/forensics: NÃO mova nem delete"
+  references:
+    - https://attack.mitre.org/techniques/T1505/003/
+    - https://www.cisa.gov/news-events/news/incident-response
 
 run_check:
   title: Verificação solicitada
@@ -64,3 +75,191 @@ run_check:
     Não. Ação rotineira de operação.
   what_to_do:
     - Aguarde resultado no próximo heartbeat (~30s)
+  references: []
+
+run_clamav_scan:
+  title: Scan ClamAV (antivírus por assinaturas)
+  what_happened: |
+    O agente rodou o ClamAV — antivírus open-source com 1M+ assinaturas
+    de malware conhecido — em uma pasta do servidor. Cada arquivo é
+    comparado contra a base de assinaturas atualizada diariamente via
+    freshclam. Se algum match for encontrado, o arquivo aparece como
+    "infected" no log.
+  should_worry: |
+    Não — scan rodando é o SentinelBR trabalhando. Se algum arquivo for
+    detectado como infected, vira evento severity=critical na aba
+    "Eventos" filtrando por source=clamav. Aí sim, investigue.
+  what_to_do:
+    - "Veja a aba \"Eventos\" filtre por source=clamav pra ver matches"
+    - "Se 0 matches: scan limpo. Pode ignorar."
+    - "Se houver matches: olhe `clamav.signature` no event pra saber a família (ex: Win.Trojan.Agent, Php.Webshell.X)"
+    - "Pra remover arquivo malicioso: clamscan --remove (CUIDADO) ou mova manualmente pra quarentena"
+    - "Mantenha o DB de assinaturas atualizado: sudo freshclam (rodar em cron diário)"
+  references:
+    - https://www.clamav.net/documents/clamav-development-guide
+    - https://docs.clamav.net/manual/Usage/Scanning.html
+
+fail2ban_unban:
+  title: Desbanir IP no fail2ban
+  what_happened: |
+    Você (ou um operador) pediu pro agente remover um banimento de IP
+    no fail2ban. O fail2ban-client foi acionado com `set <jail> unbanip`
+    e o IP saiu da lista de bloqueio do firewall correspondente.
+  should_worry: |
+    Só se foi por engano. O IP vai conseguir tentar login de novo. Se
+    era ataque real, ele provavelmente vai voltar e o fail2ban vai
+    re-banir automaticamente após N tentativas falhas.
+  what_to_do:
+    - "Se foi engano: deixe o fail2ban re-banir automaticamente (configurado por jail em /etc/fail2ban/jail.local)"
+    - "Pra ver IPs banidos atualmente: aba Ferramentas → fail2ban"
+    - "Pra forçar ban de um IP específico via UI: botão \"Banir IP manualmente\""
+    - "Audit log da ação fica em /compliance pra investigação"
+  references:
+    - https://www.fail2ban.org/wiki/index.php/Manual
+    - https://wiki.archlinux.org/title/Fail2ban
+
+fail2ban_ban:
+  title: Banir IP manualmente no fail2ban
+  what_happened: |
+    Operador adicionou um IP à lista de bloqueio do fail2ban via UI. O
+    fail2ban-client foi acionado com `set <jail> banip` e o IP foi
+    bloqueado pelo firewall do jail correspondente (geralmente sshd).
+  should_worry: |
+    Não. Ação proativa de defesa — útil quando o admin já sabe que um
+    IP está atacando (de threat intel externo, log review manual, etc.)
+    e quer bloquear ANTES do fail2ban detectar via brute-force.
+  what_to_do:
+    - "Verifique que o IP está realmente atacando antes de banir (evita falso positivo)"
+    - "Pra desbanir: aba Ferramentas → fail2ban → botão \"desbanir\" ao lado do IP"
+    - "Pra banimento permanente fora do fail2ban: edite /etc/fail2ban/jail.local com bantime = -1"
+    - "Considere adicionar o IP em listas de threat intel pra outros servers"
+  references:
+    - https://www.fail2ban.org/wiki/index.php/Commands
+
+run_rkhunter_scan:
+  title: Scan rkhunter (rootkit hunter)
+  what_happened: |
+    O agente rodou o rkhunter — detector de rootkits, backdoors e
+    ferramentas de exploit conhecidas no Linux. Verifica binários
+    sistema (compara hashes), processos suspeitos, ports backdoor
+    típicas, e arquivos com hidden attributes.
+  should_worry: |
+    Depende do que reportou. Cada warning vira evento severity=warn na
+    aba "Eventos" source=rkhunter. Em sistema saudável, esperam-se
+    ~0-2 warnings de falso positivo (configs locais que rkhunter
+    desconhece). Burst de warnings ou warnings de rootkits famosos
+    (Beastkit, Suckit, Knark) = INVESTIGAÇÃO IMEDIATA.
+  what_to_do:
+    - "Veja warnings em \"Eventos\" filtre por source=rkhunter"
+    - "Pra cada warning: leia o texto, googlee o nome do rootkit/backdoor mencionado"
+    - "Falsos positivos comuns: arquivos do próprio sistema modificados por updates → atualize a baseline com `sudo rkhunter --propupd`"
+    - "Se confirmar comprometimento: ISOLE o servidor da rede + reinstale do zero (rootkits podem se esconder em locais que rkhunter não pega)"
+    - "Mantenha database de assinaturas atualizada: sudo rkhunter --update"
+  references:
+    - https://rkhunter.sourceforge.net/
+    - https://wiki.archlinux.org/title/Rkhunter
+
+run_chkrootkit_scan:
+  title: Scan chkrootkit (rootkit hunter alternativo)
+  what_happened: |
+    O agente rodou o chkrootkit — alternativa ao rkhunter, baseado em
+    shell scripts que verificam ~70 testes diferentes (binários
+    modificados, network interfaces em modo promiscuo, lastlog/wtmp
+    deleted entries, syslogd patches conhecidos).
+  should_worry: |
+    Como o rkhunter — depende do que apareceu. Linhas com "INFECTED"
+    ou "Warning" viram eventos severity=warn. Os 2 detectores juntos
+    pegam mais que cada um sozinho. Investiga sempre INFECTED do
+    chkrootkit, mesmo se rkhunter ficou silencioso.
+  what_to_do:
+    - "Veja warnings em \"Eventos\" filtre por source=chkrootkit"
+    - "Compare com último scan do rkhunter — overlap = mais confiança no diagnóstico"
+    - "Falsos positivos comuns: NICs em monitor mode legítimo (Wireshark/tcpdump)"
+    - "Pra zerar baseline após investigação: o chkrootkit não tem update de baseline (ao contrário do rkhunter), só roda os testes de novo"
+  references:
+    - http://www.chkrootkit.org/
+    - https://en.wikipedia.org/wiki/Chkrootkit
+
+run_lynis_audit:
+  title: Auditoria de hardening (lynis)
+  what_happened: |
+    O agente rodou o lynis em modo audit — testa ~200 controles de
+    segurança e gera um "Hardening index" (0-100). Verifica configs
+    de SSH, sudo, kernel sysctl, file permissions, services rodando,
+    etc. Não muda nada — só audita.
+  should_worry: |
+    Não. Cada audit gera 1 evento de resumo na aba "Eventos" com o
+    score + número de findings (warnings + suggestions). Score baixo
+    (<60) indica muitas melhorias possíveis. Score alto (>80) indica
+    sistema bem configurado.
+  what_to_do:
+    - "Veja o evento de resumo: \"Eventos\" filtre por source=lynis"
+    - "Pra detalhes de cada finding: rode `sudo lynis show details TEST-XXXX` no host"
+    - "Implemente sugestões em ordem: warnings primeiro (impactam mais), depois suggestions"
+    - "Re-audita após cada mudança pra ver score subir"
+    - "Logs detalhados ficam em /var/log/lynis.log e /var/log/lynis-report.dat"
+  references:
+    - https://cisofy.com/lynis/
+    - https://cisofy.com/documentation/lynis/
+
+run_aide_check:
+  title: AIDE — verificação de integridade de arquivos
+  what_happened: |
+    O agente rodou o AIDE (Advanced Intrusion Detection Environment)
+    no modo --check, que compara o estado atual do filesystem contra
+    um snapshot (database) feito anteriormente. Detecta arquivos
+    adicionados, modificados ou removidos em /etc, /usr/bin, etc.
+  should_worry: |
+    Em sistema estável, todos os counts (added/changed/removed) deveriam
+    ser 0. Qualquer mudança levanta alerta — pode ser update legítimo
+    do sistema OU backdoor instalado pelo atacante. Cada check vira
+    evento com counts + severity warn (se >0 changes) ou info (se igual).
+  what_to_do:
+    - "Veja resumo: \"Eventos\" filtre por source=aide — fields aide.added/changed/removed"
+    - "Pra detalhes: rode `sudo aide --check` direto no host (lista cada arquivo)"
+    - "Mudanças legítimas (após `dnf update` ou `apt upgrade`): atualize baseline com `sudo aide --update && sudo cp /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz`"
+    - "Mudanças suspeitas em /etc/passwd, /etc/sudoers, /usr/bin: INVESTIGAR (possível backdoor)"
+    - "Pré-requisito: `sudo aide --init` precisa ter sido rodado antes do primeiro --check"
+  references:
+    - https://aide.github.io/
+    - https://wiki.archlinux.org/title/AIDE
+
+add_firewall_rule:
+  title: Adicionar regra ao firewall (ufw / firewalld)
+  what_happened: |
+    Operador criou regra no firewall ativo do host via UI. Para ufw,
+    foi `ufw allow|deny [from cidr] port N proto tcp|udp`. Para
+    firewalld, foi `firewall-cmd --permanent --add-rich-rule=...
+    --reload`. Regra fica permanente entre reboots.
+  should_worry: |
+    Só se foi por engano ou se a regra é muito permissiva. Verifique:
+    abrir port 22 pra "Anywhere" expõe SSH ao mundo. Regra de allow
+    sem origem específica é geralmente arriscada — prefira allow
+    from CIDR específico.
+  what_to_do:
+    - "Confirme que a regra foi aplicada: aba Ferramentas → Firewall mostra snapshot atual"
+    - "Pra remover: clique em \"remover\" ao lado da regra na lista"
+    - "Pra audit: aba LGPD mostra quem criou, quando, com qual valor"
+    - "Boas práticas: prefira `from <cidr>` específico em vez de wildcard, especialmente pra ports administrativas (22, 3306, 5432)"
+  references:
+    - https://help.ubuntu.com/community/UFW
+    - https://firewalld.org/documentation/
+
+remove_firewall_rule:
+  title: Remover regra do firewall
+  what_happened: |
+    Operador removeu uma regra do firewall via UI. Para ufw foi
+    `ufw --force delete <num>`, para firewalld foi `firewall-cmd
+    --permanent --remove-rich-rule=...`. Mudança aplicada
+    imediatamente + persiste reboot.
+  should_worry: |
+    Atenção: remoção de regra ALLOW pode quebrar serviço legítimo
+    (ex: removeu allow port 80, agora ninguém acessa o site). Remoção
+    de regra DENY pode liberar IP/port que estava sendo bloqueado.
+  what_to_do:
+    - "Verifique impacto imediato: tente conectar no serviço afetado (curl, ssh)"
+    - "Pra restaurar: aba Ferramentas → Firewall → \"+ Adicionar regra\" com mesmos parâmetros"
+    - "Audit log mostra quem removeu, quando, qual era a regra"
+    - "Em ufw: regras são renumeradas após delete — confira `ufw status numbered` se for editar mais"
+  references:
+    - https://help.ubuntu.com/community/UFW

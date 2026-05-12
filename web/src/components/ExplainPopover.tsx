@@ -34,6 +34,7 @@ interface ActionExplainer {
   what_happened: string
   should_worry: string
   what_to_do: string[]
+  references?: string[] | null  // links pra docs oficiais (MITRE, vendor, etc.)
 }
 
 interface CveData {
@@ -203,8 +204,13 @@ function ActionExplain({ actionType }: { actionType: string }) {
   if (exp === null) {
     return (
       <Body title={`Ação: ${actionType}`} subtitle="Sem explicação cadastrada">
-        <p className="text-sm text-zinc-500">
-          Esse tipo de ação ainda não tem texto explicativo.
+        <p className="text-sm text-zinc-500 mb-2">
+          Esse tipo de ação ainda não tem texto explicativo cadastrado na
+          knowledge base. O time SentinelBR está adicionando descrições pra
+          todos os tipos — abra issue no GitHub se precisar urgente.
+        </p>
+        <p className="text-xs text-zinc-500 mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+          Identificador interno: <code className="font-mono">{actionType}</code>
         </p>
       </Body>
     )
@@ -214,7 +220,34 @@ function ActionExplain({ actionType }: { actionType: string }) {
       <Section title="O que aconteceu?" text={exp.what_happened} />
       <Section title="Devo me preocupar?" text={exp.should_worry} />
       <ListSection title="O que fazer agora?" items={exp.what_to_do} />
+      <ReferencesSection refs={exp.references} />
     </Body>
+  )
+}
+
+function ReferencesSection({ refs }: { refs?: string[] | null }) {
+  const items = (refs ?? []).filter((r): r is string => typeof r === 'string' && r.length > 0)
+  if (items.length === 0) return null
+  return (
+    <section className="mb-4 pt-3 border-t border-zinc-100 dark:border-zinc-900">
+      <h3 className="text-xs font-semibold uppercase text-zinc-500 mb-2">
+        Fontes oficiais
+      </h3>
+      <ul className="space-y-1">
+        {items.map((r) => (
+          <li key={r} className="text-xs">
+            <a
+              href={r}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+            >
+              {r}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
