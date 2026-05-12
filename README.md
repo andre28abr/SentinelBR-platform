@@ -170,4 +170,6 @@ Roadmap fechado:
 
 ## Autor
 
-Projeto pessoal de [André Souza](https://github.com/andre28abr) — desenvolvido como portfólio explorando arquitetura SIEM, mTLS, multi-tenancy, agentes Go cross-platform e UX de plataformas de segurança.
+**André Augusto Azarias De Souza** — [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub](https://github.com/andre28abr)
+
+Projeto pessoal desenvolvido como portfólio explorando arquitetura SIEM, mTLS, multi-tenancy, agentes Go cross-platform e UX de plataformas de segurança.
