@@ -118,13 +118,24 @@ async def list_vms() -> list[VmInfo]:
         name = str(entry.get("name", ""))
         if not name.startswith("lab-"):
             continue
-        # OrbStack JSON: state pode ser "running" | "stopped". Image string
-        # como "debian:11" ou "ubuntu:22.04". Arch como "arm64" / "amd64".
+        # OrbStack JSON formato 2026+: state "running"|"stopped",
+        # image eh dict {distro, version, arch, variant}. Concat
+        # "debian:bullseye" pra display. Fallback pra string crua se
+        # formato mudar.
+        image = entry.get("image", {})
+        if isinstance(image, dict):
+            d = image.get("distro", "")
+            v = image.get("version", "")
+            distro_str = f"{d}:{v}" if v else d
+            arch_str = image.get("arch", "")
+        else:
+            distro_str = str(image)
+            arch_str = str(entry.get("arch", ""))
         vms.append(VmInfo(
             name=name,
             state=str(entry.get("state", "unknown")),
-            distro=str(entry.get("image", "")),
-            arch=str(entry.get("arch", "")),
+            distro=distro_str,
+            arch=arch_str,
         ))
     # Ordena por nome pra UI ter ordem estavel.
     vms.sort(key=lambda v: v.name)

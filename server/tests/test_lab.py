@@ -95,10 +95,14 @@ async def test_list_vms_returns_only_lab_prefixed(
     client: AsyncClient, admin_user: User, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _enable_lab_mode(monkeypatch)
+    # Formato real do orbctl list --format json (image eh objeto aninhado)
     fake_json = (
-        '[{"name":"lab-debian-11","state":"running","image":"debian:11","arch":"arm64"},'
-        '{"name":"my-personal","state":"stopped","image":"ubuntu:24.04","arch":"arm64"},'
-        '{"name":"lab-fedora","state":"stopped","image":"fedora:latest","arch":"arm64"}]'
+        '[{"name":"lab-debian-11","state":"running",'
+        '"image":{"distro":"debian","version":"bullseye","arch":"arm64"}},'
+        '{"name":"my-personal","state":"stopped",'
+        '"image":{"distro":"ubuntu","version":"jammy","arch":"arm64"}},'
+        '{"name":"lab-fedora","state":"stopped",'
+        '"image":{"distro":"fedora","version":"43","arch":"arm64"}}]'
     )
 
     async def fake_run_orb(*args: str, timeout: int = 30):  # noqa: ASYNC109
