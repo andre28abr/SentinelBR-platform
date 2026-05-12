@@ -19,7 +19,7 @@ source "$LABS_DIR/lib/plant.sh"
 
 DISTROS=("$@")
 if [[ ${#DISTROS[@]} -eq 0 ]]; then
-  DISTROS=(debian-11 ubuntu-22 fedora vuln-lab)
+  DISTROS=(debian-11 ubuntu-22 fedora rocky-9 alpine-3 vuln-lab)
 fi
 
 # Pre-flight checks
@@ -61,9 +61,15 @@ for d in "${DISTROS[@]}"; do
   vm::install_systemd "$VM_NAME"
 
   # Plant vulnerabilities
-  plant::yara_targets "$VM_NAME"
-  plant::bruteforce   "$VM_NAME" 12
-  plant::vuln_packages "$VM_NAME" "$PKG_MGR"
+  plant::yara_targets   "$VM_NAME"
+  plant::bruteforce     "$VM_NAME" 12
+  plant::vuln_packages  "$VM_NAME" "$PKG_MGR"
+  # Iscas universais — exercitam YARA (Dropper/ReverseShell/Persistence) +
+  # ClamAV (EICAR). Inertes: nada eh executado, so texto pra detectores.
+  plant::eicar          "$VM_NAME"
+  plant::dropper        "$VM_NAME"
+  plant::reverse_shell  "$VM_NAME"
+  plant::persistence    "$VM_NAME"
   if [[ "${AGGRESSIVE:-false}" == "true" ]]; then
     plant::aggressive "$VM_NAME"
   fi
