@@ -6,9 +6,9 @@ Plataforma open-source de segurança para servidores Linux com foco em SMBs bras
 
 ```
 sentinelbr-platform/
-├── server/      # API central — Python 3.12+ FastAPI + Celery + PostgreSQL + Loki
+├── server/      # API central — Python 3.12+ FastAPI + Celery + PostgreSQL + Loki + Prometheus /metrics
 ├── agent/       # Coletor — Go 1.25, 1 binário por OS (Linux/macOS dev/Windows)
-├── web/         # UI — React 18 + TS + Vite + Tailwind
+├── web/         # UI — React 19 + TS + Vite 8 + Tailwind 4 + Radix UI
 ├── proto/       # Contratos gRPC compartilhados (mTLS)
 ├── deploy/      # Docker Compose (dev) + Helm (prod, parcial)
 ├── samples/     # Fixtures de log + lab de 4 VMs vulneráveis
@@ -77,9 +77,9 @@ As 4 VMs (Debian 11, Ubuntu 22, Fedora, vuln-lab estilo Metasploitable) ficam co
 
 ## Componentes
 
-- **[server/](server/README.md)** — FastAPI + Pydantic v2 + SQLAlchemy 2 async + Celery + asyncpg + httpx (OSV/Loki) + grpcio (mTLS).
+- **[server/](server/README.md)** — FastAPI + Pydantic v2 + SQLAlchemy 2 async + Celery + asyncpg + httpx (OSV/Loki) + grpcio (mTLS) + slowapi (rate limit) + structlog + Prometheus.
 - **[agent/](agent/README.md)** — Go com interfaces por OS (`PackageManager`, `FirewallExecutor`, `MACSystem`). Cross-compila pra Linux/Windows/macOS.
-- **[web/](web/README.md)** — Vite + React 18 + TypeScript strict + Tailwind + Zustand. SPA pura.
+- **[web/](web/README.md)** — Vite 8 + React 19 + TypeScript strict + Tailwind 4 + Radix UI + Zustand + Recharts. SPA pura com lazy load por rota.
 
 ## Arquitetura
 
@@ -99,9 +99,35 @@ As 4 VMs (Debian 11, Ubuntu 22, Fedora, vuln-lab estilo Metasploitable) ficam co
 
 mTLS gRPC com CA própria (gerada no `make grpc`). Cada agente tem cert assinado com CN = host_id.
 
+## Configuração via env vars (prefixo `SENTINELBR_`)
+
+| Var | Default | Notas |
+|-----|---------|-------|
+| `JWT_SECRET` | (default barra boot em prod) | obrigatório se DEBUG=false |
+| `DEBUG` | `false` | dev local: `true` (relaxa asserts) |
+| `DATABASE_URL` | postgresql+asyncpg://… | dev usa porta 5433 |
+| `REDIS_URL` | redis://localhost:6379/0 | broker do Celery |
+| `LOKI_URL` | http://localhost:3100 | armazenamento de events |
+| `CORS_ALLOWED_ORIGINS` | http://localhost:5173 | em prod: lista de FQDNs |
+| `ACCESS_TOKEN_MINUTES` | `60` | reduzir em prod (~15-30min) |
+| `REFRESH_TOKEN_DAYS` | `7` | em cookie httpOnly samesite=lax |
+| `GRPC_PUBLIC_ENDPOINT` | localhost:9443 | que endereço o agente vê |
+| `SERVER_CERT_SAN` | localhost,sentinelbr-server | SAN do cert mTLS |
+| `AUDIT_RETENTION_DAYS` | `180` | LGPD Art. 16 |
+| `YARA_SCHEDULED_PATHS` | /var/www,/tmp,/home | scan diário |
+| `YARA_SCHEDULED_INTERVAL_SECONDS` | `86400` | 24h |
+| `RKHUNTER_SCHEDULED_INTERVAL_SECONDS` | `86400` | 0 desabilita |
+| `CHKROOTKIT_SCHEDULED_INTERVAL_SECONDS` | `86400` | 0 desabilita |
+| `AIDE_SCHEDULED_INTERVAL_SECONDS` | `86400` | 0 desabilita |
+| `LYNIS_SCHEDULED_INTERVAL_SECONDS` | `604800` | 7d (semanal) |
+
+Endpoints de saúde:
+- `GET /api/v1/health` — status JSON pra readiness probe
+- `GET /metrics` — Prometheus (latency, counts por endpoint)
+
 ## Status
 
-🟢 **Fases 1-10 fechadas.** 100+ testes server, agent suite verde, CI multi-OS green.
+🟢 **Fases 1-10 + hardening completo (Fases 2-9 do plano de auditoria).** 134 testes server, agent suite verde, CI multi-OS + security scans (govulncheck/pip-audit/Trivy).
 
 Roadmap fechado:
 - Fase 1: Enrollment + heartbeat mTLS
@@ -115,6 +141,8 @@ Roadmap fechado:
 - Fase 8.5: YARA manual (UI) + scheduled + filewatcher + auto-quarantine
 - Fase 9: Threat KB MITRE ATT&CK PT-BR + Hunting + Purple Team
 - Fase 10: Multi-tenancy (Org → User RBAC) com tenant isolation
+- Fase H1-H8: Hardening tools (fail2ban, firewall write, rkhunter, chkrootkit, lynis, AIDE, auditd, SELinux/AppArmor)
+- Hardening pos-auditoria: JWT assert + rate limit + httpOnly cookie + RBAC + indices DB + N+1 + agent recover/keepalive + lazy loading + Prometheus + structlog + Trivy/pip-audit/govulncheck no CI
 
 ## Licença
 
