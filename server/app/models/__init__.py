@@ -5,9 +5,10 @@ from app.models.host import Host
 from app.models.host_package import HostPackage
 from app.models.host_vulnerability import HostVulnerability
 from app.models.organization import Organization
+from app.models.refresh_token_jti import RefreshTokenJti
 from app.models.user import User
 
 __all__ = [
     "Action", "Alert", "AuditLog", "Host", "HostPackage",
-    "HostVulnerability", "Organization", "User",
+    "HostVulnerability", "Organization", "RefreshTokenJti", "User",
 ]

@@ -78,7 +78,9 @@ services:
       SENTINELBR_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sentinelbr}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sentinelbr}
       SENTINELBR_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       SENTINELBR_LOKI_URL: http://loki:3100
-      SENTINELBR_JWT_SECRET: ${JWT_SECRET:?JWT_SECRET obrigatório}
+      SENTINELBR_JWT_SECRET: ${SENTINELBR_JWT_SECRET:?SENTINELBR_JWT_SECRET obrigatório (32+ bytes)}
+      SENTINELBR_DEBUG: "false"
+      SENTINELBR_CORS_ALLOWED_ORIGINS: ${SENTINELBR_CORS_ALLOWED_ORIGINS:?defina os origens explicitos da UI publica (ex: https://app.example.com)}
     ports:
       - "8000:8000"
 
