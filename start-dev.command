@@ -14,10 +14,24 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 echo "=== SentinelBR dev ==="
 echo
 
-# checagem: docker rodando?
+# checagem: docker rodando? Se OrbStack instalado, tenta acordar antes de desistir.
+if ! docker info > /dev/null 2>&1; then
+    if command -v orb > /dev/null && command -v orbctl > /dev/null; then
+        echo "→ Docker engine parado. Acordando OrbStack..."
+        orb start > /dev/null 2>&1 || true
+        # OrbStack costuma levar 1-3s pra Docker ficar pronto
+        for i in $(seq 1 15); do
+            if docker info > /dev/null 2>&1; then
+                echo "  ✓ Docker pronto"
+                break
+            fi
+            sleep 1
+        done
+    fi
+fi
 if ! docker info > /dev/null 2>&1; then
     echo "❌ Docker nao esta rodando."
-    echo "   Abra OrbStack (ou Docker Desktop) e tente de novo."
+    echo "   Abra OrbStack (ou Docker Desktop) manualmente e tente de novo."
     echo
     read -n 1 -s -r -p "Pressione qualquer tecla pra fechar..."
     exit 1
