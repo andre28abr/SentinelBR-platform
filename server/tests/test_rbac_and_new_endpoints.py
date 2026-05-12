@@ -19,7 +19,7 @@ from app.models import Host, Organization, User
 from app.services.auth import hash_password
 
 
-async def _login(client: AsyncClient, user: User, password: str = "teste1234") -> str:
+async def _login(client: AsyncClient, user: User, password: str = "teste1234") -> str:  # noqa: S107
     r = await client.post(
         "/api/v1/auth/login",
         json={"email": user.email, "password": password},
@@ -89,7 +89,7 @@ async def test_viewer_cannot_trigger_clamav(
     r = await client.post(
         f"/api/v1/hosts/{host_with_tools.id}/clamav-scan",
         headers={"Authorization": f"Bearer {token}"},
-        json={"path": "/tmp"},
+        json={"path": "/tmp"},  # noqa: S108
     )
     assert r.status_code == 403
 
@@ -114,7 +114,7 @@ async def test_operator_can_trigger_clamav(
     r = await client.post(
         f"/api/v1/hosts/{host_with_tools.id}/clamav-scan",
         headers={"Authorization": f"Bearer {token}"},
-        json={"path": "/tmp"},
+        json={"path": "/tmp"},  # noqa: S108
     )
     assert r.status_code == 202
     assert r.json()["action_type"] == "run_clamav_scan"
@@ -275,7 +275,7 @@ async def test_cross_tenant_clamav_scan_returns_404(
     r = await client.post(
         f"/api/v1/hosts/{host_with_tools.id}/clamav-scan",
         headers={"Authorization": f"Bearer {token}"},
-        json={"path": "/tmp"},
+        json={"path": "/tmp"},  # noqa: S108
     )
     assert r.status_code == 404
 
