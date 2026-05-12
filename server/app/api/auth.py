@@ -16,7 +16,13 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services import audit
-from app.services.auth import decode_token, issue_token, new_jti, verify_password
+from app.services.auth import (
+    decode_token,
+    hash_password,
+    issue_token,
+    new_jti,
+    verify_password,
+)
 from app.services.ratelimit import limiter
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -26,6 +32,11 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 # bloqueia cross-site POST (CSRF protection basico). Em dev (Vite proxy),
 # tudo eh same-origin localhost:5173. Em prod, server e UI no mesmo eTLD+1.
 REFRESH_COOKIE_NAME = "sentinelbr_refresh"  # noqa: S105
+
+# Hash dummy gerado UMA vez no import — usado pra fazer bcrypt comparison
+# constant-time quando usuario nao existe (anti username enumeration via
+# timing). Custo ~100ms igual ao caso real de senha errada.
+_DUMMY_BCRYPT = hash_password("dummy_constant_time_check_xxxxxxxxxx")  # noqa: S106
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
@@ -58,11 +69,19 @@ async def login(
     result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
 
-    if user is None or not verify_password(payload.password, user.password_hash):
+    # Anti username enumeration: sempre rodar verify_password (mesmo com
+    # user=None usando hash dummy) pra ter timing constante. Sem isso,
+    # atacante diferencia "user nao existe" vs "user existe mas senha
+    # errada" pelo tempo de resposta (~5ms vs ~100ms).
+    password_ok = verify_password(
+        payload.password,
+        user.password_hash if user is not None else _DUMMY_BCRYPT,
+    )
+    if user is None or not password_ok:
         await audit.log_action(
             db,
             action="login_failed",
-            actor_email=payload.email,
+            actor_email=payload.email[:255],  # truncate anti log pollution
             request=request,
             success=False,
             details={"reason": "wrong_password_or_user_not_found"},

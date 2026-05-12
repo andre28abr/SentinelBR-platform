@@ -14,6 +14,7 @@ prometheus-fastapi-instrumentator faz heavy lifting.
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from contextvars import ContextVar
 
@@ -28,13 +29,22 @@ from app.config import get_settings
 # Context var pra propagar request_id em logs sem precisar passar como parametro.
 request_id_ctx: ContextVar[str] = ContextVar("request_id", default="-")
 
+# Anti header injection / log poisoning — request_id deve ser ASCII alfanum
+# + hifen, max 64 chars. Valores fora do padrao (ex: contendo \r\n)
+# substituidos por UUID novo gerado server-side.
+_REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Adiciona X-Request-ID a cada request — usa o do client se enviado,
+    """Adiciona X-Request-ID a cada request — usa o do client se valido,
     senao gera UUID novo. Coloca no contextvar pra logs estruturados."""
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        rid = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        client_rid = request.headers.get("X-Request-ID")
+        if client_rid and _REQUEST_ID_PATTERN.match(client_rid):
+            rid = client_rid
+        else:
+            rid = str(uuid.uuid4())
         request_id_ctx.set(rid)
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid

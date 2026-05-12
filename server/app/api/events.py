@@ -21,7 +21,12 @@ async def list_events(
     host_id: uuid.UUID,
     db: DbSession,
     current: CurrentUser,
-    source: str | None = Query(default=None),
+    source: str | None = Query(
+        default=None,
+        # Allow-list — anti LogQL injection via interpolacao em loki.py.
+        # Mesma lista do frontend SOURCES (EventsTab).
+        pattern=r"^(sshd|selinux|apparmor|yara|clamav|fail2ban|rkhunter|chkrootkit|lynis|aide|quarantine)$",
+    ),
     hours: int = Query(default=24, ge=1, le=168),
     limit: int = Query(default=100, ge=1, le=500),
     mask_pii: bool = Query(default=False, description="LGPD: mascara IPs/emails/CPF na resposta"),

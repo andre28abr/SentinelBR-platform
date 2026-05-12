@@ -34,7 +34,14 @@ def _server_credentials() -> grpc.ServerCredentials:
 
 async def serve() -> None:
     settings = get_settings()
-    server = grpc.aio.server()
+    # MaxRecv 16MB (default 4MB) — InventoryReport com 5k+ pacotes (Fedora
+    # full) facilmente passa de 4MB. MaxSend 4MB (default) chega.
+    # Anti-DoS: agente comprometido nao pode enviar payload arbitrariamente
+    # grande; 16MB eh teto razoavel pra inventory + safety margin.
+    server = grpc.aio.server(options=[
+        ("grpc.max_receive_message_length", 16 * 1024 * 1024),
+        ("grpc.max_send_message_length", 4 * 1024 * 1024),
+    ])
     agent_pb2_grpc.add_AgentServiceServicer_to_server(AgentServicer(), server)
     server.add_secure_port(settings.grpc_listen_addr, _server_credentials())
     await server.start()
