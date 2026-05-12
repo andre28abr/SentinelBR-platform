@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
 import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
 import { ApiError, api } from '@/lib/api'
+import { REFRESH_MS, usePolling } from '@/lib/usePolling'
 
 interface EventItem {
   event_id: string
@@ -13,7 +14,6 @@ interface EventItem {
   fields: Record<string, string>
 }
 
-const REFRESH_MS = 5_000
 const HOURS = 24
 const LIMIT = 100
 
@@ -39,39 +39,26 @@ export default function EventsTab({ hostId }: { hostId: string }) {
   const [loading, setLoading] = useState(true)
   const [source, setSource] = useState<SourceFilter>('todos')
 
-  useEffect(() => {
-    let cancelled = false
-
-    function load() {
+  usePolling(
+    async () => {
       const params = new URLSearchParams({
         hours: String(HOURS),
         limit: String(LIMIT),
       })
       if (source !== 'todos') params.set('source', source)
-      const url = `/api/v1/hosts/${hostId}/events?${params}`
-      api
-        .get<EventItem[]>(url)
-        .then((data) => {
-          if (cancelled) return
-          setEvents(data)
-          setError(null)
-        })
-        .catch((err) => {
-          if (cancelled) return
-          setError(err instanceof ApiError ? String(err.detail) : 'erro')
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false)
-        })
-    }
-
-    load()
-    const t = setInterval(load, REFRESH_MS)
-    return () => {
-      cancelled = true
-      clearInterval(t)
-    }
-  }, [hostId, source])
+      try {
+        const data = await api.get<EventItem[]>(`/api/v1/hosts/${hostId}/events?${params}`)
+        setEvents(data)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof ApiError ? String(err.detail) : 'erro')
+      } finally {
+        setLoading(false)
+      }
+    },
+    REFRESH_MS,
+    [hostId, source],
+  )
 
   const sourceFilter = (
     <div className="flex gap-1 mb-3">

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import ExplainPopover from '@/components/ExplainPopover'
 import RowActionsMenu, { type MenuItem } from '@/components/RowActionsMenu'
 import { TableLimitFooter, useTableLimit } from '@/components/TableLimit'
 import { ApiError, api } from '@/lib/api'
+import { REFRESH_MS, usePolling } from '@/lib/usePolling'
 
 interface Action {
   id: string
@@ -20,40 +21,26 @@ interface Action {
   reverted_at: string | null
 }
 
-const REFRESH_MS = 5_000
-
 export default function ActionsTab({ hostId }: { hostId: string }) {
   const [actions, setActions] = useState<Action[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    let cancelled = false
-
-    function load() {
-      api
-        .get<Action[]>(`/api/v1/hosts/${hostId}/actions`)
-        .then((data) => {
-          if (cancelled) return
-          setActions(data)
-          setError(null)
-        })
-        .catch((err) => {
-          if (cancelled) return
-          setError(err instanceof ApiError ? String(err.detail) : 'erro')
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false)
-        })
-    }
-
-    load()
-    const t = setInterval(load, REFRESH_MS)
-    return () => {
-      cancelled = true
-      clearInterval(t)
-    }
-  }, [hostId])
+  usePolling(
+    async () => {
+      try {
+        const data = await api.get<Action[]>(`/api/v1/hosts/${hostId}/actions`)
+        setActions(data)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof ApiError ? String(err.detail) : 'erro')
+      } finally {
+        setLoading(false)
+      }
+    },
+    REFRESH_MS,
+    [hostId],
+  )
 
   async function revert(actionId: string) {
     try {

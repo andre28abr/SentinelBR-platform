@@ -12,9 +12,10 @@
  * de progresso depois do "Rodar scan agora".
  */
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
+import { usePolling } from '@/lib/usePolling'
 
 interface Action {
   id: string
@@ -41,30 +42,24 @@ const POLL_MS = 3_000
 export default function ScanProgressBadge({ hostId, actionType, target, label }: Props) {
   const [last, setLast] = useState<Action | null | undefined>(undefined)
 
-  useEffect(() => {
-    let cancelled = false
-    function load() {
-      api
-        .get<Action[]>(`/api/v1/hosts/${hostId}/actions`)
-        .then((data) => {
-          if (cancelled) return
-          const filtered = data.filter(
-            (a) => a.action_type === actionType && (!target || a.target === target),
-          )
-          setLast(filtered[0] ?? null)
-        })
-        .catch((err) => {
-          if (cancelled) return
-          if (err instanceof ApiError) console.error('ScanProgressBadge:', err.detail)
-        })
-    }
-    load()
-    const t = setInterval(load, POLL_MS)
-    return () => {
-      cancelled = true
-      clearInterval(t)
-    }
-  }, [hostId, actionType, target])
+  usePolling(
+    async () => {
+      try {
+        const data = await api.get<Action[]>(`/api/v1/hosts/${hostId}/actions`)
+        const filtered = data.filter(
+          (a) => a.action_type === actionType && (!target || a.target === target),
+        )
+        setLast(filtered[0] ?? null)
+      } catch (err) {
+        if (err instanceof ApiError) {
+          // Loga so 1x por tipo de erro pra nao poluir console com poll loop.
+          console.error('ScanProgressBadge:', err.status, err.detail)
+        }
+      }
+    },
+    POLL_MS,
+    [hostId, actionType, target],
+  )
 
   if (last === undefined) {
     return <span className="text-xs text-zinc-400">…</span>

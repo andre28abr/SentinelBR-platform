@@ -1,39 +1,28 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { api } from '@/lib/api'
+import { REFRESH_MS, usePolling } from '@/lib/usePolling'
 
 interface Counts {
   open: number
   total: number
 }
 
-const REFRESH_MS = 5_000
-
 export default function AlertBadge() {
   const [counts, setCounts] = useState<Counts>({ open: 0, total: 0 })
 
-  useEffect(() => {
-    let cancelled = false
-
-    function load() {
-      api
-        .get<Counts>('/api/v1/alerts/count')
-        .then((data) => {
-          if (!cancelled) setCounts(data)
-        })
-        .catch(() => {
-          // sem rede / nao autenticado — esconde silencioso
-        })
-    }
-
-    load()
-    const t = setInterval(load, REFRESH_MS)
-    return () => {
-      cancelled = true
-      clearInterval(t)
-    }
-  }, [])
+  usePolling(
+    async () => {
+      try {
+        setCounts(await api.get<Counts>('/api/v1/alerts/count'))
+      } catch {
+        // sem rede / nao autenticado — esconde silencioso
+      }
+    },
+    REFRESH_MS,
+    [],
+  )
 
   return (
     <Link

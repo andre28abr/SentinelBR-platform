@@ -25,8 +25,29 @@ export default function SessionTimer() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), TICK_MS)
-    return () => clearInterval(t)
+    let t: ReturnType<typeof setInterval> | null = null
+    function start() {
+      stop()
+      // tick imediato pra nao ficar stale apos voltar visivel
+      setNow(Math.floor(Date.now() / 1000))
+      t = setInterval(() => setNow(Math.floor(Date.now() / 1000)), TICK_MS)
+    }
+    function stop() {
+      if (t !== null) {
+        clearInterval(t)
+        t = null
+      }
+    }
+    function onVisibility() {
+      if (document.hidden) stop()
+      else start()
+    }
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
 
   if (!accessToken) return null

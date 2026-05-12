@@ -11,6 +11,7 @@
 import { Icon } from '@iconify/react'
 import { useMemo, useState } from 'react'
 
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { ApiError, api } from '@/lib/api'
 
 interface Props {
@@ -36,6 +37,7 @@ export default function FirewallPanel({ hostId, backend, statusJson }: Props) {
   const [addOpen, setAddOpen] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirmRule, setConfirmRule] = useState<{ id: string; text: string } | null>(null)
   const supported = SUPPORTED.has(backend)
 
   async function removeRule(ruleId: string) {
@@ -109,9 +111,7 @@ export default function FirewallPanel({ hostId, backend, statusJson }: Props) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`Remover regra [${r.num}] ${r.text}?`)) removeRule(r.num)
-                  }}
+                  onClick={() => setConfirmRule({ id: r.num, text: `[${r.num}] ${r.text}` })}
                   className="text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
                 >
                   remover
@@ -136,9 +136,7 @@ export default function FirewallPanel({ hostId, backend, statusJson }: Props) {
                 <code className="flex-1 font-mono break-all">{r}</code>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`Remover regra: ${r}?`)) removeRule(r)
-                  }}
+                  onClick={() => setConfirmRule({ id: r, text: r })}
                   className="text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
                 >
                   remover
@@ -174,6 +172,29 @@ export default function FirewallPanel({ hostId, backend, statusJson }: Props) {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmRule !== null}
+        title="Remover regra do firewall?"
+        message={
+          <>
+            <p className="mb-2">
+              Essa regra será removida do firewall ativo. Aplicada no próximo
+              heartbeat (~30s). Não pode ser desfeito automaticamente.
+            </p>
+            <code className="block bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded text-xs break-all">
+              {confirmRule?.text}
+            </code>
+          </>
+        }
+        variant="danger"
+        confirmLabel="Remover"
+        onConfirm={() => {
+          if (confirmRule) removeRule(confirmRule.id)
+          setConfirmRule(null)
+        }}
+        onCancel={() => setConfirmRule(null)}
+      />
     </div>
   )
 }
