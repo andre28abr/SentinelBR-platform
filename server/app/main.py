@@ -17,6 +17,7 @@ from app.api import (
     health,
     hosts,
     kb,
+    lab,
     organizations,
     tools,
     vulnerabilities,
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(tools.router)
     app.include_router(kb.router)
     app.include_router(organizations.router)
+    app.include_router(lab.router)
     return app
 
 

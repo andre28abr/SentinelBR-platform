@@ -64,6 +64,16 @@ class Settings(BaseSettings):
     aide_scheduled_interval_seconds: int = Field(default=86400)
     lynis_scheduled_interval_seconds: int = Field(default=604800)
 
+    # Lab Mode — habilita endpoints /api/v1/lab/* (start/stop/reset de VMs
+    # OrbStack pra demo). NUNCA ative em prod: permite shell exec no host.
+    # Em desenvolvimento local com `make lab-up`, set SENTINELBR_LAB_MODE=true.
+    lab_mode: bool = Field(default=False)
+    # Path do orbctl/orb (binario do OrbStack). Default: 'orb' no PATH.
+    lab_orb_binary: str = Field(default="orb")
+    # Diretorio raiz dos scripts do lab (attack.sh, lib/, distros/).
+    # Caminho absoluto. Default: ../../samples/labs relativo ao repo.
+    lab_scripts_dir: str = Field(default="")
+
 
 _DEFAULT_JWT_SECRET = "change-me-in-prod-with-32-bytes-min"  # noqa: S105
 
