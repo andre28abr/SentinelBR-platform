@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -530,16 +531,24 @@ func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.Co
 	return pb.CommandStatus_COMMAND_STATUS_OK, fmt.Sprintf("warnings=%d", len(warnings))
 }
 
+// chkrootkitWarningRe casa "INFECTED" ou "Warning" como palavras inteiras.
+// Antes: `strings.Contains("Warning")` casava qualquer substring (ex:
+// "No Warnings found" virava falso positivo porque tem 'Warning' dentro de
+// 'Warnings'). \b garante palavra exata — "Warnings" nao casa porque tem 'S'
+// imediatamente depois (nao boundary).
+var chkrootkitWarningRe = regexp.MustCompile(`\b(INFECTED|Warning)\b`)
+
 func parseChkrootkitOutput(out string) []string {
 	var ws []string
 	sc := bufio.NewScanner(strings.NewReader(out))
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
-		// chkrootkit -q so emite lines com "INFECTED" ou warnings sintaticos
 		if line == "" {
 			continue
 		}
-		if strings.Contains(line, "INFECTED") || strings.Contains(line, "Warning") {
+		// chkrootkit -q normalmente so emite lines com problemas, mas defesa
+		// contra mudanca futura no output:
+		if chkrootkitWarningRe.MatchString(line) {
 			ws = append(ws, line)
 		}
 	}
