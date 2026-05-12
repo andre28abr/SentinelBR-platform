@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache-dependency-path: agent/go.sum
       - run: go mod download
       - run: go vet ./...
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache-dependency-path: agent/go.sum
       - env:
           GOOS: ${{ matrix.target.goos }}
@@ -120,6 +120,58 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
 
+  security:
+    name: security scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Go vulnerability scan via govulncheck (oficial do projeto Go).
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: agent/go.sum
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          cd agent && govulncheck ./...
+
+      # Python: pip-audit cruza pyproject/uv.lock contra OSV.
+      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: pip-audit
+        working-directory: server
+        run: |
+          uv sync
+          uv pip install pip-audit
+          uv run pip-audit --strict
+
+      # JS: npm audit (alta severidade quebra). pnpm audit ainda mais limitado.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: pnpm audit
+        working-directory: web
+        run: pnpm audit --audit-level high
+        continue-on-error: true  # avisos de transitive deps nao quebram CI
+
+      # Trivy filesystem scan — pega segredos commitados, IaC misconfig.
+      - name: Trivy fs
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          format: 'table'
+          exit-code: '0'  # report-only por enquanto; bumpar pra '1' depois
+
   agent-on-distros:
     name: agent smoke (${{ matrix.distro }})
     runs-on: ubuntu-latest
@@ -141,11 +193,11 @@ jobs:
           if command -v apt-get >/dev/null; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar git; fi
           if command -v dnf >/dev/null; then dnf install -y --allowerasing curl ca-certificates tar gzip git; fi
       - uses: actions/checkout@v4
-      - name: Install Go 1.23 from upstream
+      - name: Install Go 1.25 from upstream
         shell: bash
         run: |
           ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-          curl -fsSL "https://go.dev/dl/go1.23.4.linux-${ARCH}.tar.gz" -o /tmp/go.tgz
+          curl -fsSL "https://go.dev/dl/go1.25.0.linux-${ARCH}.tar.gz" -o /tmp/go.tgz
           tar -C /usr/local -xzf /tmp/go.tgz
           echo "/usr/local/go/bin" >> "$GITHUB_PATH"
       - name: Build and run agent doctor
