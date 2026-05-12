@@ -63,6 +63,11 @@ export default function LynisPanel({ hostId }: Props) {
         <code className="text-xs font-mono">lynis audit system --quick --no-colors</code>
       </div>
 
+      <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-300 dark:border-yellow-800 px-3 py-2 rounded text-xs text-yellow-800 dark:text-yellow-200">
+        ⏱ Esse audit pode levar <strong>2-8 minutos</strong>. Pode fechar essa
+        aba — o badge atualiza sozinho quando completa.
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"

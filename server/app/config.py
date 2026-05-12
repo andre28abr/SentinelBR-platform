@@ -24,7 +24,10 @@ class Settings(BaseSettings):
 
     jwt_secret: str = Field(default="change-me-in-prod-with-32-bytes-min")
     jwt_algorithm: str = "HS256"
-    access_token_minutes: int = 15
+    # 60min: scans longos (chkrootkit, rkhunter, lynis) facilmente passam
+    # de 5min — token de 15min forçava re-login no meio. Override via env
+    # SENTINELBR_ACCESS_TOKEN_MINUTES se quiser mais agressivo em prod.
+    access_token_minutes: int = 60
     refresh_token_days: int = 7
 
     public_endpoint: str = Field(default="http://localhost:8000")

@@ -64,6 +64,12 @@ export default function ChkrootkitPanel({ hostId }: Props) {
         <code className="text-xs font-mono">chkrootkit -q</code>
       </div>
 
+      <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-300 dark:border-yellow-800 px-3 py-2 rounded text-xs text-yellow-800 dark:text-yellow-200">
+        ⏱ Esse scan pode levar <strong>5-15 minutos</strong> — varre todos os
+        binários de <code>/usr/bin</code>, <code>/usr/sbin</code> e dispositivos
+        de <code>/dev</code>. Pode fechar essa aba — o badge atualiza sozinho.
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"

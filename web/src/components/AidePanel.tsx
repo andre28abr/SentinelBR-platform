@@ -71,6 +71,11 @@ export default function AidePanel({ hostId }: Props) {
         <code className="text-xs font-mono">aide --check</code>
       </div>
 
+      <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-300 dark:border-yellow-800 px-3 py-2 rounded text-xs text-yellow-800 dark:text-yellow-200">
+        ⏱ Esse check pode levar <strong>5-30 minutos</strong> dependendo do
+        tamanho do database. Pode fechar essa aba — o badge atualiza sozinho.
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"
