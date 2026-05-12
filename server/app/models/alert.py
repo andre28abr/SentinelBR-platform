@@ -2,7 +2,15 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -45,4 +53,15 @@ class Alert(Base):
 
     __table_args__ = (
         UniqueConstraint("host_id", "rule_id", "dedup_key", name="uq_alert_host_rule_dedup"),
+        CheckConstraint(
+            "severity IN ('critical', 'high', 'medium', 'low', 'info')",
+            name="ck_alerts_severity",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'acknowledged', 'resolved')",
+            name="ck_alerts_status",
+        ),
     )
+
+    def __repr__(self) -> str:
+        return f"<Alert {self.rule_id} sev={self.severity} status={self.status}>"
