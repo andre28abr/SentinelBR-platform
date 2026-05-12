@@ -187,6 +187,28 @@ lab-status: ## lista VMs do lab + status dos agentes
 lab-down: ## destroi todas as VMs do lab (~10s)
 	@$(LAB_DIR)/down.sh
 
+# ─── Seed helpers ─────────────────────────────────────────────────────────────
+
+.PHONY: seed
+seed: ## roda o seed do server (cria org + admin se nao existir, idempotente)
+	cd $(SERVER_DIR) && $(UV) run python -m app.scripts.seed
+
+.PHONY: seed-rename-default-org
+seed-rename-default-org: ## renomeia org 'default' (legada) pra 'andre28abr'
+	@docker exec -i $$(docker ps --filter "name=postgres" --format "{{.Names}}" | head -1) \
+	  psql -U sentinelbr -d sentinelbr \
+	  -c "UPDATE organizations SET name='andre28abr', slug='andre28abr' WHERE slug='default';"
+	@echo "✓ org renomeada (login form ja vem pre-preenchido com andre28abr)"
+
+.PHONY: db-reset
+db-reset: ## DROPA o banco dev e recria do zero + roda seed (CUIDADO: apaga tudo)
+	docker compose -f deploy/compose/docker-compose.dev.yml down -v
+	$(MAKE) dev
+	@echo "→ aguardando postgres pronto..."
+	@sleep 5
+	cd $(SERVER_DIR) && $(UV) run alembic upgrade head
+	$(MAKE) seed
+
 # ─── Clean ────────────────────────────────────────────────────────────────────
 
 .PHONY: clean
