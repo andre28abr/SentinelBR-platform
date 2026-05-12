@@ -65,6 +65,23 @@ class Settings(BaseSettings):
     lynis_scheduled_interval_seconds: int = Field(default=604800)
 
 
+_DEFAULT_JWT_SECRET = "change-me-in-prod-with-32-bytes-min"  # noqa: S105
+
+
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    # Em prod (debug=False), barra boot se jwt_secret nao foi configurado.
+    # Em dev (debug=True), so emite warning pra nao atrapalhar o local dev.
+    if s.jwt_secret == _DEFAULT_JWT_SECRET:
+        if not s.debug:
+            raise RuntimeError(
+                "SENTINELBR_JWT_SECRET nao configurado em producao. "
+                "Defina uma string aleatoria de 32+ bytes via env. "
+                "Pra dev local, set SENTINELBR_DEBUG=true."
+            )
+        import logging
+        logging.warning(
+            "JWT_SECRET usando valor default — OK em dev, mas NUNCA em prod."
+        )
+    return s

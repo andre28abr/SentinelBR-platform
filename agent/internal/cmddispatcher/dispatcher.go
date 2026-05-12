@@ -5,7 +5,6 @@ package cmddispatcher
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -99,11 +98,9 @@ func (d *Dispatcher) handleClamavScan(c *pb.RunClamavScanCommand) (pb.CommandSta
 	if timeout == 0 {
 		timeout = 10 * time.Minute // ClamAV eh mais lento que YARA
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 
-	d.Log.Info("clamav_scan iniciado", "path", c.Path, "reason", c.Reason)
-	matches, err := runClamavScan(ctx, c.Path)
+	d.Log.Info("clamav_scan iniciado", "path", c.Path, "reason", c.Reason, "timeout", timeout)
+	matches, err := runClamavScan(context.Background(), timeout, c.Path)
 	if err != nil {
 		return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
 	}
@@ -160,26 +157,24 @@ func emitScanCompleted(d *Dispatcher, source, scanType, reason string, extra map
 
 // runClamavScan executa clamscan recursivo e parseia "FOUND" lines.
 // ClamAV exit codes: 0 = clean, 1 = malware found, 2+ = error.
-// Em exit=1 ainda parsemos stdout (matches).
-func runClamavScan(ctx context.Context, path string) ([]clamavMatch, error) {
-	cmd := exec.CommandContext(ctx, "clamscan", "-r", "--no-summary", "--infected", path)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	runErr := cmd.Run()
-	// exit 1 = found malware (esperado), 0 = clean, 2+ = error.
+// Usa runScanBounded pra cap em 10MB de output (anti-OOM em scans gigantes)
+// + wrap com timeout coreutils (anti-trava em I/O bloqueante).
+func runClamavScan(ctx context.Context, timeout time.Duration, path string) ([]clamavMatch, error) {
+	stdout, stderr, runErr := runScanBounded(ctx, timeout,
+		"clamscan", "-r", "--no-summary", "--infected", path,
+	)
 	if runErr != nil {
 		if exitErr, ok := runErr.(*exec.ExitError); ok {
 			code := exitErr.ExitCode()
 			if code != 0 && code != 1 {
 				return nil, fmt.Errorf("clamscan exit=%d: %s", code,
-					strings.TrimSpace(stderr.String()))
+					strings.TrimSpace(string(stderr)))
 			}
 		} else {
 			return nil, fmt.Errorf("clamscan: %w", runErr)
 		}
 	}
-	return parseClamavOutput(stdout.String()), nil
+	return parseClamavOutput(string(stdout)), nil
 }
 
 func parseClamavOutput(output string) []clamavMatch {
@@ -381,18 +376,9 @@ func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.Comman
 	if timeout == 0 {
 		timeout = 15 * time.Minute
 	}
-	// Wrap com `timeout` do coreutils — Go ctx.cancel() nao mata processos
-	// em I/O bloqueante (estado D). Veja handleChkrootkitScan pra detalhes.
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+1*time.Minute)
-	defer cancel()
 	d.Log.Info("rkhunter_scan iniciado", "reason", c.Reason, "timeout", timeout)
-	cmd := exec.CommandContext(ctx, "timeout", "--kill-after=30s",
-		fmt.Sprintf("%ds", int(timeout.Seconds())),
+	stdout, stderr, err := runScanBounded(context.Background(), timeout,
 		"rkhunter", "--check", "--sk", "--rwo")
-	if _, err := exec.LookPath("timeout"); err != nil {
-		cmd = exec.CommandContext(ctx, "rkhunter", "--check", "--sk", "--rwo")
-	}
-	out, err := cmd.CombinedOutput()
 	// rkhunter exit codes: 0 = clean, 1 = warnings, 2 = error. Aceita 0 e 1.
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
@@ -400,9 +386,10 @@ func (d *Dispatcher) handleRkhunterScan(c *pb.RunRkhunterScanCommand) (pb.Comman
 		}
 	}
 	if err != nil {
-		return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
+		return pb.CommandStatus_COMMAND_STATUS_FAILED,
+			fmt.Sprintf("%s: %s", err.Error(), strings.TrimSpace(string(stderr)))
 	}
-	warnings := parseRkhunterWarnings(string(out))
+	warnings := parseRkhunterWarnings(string(stdout))
 	if d.EventBus != nil {
 		for _, w := range warnings {
 			ev := events.New(d.HostID, "rkhunter", time.Now().UTC(), w)
@@ -446,12 +433,11 @@ func (d *Dispatcher) handleLynisAudit(c *pb.RunLynisAuditCommand) (pb.CommandSta
 	if timeout == 0 {
 		timeout = 10 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	d.Log.Info("lynis_audit iniciado", "reason", c.Reason)
-	out, err := exec.CommandContext(ctx, "lynis", "audit", "system", "--quick", "--no-colors").CombinedOutput()
+	d.Log.Info("lynis_audit iniciado", "reason", c.Reason, "timeout", timeout)
+	stdout, _, err := runScanBounded(context.Background(), timeout,
+		"lynis", "audit", "system", "--quick", "--no-colors")
 	// lynis exit codes: 0 success, 1+ varia. Aceita qualquer porque sempre gera output.
-	score, findings := parseLynisOutput(string(out))
+	score, findings := parseLynisOutput(string(stdout))
 	if d.EventBus != nil {
 		ev := events.New(d.HostID, "lynis", time.Now().UTC(),
 			fmt.Sprintf("audit completo (score=%d, findings=%d)", score, len(findings)))
@@ -520,17 +506,9 @@ func (d *Dispatcher) handleChkrootkitScan(c *pb.RunChkrootkitScanCommand) (pb.Co
 	if timeout == 0 {
 		timeout = 10 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout+1*time.Minute)
-	defer cancel()
 	d.Log.Info("chkrootkit_scan iniciado", "reason", c.Reason, "timeout", timeout)
-	cmd := exec.CommandContext(ctx, "timeout", "--kill-after=30s",
-		fmt.Sprintf("%ds", int(timeout.Seconds())), "chkrootkit", "-q")
-	if _, err := exec.LookPath("timeout"); err != nil {
-		// fallback se coreutils ausente — sem wrap, mas com ctx do Go
-		cmd = exec.CommandContext(ctx, "chkrootkit", "-q")
-	}
-	out, _ := cmd.CombinedOutput()
-	warnings := parseChkrootkitOutput(string(out))
+	stdout, _, _ := runScanBounded(context.Background(), timeout, "chkrootkit", "-q")
+	warnings := parseChkrootkitOutput(string(stdout))
 	if d.EventBus != nil {
 		for _, w := range warnings {
 			ev := events.New(d.HostID, "chkrootkit", time.Now().UTC(), w)
@@ -578,10 +556,8 @@ func (d *Dispatcher) handleAideCheck(c *pb.RunAideCheckCommand) (pb.CommandStatu
 	if timeout == 0 {
 		timeout = 30 * time.Minute
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	d.Log.Info("aide_check iniciado", "reason", c.Reason)
-	out, err := exec.CommandContext(ctx, "aide", "--check").CombinedOutput()
+	d.Log.Info("aide_check iniciado", "reason", c.Reason, "timeout", timeout)
+	stdout, _, err := runScanBounded(context.Background(), timeout, "aide", "--check")
 	// AIDE exit codes: 0=ok, 1+ = differences found ou error.
 	// Aceita exit 1-3 (diff types). 4+ ou err sem ExitError sao error real.
 	if err != nil {
@@ -594,7 +570,7 @@ func (d *Dispatcher) handleAideCheck(c *pb.RunAideCheckCommand) (pb.CommandStatu
 			return pb.CommandStatus_COMMAND_STATUS_FAILED, err.Error()
 		}
 	}
-	added, changed, removed := parseAideSummary(string(out))
+	added, changed, removed := parseAideSummary(string(stdout))
 	if d.EventBus != nil {
 		total := added + changed + removed
 		ev := events.New(d.HostID, "aide", time.Now().UTC(),

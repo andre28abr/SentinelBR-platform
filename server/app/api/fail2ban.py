@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse
 from app.services import audit
@@ -105,7 +105,7 @@ async def trigger_fail2ban_unban(
     payload: Fail2banActionRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Desbloqueia IP num jail do fail2ban (action enviada ao agente)."""
     return await _create_fail2ban_action(
@@ -123,7 +123,7 @@ async def trigger_fail2ban_ban(
     payload: Fail2banActionRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Bloqueia IP manualmente num jail (action enviada ao agente)."""
     return await _create_fail2ban_action(

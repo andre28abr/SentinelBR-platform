@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.models import Alert, Host
 from app.schemas.alert import AlertResponse, AlertUpdate
 from app.services import audit
@@ -103,7 +103,14 @@ async def update_alert(
 
 
 @router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_alert(alert_id: uuid.UUID, db: DbSession, current: CurrentUser) -> None:
+async def delete_alert(
+    alert_id: uuid.UUID, request: Request, db: DbSession, current: AdminUser,
+) -> None:
     alert = await _alert_in_org_or_404(db, alert_id, current.org_id)
+    await audit.log_action(
+        db, action="alert_deleted", actor=current, request=request,
+        target_type="alert", target_id=alert_id,
+        details={"rule_id": alert.rule_id, "severity": alert.severity},
+    )
     await db.delete(alert)
     await db.commit()

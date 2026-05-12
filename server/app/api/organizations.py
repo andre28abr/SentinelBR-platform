@@ -14,11 +14,13 @@ from __future__ import annotations
 import re
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import IntegrityError
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.models import Organization
+from app.services import audit
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 
@@ -63,18 +65,23 @@ async def get_organization(
 async def update_organization(
     org_id: uuid.UUID,
     payload: OrganizationUpdate,
+    request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: AdminUser,
 ) -> Organization:
     if org_id != current.org_id:
         raise HTTPException(status_code=404, detail="organizacao nao encontrada")
-    if current.role != "admin":
-        raise HTTPException(status_code=403, detail="apenas admin pode editar")
     org = await db.get(Organization, org_id)
     if org is None:
         raise HTTPException(status_code=404, detail="organizacao nao encontrada")
+    old_name = org.name
     if payload.name is not None:
         org.name = payload.name
+    await audit.log_action(
+        db, action="organization_updated", actor=current, request=request,
+        target_type="organization", target_id=org_id,
+        details={"old_name": old_name, "new_name": org.name},
+    )
     await db.commit()
     await db.refresh(org)
     return org
@@ -82,20 +89,24 @@ async def update_organization(
 
 @router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
-    payload: OrganizationCreate, db: DbSession, current: CurrentUser,
+    payload: OrganizationCreate, request: Request, db: DbSession, current: AdminUser,
 ) -> Organization:
     """Cria nova organizacao. Apenas admin (MVP — futuro: signup publico ou
     convite). NAO migra o user atual pra essa nova org."""
-    if current.role != "admin":
-        raise HTTPException(status_code=403, detail="apenas admin pode criar organizacoes")
     if not re.match(r"^[a-z0-9-]+$", payload.slug):
         raise HTTPException(status_code=400, detail="slug invalido (a-z, 0-9, -)")
     org = Organization(name=payload.name, slug=payload.slug)
     db.add(org)
     try:
-        await db.commit()
-    except Exception as e:  # noqa: BLE001
+        await db.flush()
+    except IntegrityError as e:
         await db.rollback()
-        raise HTTPException(status_code=409, detail=f"slug ja existe ou conflito: {e}") from e
+        raise HTTPException(status_code=409, detail="slug ja existe") from e
+    await audit.log_action(
+        db, action="organization_created", actor=current, request=request,
+        target_type="organization", target_id=org.id,
+        details={"slug": payload.slug, "name": payload.name},
+    )
+    await db.commit()
     await db.refresh(org)
     return org

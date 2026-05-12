@@ -14,10 +14,11 @@ import AlertBadge from '@/components/AlertBadge'
 import Logo from '@/components/Logo'
 import SessionTimer from '@/components/SessionTimer'
 import Tooltip from '@/components/Tooltip'
+import { logout as apiLogout } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 
 export default function AppHeader() {
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   return (
     <header className="mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-800 space-y-3">
       {/* Linha 1: logo + org + user + sair */}
@@ -42,7 +43,7 @@ export default function AppHeader() {
           <Tooltip content="Encerrar sessão">
             <button
               type="button"
-              onClick={logout}
+              onClick={() => apiLogout()}
               className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
             >
               sair

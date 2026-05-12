@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 
 from app.api import (
     actions,
@@ -22,6 +23,7 @@ from app.api import (
     yara,
 )
 from app.config import get_settings
+from app.services.ratelimit import limiter, rate_limit_handler
 
 
 @asynccontextmanager
@@ -38,12 +40,19 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     origins = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
+    if not origins:
+        raise RuntimeError("SENTINELBR_CORS_ALLOWED_ORIGINS vazio — defina origens explicitas")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_credentials=True,  # cookies httpOnly de refresh dependem disso
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     )
+    # Rate limit (slowapi) — pra agora protege /auth/login e /agents/enroll
+    # via decorator @limiter.limit. Handler 429 retorna detail amigavel.
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(hosts.router)

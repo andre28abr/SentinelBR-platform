@@ -1,16 +1,26 @@
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 
-import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+# Setar env vars ANTES de importar app.config — evita assert do JWT_SECRET
+# falhar em CI sem env, e garante que testes nao usam o default real.
+os.environ.setdefault("SENTINELBR_JWT_SECRET", "test-jwt-secret-32-bytes-mininum-len")
+os.environ.setdefault("SENTINELBR_DEBUG", "true")
 
-from app.config import get_settings
-from app.db import Base, get_db
-from app.main import app
-from app.models import Organization, User
-from app.services.auth import hash_password
+import pytest  # noqa: E402
+import pytest_asyncio  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from app.config import get_settings  # noqa: E402
+from app.db import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models import Organization, User  # noqa: E402
+from app.services.auth import hash_password  # noqa: E402
 
 
 @pytest.fixture(scope="session")

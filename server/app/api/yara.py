@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse
 from app.services import audit
@@ -31,7 +31,7 @@ async def trigger_yara_scan(
     payload: YaraScanRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Cria uma Action 'run_yara_scan' que sera enviada ao agente no proximo heartbeat."""
     host = await db.get(Host, host_id)

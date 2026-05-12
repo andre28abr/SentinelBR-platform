@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.config import get_settings
 from app.models import Host
 from app.schemas.enrollment import EnrollmentTokenResponse
@@ -75,7 +75,7 @@ async def update_host(
 
 @router.delete("/{host_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_host(
-    host_id: uuid.UUID, request: Request, db: DbSession, current: CurrentUser
+    host_id: uuid.UUID, request: Request, db: DbSession, current: AdminUser
 ) -> None:
     host = await _host_in_org_or_404(db, host_id, current.org_id)
     await audit.log_action(

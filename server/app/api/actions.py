@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AdminUser, CurrentUser, DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse, ActionUpdate
 from app.services import audit
@@ -42,7 +42,7 @@ async def list_actions_for_host(
 @router.patch("/actions/{action_id}", response_model=ActionResponse)
 async def revert_action(
     action_id: uuid.UUID, payload: ActionUpdate, request: Request,
-    db: DbSession, current: CurrentUser,
+    db: DbSession, current: OperatorUser,
 ) -> Action:
     action = await _action_in_org_or_404(db, action_id, current.org_id)
 
@@ -77,8 +77,13 @@ async def revert_action(
 
 @router.delete("/actions/{action_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_action(
-    action_id: uuid.UUID, db: DbSession, current: CurrentUser,
+    action_id: uuid.UUID, request: Request, db: DbSession, current: AdminUser,
 ) -> None:
     action = await _action_in_org_or_404(db, action_id, current.org_id)
+    await audit.log_action(
+        db, action="action_deleted", actor=current, request=request,
+        target_type="action", target_id=action_id,
+        details={"action_type": action.action_type, "target": action.target},
+    )
     await db.delete(action)
     await db.commit()

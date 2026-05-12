@@ -18,22 +18,22 @@ interface User {
 
 interface AuthState {
   accessToken: string | null
-  refreshToken: string | null
   user: User | null
-  setTokens: (access: string, refresh: string) => void
+  setAccessToken: (access: string) => void
   setUser: (user: User | null) => void
-  logout: () => void
+  /** Limpa estado local. Pra logout completo usar logout() em api.ts (chama
+   *  /auth/logout no server pra apagar o cookie httpOnly de refresh). */
+  clearAuth: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       accessToken: null,
-      refreshToken: null,
       user: null,
-      setTokens: (access, refresh) => set({ accessToken: access, refreshToken: refresh }),
+      setAccessToken: (access) => set({ accessToken: access }),
       setUser: (user) => set({ user }),
-      logout: () => set({ accessToken: null, refreshToken: null, user: null }),
+      clearAuth: () => set({ accessToken: null, user: null }),
     }),
     { name: 'sentinelbr-auth' },
   ),

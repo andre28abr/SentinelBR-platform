@@ -40,3 +40,30 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_role(*allowed_roles: str):
+    """Dependency factory pra restringir endpoint a roles especificos.
+
+    Uso:
+        @router.delete("/x", dependencies=[Depends(require_role("admin"))])
+
+    OU como dep injection com Annotated:
+        AdminUser = Annotated[User, Depends(require_role("admin"))]
+    """
+    async def _check(current: CurrentUser) -> User:
+        if current.role not in allowed_roles:
+            needed = ",".join(allowed_roles)
+            raise HTTPException(
+                status_code=403,
+                detail=f"role '{current.role}' insuficiente (necessario: {needed})",
+            )
+        return current
+    return _check
+
+
+# Roles padrao em uso: "admin" (full), "operator" (acoes), "viewer" (read-only).
+# Ver models/user.py:22 — default eh "admin", users novos via /users criariam
+# operator, mas esse endpoint nao existe ainda (single-org admin self-service).
+AdminUser = Annotated[User, Depends(require_role("admin"))]
+OperatorUser = Annotated[User, Depends(require_role("admin", "operator"))]

@@ -7,7 +7,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import case, select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import CurrentUser, DbSession, OperatorUser
 from app.models import Host, HostPackage, HostVulnerability
 from app.schemas.vulnerability import (
     HostPackageResponse,
@@ -77,8 +77,12 @@ async def list_vulnerabilities(
 
 
 @router.post("/{host_id}/scan", status_code=202)
-async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: CurrentUser) -> dict:
-    """Dispara scan manual (mesmo task que roda apos SubmitInventory)."""
+async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: OperatorUser) -> dict:
+    """Dispara scan manual (mesmo task que roda apos SubmitInventory).
+
+    NB: chamada inline (await) — para hosts grandes, considerar mover pra
+    Celery delay() em fase futura (vide auditoria Fase 3).
+    """
     host = await db.get(Host, host_id)
     if host is None or host.org_id != current.org_id:
         raise HTTPException(status_code=404, detail="host nao encontrado")

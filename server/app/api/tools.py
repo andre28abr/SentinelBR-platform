@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse
 from app.services import audit
@@ -82,7 +82,7 @@ async def trigger_rkhunter_scan(
     payload: ToolRunRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Roda 'rkhunter --check --sk' no host. Saida vira eventos."""
     return await _create_tool_action(
@@ -101,7 +101,7 @@ async def trigger_lynis_audit(
     payload: ToolRunRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Roda 'lynis audit system --quick' no host. Saida vira eventos."""
     return await _create_tool_action(
@@ -120,7 +120,7 @@ async def trigger_chkrootkit_scan(
     payload: ToolRunRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Roda 'chkrootkit -q' no host. Warnings viram eventos."""
     return await _create_tool_action(
@@ -139,7 +139,7 @@ async def trigger_aide_check(
     payload: ToolRunRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Roda 'aide --check' no host (precisa --init feito antes)."""
     return await _create_tool_action(

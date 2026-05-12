@@ -26,7 +26,7 @@ interface MeResponse {
 }
 
 export default function LoginPage() {
-  const { accessToken, setTokens, setUser } = useAuthStore()
+  const { accessToken, setAccessToken, setUser } = useAuthStore()
   const navigate = useNavigate()
   const [email, setEmail] = useState('admin@sentinelbr.io')
   const [password, setPassword] = useState('')
@@ -47,7 +47,9 @@ export default function LoginPage() {
       }
       if (orgSlug.trim()) body.org_slug = orgSlug.trim()
       const tokens = await api.post<TokenPair>('/api/v1/auth/login', body)
-      setTokens(tokens.access_token, tokens.refresh_token)
+      // refresh_token tambem retornado no body, mas usamos cookie httpOnly
+      // (set automaticamente pelo /login response). Body refresh ignorado.
+      setAccessToken(tokens.access_token)
       const me = await api.get<MeResponse>('/api/v1/auth/me')
       setUser(me)
       navigate('/')

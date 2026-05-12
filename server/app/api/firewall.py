@@ -15,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession, OperatorUser
 from app.models import Action, Host
 from app.schemas.action import ActionResponse
 from app.services import audit
@@ -77,7 +77,7 @@ async def add_firewall_rule(
     payload: FirewallAddRuleRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Adiciona regra ao firewall ativo (ufw ou firewalld) via Action."""
     host = await db.get(Host, host_id)
@@ -134,7 +134,7 @@ async def remove_firewall_rule(
     payload: FirewallRemoveRuleRequest,
     request: Request,
     db: DbSession,
-    current: CurrentUser,
+    current: OperatorUser,
 ) -> Action:
     """Remove regra do firewall ativo via Action."""
     host = await db.get(Host, host_id)

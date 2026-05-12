@@ -15,7 +15,6 @@ import AppHeader from '@/components/AppHeader'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import Tooltip from '@/components/Tooltip'
 import { ApiError, api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 
 interface ComplianceReport {
   period_start: string
@@ -59,7 +58,6 @@ interface TimelinePoint {
 }
 
 export default function CompliancePage() {
-  const { accessToken } = useAuthStore()
   const [report, setReport] = useState<ComplianceReport | null>(null)
   const [logs, setLogs] = useState<AuditLog[]>([])
   const [timeline, setTimeline] = useState<TimelinePoint[]>([])
@@ -135,12 +133,9 @@ export default function CompliancePage() {
             onClick={async () => {
               setDownloadingPdf(true)
               try {
-                const resp = await fetch(
+                const blob = await api.getBlob(
                   `/api/v1/compliance/report/pdf?days=${days}`,
-                  { headers: { Authorization: `Bearer ${accessToken}` } },
                 )
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-                const blob = await resp.blob()
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
                 a.href = url
@@ -150,7 +145,11 @@ export default function CompliancePage() {
                 a.remove()
                 URL.revokeObjectURL(url)
               } catch (e) {
-                setError(e instanceof Error ? e.message : 'erro ao baixar PDF')
+                if (e instanceof ApiError) {
+                  setError(typeof e.detail === 'string' ? e.detail : `erro HTTP ${e.status}`)
+                } else {
+                  setError('erro ao baixar PDF')
+                }
               } finally {
                 setDownloadingPdf(false)
               }
