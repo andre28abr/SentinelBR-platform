@@ -2,7 +2,7 @@
 
 ## André Augusto Azarias De Souza
 
-→ [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub](https://github.com/andre28abr) · [Profile completo](https://github.com/andre28abr)
+→ [LinkedIn](https://linkedin.com/in/andreaugusto-azariasdesouza) · [GitHub](https://github.com/andre28abr) · [Profile completo](https://github.com/andre28abr)
 
 ---
 
@@ -96,6 +96,6 @@ Plataforma SaaS multi-tenant para gestão de licitações públicas brasileiras 
 
 ## Contato
 
-Para apresentação técnica de projetos privados (SC Platform), entrevistas, ou propostas de oportunidade, o canal de contato é o **[LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza)**.
+Para apresentação técnica de projetos privados (SC Platform), entrevistas, ou propostas de oportunidade, o canal de contato é o **[LinkedIn](https://linkedin.com/in/andreaugusto-azariasdesouza)**.
 
 Dados de contato direto (email, telefone) são fornecidos sob demanda durante processo seletivo, via canais formais do RH.

@@ -20,7 +20,7 @@ Profissional com mais de 18 anos de experiência em **gestão administrativa, co
 
 Atualmente em **transição de carreira, com disponibilidade imediata**, este projeto SentinelBR foi conduzido como **product owner técnico, com auxílio de assistentes de IA generativa para a etapa de codificação** — exercitando a tradução de exigências regulatórias (LGPD) e conceitos de threat detection em uma plataforma funcional, demonstrando fluência técnica suficiente para dialogar com times de engenharia, segurança e operações.
 
-→ **[Bio completa: AUTHOR.md](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
+→ **[Bio completa: AUTHOR.md](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/andreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
 
 ### 📂 Outro projeto do autor
 
@@ -582,4 +582,4 @@ Tudo em `docs/` (também renderizado in-app em `/docs` depois de logar):
 
 Para reportar vulnerabilidades de segurança, ver [SECURITY.md](SECURITY.md).
 
-Bio do autor: [AUTHOR.md](AUTHOR.md) · Contato: [LinkedIn](https://linkedin.com/in/adreaugusto-azariasdesouza)
+Bio do autor: [AUTHOR.md](AUTHOR.md) · Contato: [LinkedIn](https://linkedin.com/in/andreaugusto-azariasdesouza)
