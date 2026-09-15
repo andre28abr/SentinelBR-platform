@@ -13,7 +13,9 @@ import (
 // nenhum padrao do parser sao descartadas silenciosamente (logs ssh tem muito ruido).
 //
 // Importante: as linhas que vem de auth.log tem prefixo de timestamp + hostname + processo:
-//   "May 09 02:14:12 web-01 sshd[15234]: Failed password for ..."
+//
+//	"May 09 02:14:12 web-01 sshd[15234]: Failed password for ..."
+//
 // O parser quer so o miolo (depois de "sshd[NN]: "). SSHDCollector faz o trim.
 type SSHDCollector struct {
 	HostID string
@@ -29,8 +31,8 @@ func NewSSHDCollector(hostID string, source Source) *SSHDCollector {
 	}
 }
 
-func (c *SSHDCollector) Name() string                       { return "sshd:" + c.Source.Name() }
-func (c *SSHDCollector) Events() <-chan *events.Event       { return c.Out }
+func (c *SSHDCollector) Name() string                 { return "sshd:" + c.Source.Name() }
+func (c *SSHDCollector) Events() <-chan *events.Event { return c.Out }
 
 func (c *SSHDCollector) Run(ctx context.Context) error {
 	defer close(c.Out)

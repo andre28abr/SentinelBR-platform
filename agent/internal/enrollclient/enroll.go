@@ -31,11 +31,11 @@ type request struct {
 }
 
 type Response struct {
-	HostID       string `json:"host_id"`
-	CACertPEM    string `json:"ca_cert_pem"`
+	HostID        string `json:"host_id"`
+	CACertPEM     string `json:"ca_cert_pem"`
 	ClientCertPEM string `json:"client_cert_pem"`
 	ClientKeyPEM  string `json:"client_key_pem"`
-	GRPCEndpoint string `json:"grpc_endpoint"`
+	GRPCEndpoint  string `json:"grpc_endpoint"`
 }
 
 type apiError struct {

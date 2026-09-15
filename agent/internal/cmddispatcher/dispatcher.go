@@ -26,14 +26,14 @@ import (
 )
 
 type Dispatcher struct {
-	Firewall    firewall.FirewallExecutor
-	DryRun      bool
-	Log         *slog.Logger
-	HostID      string
-	YaraRulesPath string // se vazio, scans YARA sao reportados como UNSUPPORTED
-	EventBus    chan<- *events.Event // canal pra emitir matches YARA. nil = nao emite.
-	Quarantiner *quarantine.Quarantiner // se nil, quarantine eh UNSUPPORTED
-	ScanTimeout time.Duration // default 5min
+	Firewall      firewall.FirewallExecutor
+	DryRun        bool
+	Log           *slog.Logger
+	HostID        string
+	YaraRulesPath string                  // se vazio, scans YARA sao reportados como UNSUPPORTED
+	EventBus      chan<- *events.Event    // canal pra emitir matches YARA. nil = nao emite.
+	Quarantiner   *quarantine.Quarantiner // se nil, quarantine eh UNSUPPORTED
+	ScanTimeout   time.Duration           // default 5min
 }
 
 // Execute roda 1 comando e devolve o resultado a ser reportado.

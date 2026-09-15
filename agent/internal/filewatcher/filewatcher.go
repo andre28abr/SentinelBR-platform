@@ -22,19 +22,19 @@ import (
 )
 
 const (
-	DefaultDebounce  = 2 * time.Second
+	DefaultDebounce    = 2 * time.Second
 	DefaultScanTimeout = 30 * time.Second
 )
 
 type Watcher struct {
 	HostID         string
-	Dirs           []string         // diretorios a monitorar (recursivo)
-	RulesPath      string           // arquivo .yar ou diretorio
+	Dirs           []string // diretorios a monitorar (recursivo)
+	RulesPath      string   // arquivo .yar ou diretorio
 	EventBus       chan<- *events.Event
 	Log            *slog.Logger
-	DebounceWindow time.Duration    // default 2s
-	ScanTimeout    time.Duration    // default 30s
-	IgnoreSuffixes []string         // ".swp", ".tmp", "~", etc — nao scaneia
+	DebounceWindow time.Duration // default 2s
+	ScanTimeout    time.Duration // default 30s
+	IgnoreSuffixes []string      // ".swp", ".tmp", "~", etc — nao scaneia
 }
 
 // Run abre o watcher, registra os diretorios e bloqueia ate ctx ser cancelado.

@@ -20,7 +20,7 @@ import (
 const firewallCmdTimeout = 10 * time.Second
 
 // validVerb / validProto / validPort ajudam a impedir shell injection.
-func validVerb(v string) bool { return v == "allow" || v == "deny" }
+func validVerb(v string) bool  { return v == "allow" || v == "deny" }
 func validProto(v string) bool { return v == "tcp" || v == "udp" }
 
 // validPort: aceita "80" | "80,443" | "1000:2000". So digitos + ":" + ","

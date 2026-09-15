@@ -20,9 +20,9 @@ type TLS struct {
 }
 
 // Load procura o config em (em ordem):
-//   1. caminho explícito passado por --config
-//   2. ./agent.yaml
-//   3. /etc/sentinelbr/agent.yaml
+//  1. caminho explícito passado por --config
+//  2. ./agent.yaml
+//  3. /etc/sentinelbr/agent.yaml
 //
 // Variáveis de ambiente prefixadas com SENTINEL_ sobrescrevem
 // (ex: SENTINEL_SERVER_ENDPOINT=https://...).

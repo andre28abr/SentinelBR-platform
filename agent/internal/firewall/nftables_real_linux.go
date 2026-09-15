@@ -22,10 +22,11 @@ func runNft(args ...string) ([]byte, error) {
 // remover IP eh atomico via element delete.
 //
 // Bootstrap (rodado idempotentemente em Init):
-//   nft add table inet sentinelbr
-//   nft add set inet sentinelbr blocked_ips { type ipv4_addr; flags interval; }
-//   nft add chain inet sentinelbr input { type filter hook input priority -100; }
-//   nft add rule  inet sentinelbr input ip saddr @blocked_ips drop
+//
+//	nft add table inet sentinelbr
+//	nft add set inet sentinelbr blocked_ips { type ipv4_addr; flags interval; }
+//	nft add chain inet sentinelbr input { type filter hook input priority -100; }
+//	nft add rule  inet sentinelbr input ip saddr @blocked_ips drop
 type nftablesReal struct {
 	initialized bool
 }
@@ -77,5 +78,5 @@ func (n *nftablesReal) UnblockIP(ip net.IP) error {
 	return nil
 }
 
-func (n *nftablesReal) ListRules() ([]Rule, error)     { return nil, ErrNotImplemented }
-func (n *nftablesReal) Snapshot() (*Snapshot, error)   { return nil, ErrNotImplemented }
+func (n *nftablesReal) ListRules() ([]Rule, error)   { return nil, ErrNotImplemented }
+func (n *nftablesReal) Snapshot() (*Snapshot, error) { return nil, ErrNotImplemented }

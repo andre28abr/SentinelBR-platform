@@ -395,4 +395,3 @@ func parseFail2banJails(out string) []string {
 	}
 	return nil
 }
-

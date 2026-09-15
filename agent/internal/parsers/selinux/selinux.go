@@ -2,11 +2,12 @@
 // /var/log/audit/audit.log).
 //
 // Formato tipico:
-//   type=AVC msg=audit(1715270000.000:1234): avc: denied { read } for pid=5000
-//     comm="httpd" name="config.json" dev="dm-0" ino=78901
-//     scontext=system_u:system_r:httpd_t:s0
-//     tcontext=system_u:object_r:default_t:s0
-//     tclass=file permissive=0
+//
+//	type=AVC msg=audit(1715270000.000:1234): avc: denied { read } for pid=5000
+//	  comm="httpd" name="config.json" dev="dm-0" ino=78901
+//	  scontext=system_u:system_r:httpd_t:s0
+//	  tcontext=system_u:object_r:default_t:s0
+//	  tclass=file permissive=0
 package selinux
 
 import (

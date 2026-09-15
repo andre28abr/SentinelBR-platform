@@ -10,14 +10,14 @@ import (
 var ErrNotImplemented = errors.New("firewall: operação não implementada para este OS")
 
 type Rule struct {
-	ID        string
-	Chain     string
-	Action    string // accept | drop | reject
-	Protocol  string // tcp | udp | icmp | any
-	SrcIP     string
-	DstIP     string
-	DstPort   int
-	Comment   string
+	ID       string
+	Chain    string
+	Action   string // accept | drop | reject
+	Protocol string // tcp | udp | icmp | any
+	SrcIP    string
+	DstIP    string
+	DstPort  int
+	Comment  string
 }
 
 type Snapshot struct {

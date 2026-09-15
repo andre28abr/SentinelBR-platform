@@ -34,8 +34,8 @@ func NewFileSource(path string, once bool) *FileSource {
 	}
 }
 
-func (s *FileSource) Name() string         { return "file:" + s.Path }
-func (s *FileSource) Lines() <-chan Line   { return s.out }
+func (s *FileSource) Name() string       { return "file:" + s.Path }
+func (s *FileSource) Lines() <-chan Line { return s.out }
 
 func (s *FileSource) Run(ctx context.Context) error {
 	defer close(s.out)

@@ -25,7 +25,7 @@ func New(info *osdetect.OSInfo) PackageManager {
 // Todos os métodos retornam ErrNotImplemented.
 type NoopManager struct{ name string }
 
-func (n NoopManager) Name() string                              { return "noop:" + n.name }
-func (n NoopManager) ListInstalled() ([]Package, error)         { return nil, ErrNotImplemented }
-func (n NoopManager) ListUpdatesAvailable() ([]Update, error)   { return nil, ErrNotImplemented }
-func (n NoopManager) ListSecurityUpdates() ([]Update, error)    { return nil, ErrNotImplemented }
+func (n NoopManager) Name() string                            { return "noop:" + n.name }
+func (n NoopManager) ListInstalled() ([]Package, error)       { return nil, ErrNotImplemented }
+func (n NoopManager) ListUpdatesAvailable() ([]Update, error) { return nil, ErrNotImplemented }
+func (n NoopManager) ListSecurityUpdates() ([]Update, error)  { return nil, ErrNotImplemented }

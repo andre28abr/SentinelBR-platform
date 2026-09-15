@@ -28,8 +28,8 @@ func New(info *osdetect.OSInfo) FirewallExecutor {
 
 type NoopFirewall struct{ name string }
 
-func (n NoopFirewall) Backend() string                                 { return "noop:" + n.name }
-func (NoopFirewall) ListRules() ([]Rule, error)                        { return nil, ErrNotImplemented }
-func (NoopFirewall) BlockIP(_ net.IP, _ time.Duration) error           { return ErrNotImplemented }
-func (NoopFirewall) UnblockIP(_ net.IP) error                          { return ErrNotImplemented }
-func (NoopFirewall) Snapshot() (*Snapshot, error)                      { return nil, ErrNotImplemented }
+func (n NoopFirewall) Backend() string                       { return "noop:" + n.name }
+func (NoopFirewall) ListRules() ([]Rule, error)              { return nil, ErrNotImplemented }
+func (NoopFirewall) BlockIP(_ net.IP, _ time.Duration) error { return ErrNotImplemented }
+func (NoopFirewall) UnblockIP(_ net.IP) error                { return ErrNotImplemented }
+func (NoopFirewall) Snapshot() (*Snapshot, error)            { return nil, ErrNotImplemented }

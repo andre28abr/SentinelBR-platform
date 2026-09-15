@@ -19,8 +19,8 @@ import (
 	"github.com/sentinelbr/agent/internal/collectors"
 	"github.com/sentinelbr/agent/internal/config"
 	"github.com/sentinelbr/agent/internal/enrollclient"
-	"github.com/sentinelbr/agent/internal/eventstream"
 	"github.com/sentinelbr/agent/internal/events"
+	"github.com/sentinelbr/agent/internal/eventstream"
 	"github.com/sentinelbr/agent/internal/filewatcher"
 	"github.com/sentinelbr/agent/internal/firewall"
 	pb "github.com/sentinelbr/agent/internal/grpc/pb"
@@ -476,7 +476,7 @@ func scanCmd() *cobra.Command {
 				return fmt.Errorf("--path obrigatorio (ex: /var/www, /tmp/x)")
 			}
 			if rulesPath == "" {
-				rulesPath = "yara-rules"  // default: relativo ao cwd, util pro Mac dev
+				rulesPath = "yara-rules" // default: relativo ao cwd, util pro Mac dev
 			}
 
 			scanner, err := yarascanner.NewScanner("placeholder-host-id", rulesPath)

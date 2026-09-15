@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	caFileName     = "ca.crt"
-	certFileName   = "client.crt"
-	keyFileName    = "client.key"
-	stateFileName  = "state.json"
+	caFileName    = "ca.crt"
+	certFileName  = "client.crt"
+	keyFileName   = "client.key"
+	stateFileName = "state.json"
 )
 
 type State struct {
@@ -25,8 +25,8 @@ type State struct {
 }
 
 type Paths struct {
-	Dir       string
-	CACert    string
+	Dir        string
+	CACert     string
 	ClientCert string
 	ClientKey  string
 	StateFile  string

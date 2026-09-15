@@ -1,10 +1,11 @@
 // Package apparmor extrai eventos de denials AppArmor do dmesg/journald/audit.log.
 //
 // Formato tipico:
-//   audit: type=1400 audit(1234567890.123:456): apparmor="DENIED"
-//     operation="open" profile="snap.firefox.firefox" name="/etc/passwd"
-//     pid=1234 comm="firefox" requested_mask="r" denied_mask="r"
-//     fsuid=1000 ouid=0
+//
+//	audit: type=1400 audit(1234567890.123:456): apparmor="DENIED"
+//	  operation="open" profile="snap.firefox.firefox" name="/etc/passwd"
+//	  pid=1234 comm="firefox" requested_mask="r" denied_mask="r"
+//	  fsuid=1000 ouid=0
 package apparmor
 
 import (
