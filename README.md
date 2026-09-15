@@ -7,7 +7,8 @@
 ![Python](https://img.shields.io/badge/python-3.12+-blue)
 ![Go](https://img.shields.io/badge/go-1.25-00add8)
 ![React](https://img.shields.io/badge/react-19-61dafb)
-![Tests](https://img.shields.io/badge/tests-149%20server%20%2B%2045%20agent-success)
+![Tests](https://img.shields.io/badge/tests-149%20server%20%2B%2045%20agent%20%2B%2031%20web-success)
+![mypy](https://img.shields.io/badge/mypy-strict%20%C2%B7%200%20erros-blue)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
 ---
@@ -509,7 +510,9 @@ Defesa em profundidade — quando uma camada falha, a próxima segura.
 |---|---|
 | **Linhas de código (LOC)** | ~19.500 (Python 6.5k + Go 5.5k + TS/TSX 7.5k) |
 | **Server testes automatizados** | 149 (em 19 arquivos, pytest-asyncio) |
-| **Agent suite** | Go tests com cache + race detector no CI |
+| **Agent suite** | 45 testes Go, race detector, em Linux/macOS/Windows no CI |
+| **Web suite** | 31 testes (Vitest + Testing Library): cliente de API com refresh de token, login, proteção de rotas, polling, store |
+| **Tipagem do server** | mypy `strict` com 0 erros (CI) |
 | **Rotas REST** | 55 (em 20 routers) |
 | **Migrations Alembic** | 17 (lineares, idempotentes) |
 | **Modelos SQLAlchemy** | 9 (org, user, host, alert, action, audit_log, host_package, host_vulnerability, refresh_token_jti) |

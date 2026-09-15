@@ -30,15 +30,17 @@ make dev-down / make down   # derruba
 
 # o que o CI roda (.github/workflows/ci.yml):
 cd agent  && go vet ./... && go build ./... && go test -race ./...     # 45 testes; CI em Linux, macOS e Windows + 5 cross-compiles
-cd server && uv run ruff check . && uv run pytest                      # 149 testes; EXIGE o `make dev` no ar (Postgres :5433, Redis, Loki)
-cd web    && pnpm install --frozen-lockfile && pnpm lint               # ESLint; tipos: pnpm exec tsc -b
+cd server && uv run ruff check . && uv run mypy app && uv run pytest   # mypy strict = 0 erros; 149 testes EXIGEM o `make dev` no ar
+cd web    && pnpm lint && pnpm exec tsc -b && pnpm test                # ESLint, tipos e 31 testes (vitest + jsdom, sem servidor)
 ```
 
 Login de dev: `admin@sentinelbr.io` / `admin1234` (seed: `make seed`). `start-dev.command` gera `.env-dev` com o JWT
 secret local e liga `SENTINELBR_DEBUG` e `SENTINELBR_LAB_MODE`; nunca use esses valores em produção.
 
-`make lint-server` também roda **mypy**, que hoje acusa ~166 erros; o CI não o exige. Não conte com ele verde.
-O web **não tem suíte de testes** (o alvo `make test-web` só checa tipos); lógica de negócio fica no server.
+**mypy roda em `strict` e está em zero** — mantenha assim: stubs gerados (`grpc_server/pb`) e libs sem tipos já estão
+tratados no `pyproject.toml`; código novo precisa de anotações completas.
+**Web**: testes em `src/**/*.test.{ts,tsx}` com Vitest + Testing Library (`vitest.config.ts`, setup em `src/test/setup.ts`
+que zera store, localStorage e `fetch` a cada teste). Toda chamada de rede é mockada — nenhum teste depende do servidor.
 
 ## Estrutura (o que importa)
 
