@@ -100,8 +100,9 @@ export default function LoginPage() {
         )}
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Email</label>
+          <label htmlFor="login-email" className="block text-sm font-medium">Email</label>
           <input
+            id="login-email"
             type="email"
             required
             value={email}
@@ -112,8 +113,9 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Senha</label>
+          <label htmlFor="login-password" className="block text-sm font-medium">Senha</label>
           <input
+            id="login-password"
             type="password"
             required
             value={password}
@@ -124,11 +126,12 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-baseline justify-between text-sm font-medium">
+          <label htmlFor="login-org" className="flex items-baseline justify-between text-sm font-medium">
             Organização
             <span className="text-xs font-normal text-zinc-400">opcional</span>
           </label>
           <input
+            id="login-org"
             type="text"
             value={orgSlug}
             onChange={(e) => setOrgSlug(e.target.value.toLowerCase())}
