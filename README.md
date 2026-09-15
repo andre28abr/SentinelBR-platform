@@ -25,11 +25,13 @@ Desde 2025 conduz, como **product owner técnico**, projetos open-source de segu
 
 ### 📂 Outros projetos do autor
 
-- **[VigiaOS](https://github.com/andre28abr/VigiaOS)** *(público)* — suíte de segurança, privacidade e LGPD para Fedora Workstation (GTK4 + libadwaita). Onde o SentinelBR cuida do *servidor*, o VigiaOS cuida da *estação de trabalho*.
-- **[Plataforma LGPD](https://github.com/andre28abr/lgpd-platform)** *(público)* — plataforma web multi-tenant que treina, avalia e certifica os setores de uma empresa em LGPD e dá ao DPO as ferramentas de operação (ROPA, RIPD, direitos do titular, incidentes).
-- **[Peapod](https://github.com/andre28abr/Peapod)** *(público)* — sandboxes isolados e descartáveis para agentes de IA (MCP, CLI, dashboard e app macOS).
-- **[banana](https://github.com/andre28abr/banana)** *(público)* — editor local-first de notas Markdown com vault cifrado (Tauri 2 + Rust + Svelte 5).
-- **SC Platform** *(privado, disponível para apresentação mediante solicitação)* — SaaS multi-tenant de gestão de licitações públicas (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local, CRM, Telegram). ~75k linhas, 547 testes. Python 3.14 + Flask 3 + PostgreSQL + Redis.
+- **[VigiaOS](https://github.com/andre28abr/VigiaOS)**: suíte de segurança, privacidade e LGPD para a estação de trabalho (Fedora Workstation, GTK4 + libadwaita), com 13 ferramentas defensivas, módulos de detecção e resposta e laboratório educacional.
+- **[Plataforma LGPD](https://github.com/andre28abr/lgpd-platform)**: plataforma web multi-tenant que treina, avalia e certifica os setores de uma empresa em LGPD e dá ao DPO as ferramentas de operação (ROPA, RIPD, direitos do titular, incidentes).
+- **[Peapod](https://github.com/andre28abr/Peapod)**: sandboxes isolados e descartáveis para agentes de IA (MCP, CLI, dashboard web e app nativo de macOS): rede desligada por padrão, allowlist de domínios e trilha de auditoria. Go e Swift.
+- **[Uptend](https://github.com/andre28abr/Uptend)**: app nativo de macOS para configurar e manter o Mac e auditar servidores Linux: coletor portátil, relatórios, correlação com CVEs, MITRE ATT&CK, lente LGPD e playbook de hardening com rollback. Swift 6.
+- **[banana](https://github.com/andre28abr/banana)**: editor local-first de notas Markdown, código e PDF, com vault cifrado (Argon2id + AES-256-GCM). Tauri 2, Rust e Svelte 5.
+
+Todos os projetos, com o porquê de cada um, no perfil [github.com/andre28abr](https://github.com/andre28abr).
 
 ---
 
