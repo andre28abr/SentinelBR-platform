@@ -127,8 +127,8 @@ test-server: ## pytest do server (requer Docker stack via 'make dev')
 	cd $(SERVER_DIR) && $(UV) run pytest
 
 .PHONY: test-web
-test-web: ## vitest do web
-	cd $(WEB_DIR) && $(PNPM) test
+test-web: ## web ainda nao tem suite de testes — verifica tipos (tsc -b)
+	cd $(WEB_DIR) && $(PNPM) exec tsc -b
 
 # ─── Proto ────────────────────────────────────────────────────────────────────
 

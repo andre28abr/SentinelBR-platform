@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/python-3.12+-blue)
 ![Go](https://img.shields.io/badge/go-1.25-00add8)
 ![React](https://img.shields.io/badge/react-19-61dafb)
-![Tests](https://img.shields.io/badge/tests-149%20server%20+%20Go%20suite-success)
+![Tests](https://img.shields.io/badge/tests-149%20server%20%2B%2045%20agent-success)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
 ---
@@ -22,11 +22,13 @@ Atualmente em **transição de carreira, com disponibilidade imediata**, este pr
 
 → **[Bio completa: AUTHOR.md](AUTHOR.md)** · [LinkedIn](https://linkedin.com/in/andreaugusto-azariasdesouza) · [GitHub Profile](https://github.com/andre28abr)
 
-### 📂 Outro projeto do autor
+### 📂 Outros projetos do autor
 
-**SC Platform** *(privado, sob NDA — disponível para apresentação em entrevistas mediante solicitação)*
-
-Plataforma SaaS multi-tenant pra gestão de licitações públicas brasileiras (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local, gerador de propostas em PDF, CRM, Telegram). **75k+ linhas, 420 testes, 30 modelos, 245 rotas, 29 migrations.** Stack: Python 3.14 + Flask 3 + SQLAlchemy 2 + PostgreSQL 15 + Redis + Playwright + ReportLab + Docling + ChromaDB + Manifest V3 Chrome Extension.
+- **[VigiaOS](https://github.com/andre28abr/VigiaOS)** *(público)* — suíte de segurança, privacidade e LGPD para Fedora Workstation (GTK4 + libadwaita). Onde o SentinelBR cuida do *servidor*, o VigiaOS cuida da *estação de trabalho*.
+- **[Plataforma LGPD](https://github.com/andre28abr/lgpd-platform)** *(público)* — plataforma web multi-tenant que treina, avalia e certifica os setores de uma empresa em LGPD e dá ao DPO as ferramentas de operação (ROPA, RIPD, direitos do titular, incidentes).
+- **[Peapod](https://github.com/andre28abr/Peapod)** *(público)* — sandboxes isolados e descartáveis para agentes de IA (MCP, CLI, dashboard e app macOS).
+- **[banana](https://github.com/andre28abr/banana)** *(público)* — editor local-first de notas Markdown com vault cifrado (Tauri 2 + Rust + Svelte 5).
+- **SC Platform** *(privado, sob NDA — disponível para apresentação em entrevistas mediante solicitação)* — SaaS multi-tenant de gestão de licitações públicas (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local, CRM, Telegram). ~75k linhas, 547 testes. Python 3.14 + Flask 3 + PostgreSQL + Redis.
 
 ---
 

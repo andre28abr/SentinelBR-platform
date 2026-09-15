@@ -76,9 +76,15 @@ O **SentinelBR** nasceu como exercício pessoal de portfólio com três objetivo
 
 ## Outros projetos
 
-**SC Platform** *(privado, sob NDA — disponível para apresentação em entrevistas mediante solicitação)*
+**[VigiaOS](https://github.com/andre28abr/VigiaOS)** — Suíte de **segurança, privacidade e LGPD** para a estação de trabalho (Fedora Workstation, GTK4 + libadwaita): hardening, antivírus, integridade de arquivos, controles de privacidade e relatórios de conformidade, tudo em português. Onde o SentinelBR cuida do *servidor*, o VigiaOS cuida da *estação de trabalho*.
 
-Plataforma SaaS multi-tenant para gestão de licitações públicas brasileiras (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local via ChromaDB + Sentence-Transformers, gerador de propostas, CRM, Telegram em tempo real). Stack: **Python 3.14 + Flask 3 + SQLAlchemy 2 + PostgreSQL 15 + Redis + Playwright + ReportLab + Docling + Manifest V3 Chrome Extension**. ~75.000 linhas, 420 testes, 30 modelos, 245 rotas, 29 migrations.
+**[Plataforma LGPD](https://github.com/andre28abr/lgpd-platform)** — Plataforma web multi-tenant que **treina, avalia e opera** a conformidade com a LGPD: diagnóstico de maturidade, ROPA (Art. 37), RIPD (Art. 38), direitos do titular (Art. 18) e resposta a incidentes (Art. 48).
+
+**[Peapod](https://github.com/andre28abr/Peapod)** — Sandboxes **isolados e descartáveis para agentes de IA** (MCP, CLI, dashboard web e app nativo de macOS): rede desligada por padrão, allowlist de domínios e trilha de auditoria.
+
+**[banana](https://github.com/andre28abr/banana)** — Editor **local-first** de notas Markdown, código e PDF (Tauri 2 + Rust + Svelte 5), com vault cifrado (Argon2id + AES-256-GCM) e export de PDF vetorial.
+
+**SC Platform** *(privado, sob NDA — disponível para apresentação em entrevistas mediante solicitação)* — Plataforma SaaS multi-tenant para gestão de licitações públicas brasileiras (PNCP em tempo real, simulador FSM da Lei 14.133, robô de lances em 3 modos, extração de PDF com IA local via ChromaDB + Sentence-Transformers, gerador de propostas, CRM, Telegram em tempo real). Stack: **Python 3.14 + Flask 3 + SQLAlchemy 2 + PostgreSQL 15 + Redis + Playwright + ReportLab + Docling + Manifest V3 Chrome Extension**. ~75.000 linhas, 547 testes, 32 modelos, 36 migrations.
 
 ---
 
