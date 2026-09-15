@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -48,7 +49,7 @@ class Rule:
     aggregate: Aggregate | None = None
 
 
-def parse_rule(data: dict) -> Rule:
+def parse_rule(data: dict[str, Any]) -> Rule:
     rid = data["id"]
     severity = data.get("severity", "medium")
     if severity not in VALID_SEVERITIES:

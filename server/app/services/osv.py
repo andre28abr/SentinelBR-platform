@@ -14,6 +14,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import re
+from typing import Any
 
 import httpx
 from cvss import CVSS3
@@ -91,7 +92,7 @@ def _pick_severity(cvss_score: float | None) -> str:
 _CVE_RE = re.compile(r"CVE-\d{4}-\d{4,}")
 
 
-def _pick_cvss(vuln_obj: dict) -> float | None:
+def _pick_cvss(vuln_obj: dict[str, Any]) -> float | None:
     """Pega o maior CVSS v3.x score. OSV armazena como vetor string
     (CVSS:3.1/AV:N/AC:L/...), entao precisamos calcular."""
     best: float | None = None
@@ -114,21 +115,21 @@ def _pick_cvss(vuln_obj: dict) -> float | None:
     return best
 
 
-def _normalize_id(vuln_obj: dict) -> str:
+def _normalize_id(vuln_obj: dict[str, Any]) -> str:
     """Prefere CVE-XXXX-NNNN. Tenta nos aliases primeiro, depois extrai do ID."""
     aliases = vuln_obj.get("aliases", []) or []
     for a in aliases:
         if a.startswith("CVE-"):
-            return a
+            return str(a)
     # Tenta extrair do proprio ID (ex: "DEBIAN-CVE-2021-23239" -> "CVE-2021-23239")
     main_id = vuln_obj.get("id", "")
     m = _CVE_RE.search(main_id)
     if m:
         return m.group(0)
-    return main_id
+    return str(main_id)
 
 
-def _normalize_vuln(v: dict) -> Vulnerability:
+def _normalize_vuln(v: dict[str, Any]) -> Vulnerability:
     cvss = _pick_cvss(v)
     fixed = None
     for affected in v.get("affected", []) or []:
@@ -190,7 +191,7 @@ async def query_batch(queries: list[PackageQuery]) -> dict[str, list[Vulnerabili
         # Limitamos concorrencia pra nao tomar rate limit.
         sem = asyncio.Semaphore(8)
 
-        async def fetch(pkg: str, vid: str):
+        async def fetch(pkg: str, vid: str) -> tuple[str, Vulnerability | None]:
             async with sem:
                 try:
                     r = await cli.get(f"{OSV_VULN_URL}/{vid}")

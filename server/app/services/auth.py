@@ -1,6 +1,6 @@
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import bcrypt
 import jwt
@@ -54,7 +54,7 @@ def issue_token(subject: str, token_type: TokenType, jti: str | None = None) -> 
         exp = now + timedelta(minutes=settings.access_token_minutes)
     else:
         exp = now + timedelta(days=settings.refresh_token_days)
-    payload: dict = {
+    payload: dict[str, Any] = {
         "sub": subject,
         "type": token_type,
         "iat": int(now.timestamp()),

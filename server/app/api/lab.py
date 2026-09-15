@@ -183,8 +183,8 @@ async def reset_demo(
     actions_res = await db.execute(
         delete(Action).where(Action.host_id.in_(host_ids))
     )
-    alerts_n = alerts_res.rowcount or 0
-    actions_n = actions_res.rowcount or 0
+    alerts_n = int(getattr(alerts_res, "rowcount", 0) or 0)
+    actions_n = int(getattr(actions_res, "rowcount", 0) or 0)
 
     await audit.log_action(
         db, action="lab_demo_reset", actor=current, request=request,

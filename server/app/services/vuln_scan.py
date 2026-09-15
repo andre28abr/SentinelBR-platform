@@ -7,6 +7,8 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import uuid
+from collections.abc import Sequence
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +37,7 @@ def compute_risk_score(severities: list[str]) -> int:
     return min(100, int(round(total)))
 
 
-async def scan_host(host_id: uuid.UUID) -> dict:
+async def scan_host(host_id: uuid.UUID) -> dict[str, Any]:
     """Scan um host: query OSV pra cada pacote instalado, atualiza host_vulnerabilities.
 
     Retorna sumario {scanned: N, found: M, by_severity: {...}, score: X}.
@@ -78,9 +80,9 @@ async def scan_host(host_id: uuid.UUID) -> dict:
 async def _persist_results(
     db: AsyncSession,
     host_id: uuid.UUID,
-    packages: list[HostPackage],
+    packages: Sequence[HostPackage],
     vulns_by_pkg: dict[str, list[osv.Vulnerability]],
-) -> dict:
+) -> dict[str, Any]:
     pkg_versions = {p.name: p.version for p in packages}
 
     # Estrategia: deleta tudo e re-insere (pacotes patcheados saem, novos entram).

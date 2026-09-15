@@ -42,7 +42,7 @@ async def serve() -> None:
         ("grpc.max_receive_message_length", 16 * 1024 * 1024),
         ("grpc.max_send_message_length", 4 * 1024 * 1024),
     ])
-    agent_pb2_grpc.add_AgentServiceServicer_to_server(AgentServicer(), server)
+    agent_pb2_grpc.add_AgentServiceServicer_to_server(AgentServicer(), server)  # type: ignore[no-untyped-call]
     server.add_secure_port(settings.grpc_listen_addr, _server_credentials())
     await server.start()
     log.info("gRPC mTLS server escutando em %s", settings.grpc_listen_addr)

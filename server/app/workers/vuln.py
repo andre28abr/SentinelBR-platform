@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from typing import Any
 
 from app.services import vuln_scan
 from app.workers.celery_app import celery_app
@@ -17,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 @celery_app.task(name="app.workers.vuln.scan_host")
-def scan_host(host_id: str) -> dict:
+def scan_host(host_id: str) -> dict[str, Any]:
     try:
         return asyncio.run(vuln_scan.scan_host(uuid.UUID(host_id)))
     except Exception as e:  # noqa: BLE001

@@ -42,14 +42,14 @@ async def list_events(
         raise HTTPException(status_code=502, detail=f"Loki indisponivel: {e}") from e
 
     out: list[EventResponse] = []
-    for e in events:
-        raw = pii.mask_string(e.raw) if mask_pii else e.raw
-        fields = pii.mask_dict(e.fields) if mask_pii else e.fields
+    for ev in events:
+        raw = pii.mask_string(ev.raw) if mask_pii else ev.raw
+        fields = pii.mask_dict(ev.fields) if mask_pii else ev.fields
         out.append(EventResponse(
-            event_id=e.event_id,
-            timestamp=e.timestamp,
-            source=e.source,
-            severity=e.severity,
+            event_id=ev.event_id,
+            timestamp=ev.timestamp,
+            source=ev.source,
+            severity=ev.severity,
             raw=raw,
             fields=fields,
         ))

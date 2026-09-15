@@ -1,5 +1,6 @@
 import uuid
-from typing import Annotated
+from collections.abc import Callable, Coroutine
+from typing import Annotated, Any
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -42,7 +43,7 @@ async def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_role(*allowed_roles: str):
+def require_role(*allowed_roles: str) -> Callable[[User], Coroutine[Any, Any, User]]:
     """Dependency factory pra restringir endpoint a roles especificos.
 
     Uso:

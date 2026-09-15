@@ -6,9 +6,10 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbSession, OperatorUser
-from app.models import Action
+from app.models import Action, User
 from app.schemas.action import ActionResponse
 from app.services.actions import create_pending_action, get_host_in_org_or_404
 
@@ -20,13 +21,13 @@ class ToolRunRequest(BaseModel):
 
 
 async def _trigger_tool(
-    db,
+    db: AsyncSession,
     host_id: uuid.UUID,
     action_type: str,
     require_field: str,
     payload: ToolRunRequest,
     request: Request,
-    current,
+    current: User,
 ) -> Action:
     host = await get_host_in_org_or_404(db, host_id, current.org_id)
     if not getattr(host, require_field):

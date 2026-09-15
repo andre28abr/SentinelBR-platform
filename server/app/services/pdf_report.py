@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import io
+from typing import Any
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -64,7 +65,7 @@ def render(report: ComplianceReport, org_name: str = "Organização") -> bytes:
     body = styles["BodyText"]
     small = ParagraphStyle("Small", parent=body, fontSize=9, textColor=colors.grey)
 
-    story: list = []
+    story: list[Any] = []
 
     # Header
     story.append(Paragraph("Relatorio de Compliance LGPD", title_style))

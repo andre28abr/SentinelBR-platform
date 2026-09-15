@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import case, select
@@ -78,7 +79,7 @@ async def list_vulnerabilities(
 
 
 @router.post("/{host_id}/scan", status_code=202)
-async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: OperatorUser) -> dict:
+async def trigger_scan(host_id: uuid.UUID, db: DbSession, current: OperatorUser) -> dict[str, Any]:
     """Dispara scan manual (mesmo task que roda apos SubmitInventory).
 
     Async via Celery: retorna 202 imediatamente; resultado fica disponivel

@@ -11,10 +11,13 @@ import contextlib
 import datetime as dt
 import logging
 import uuid
+from collections.abc import AsyncIterator, Sequence
+from typing import Any
 
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import SessionLocal
 from app.grpc_server.pb import agent_pb2, agent_pb2_grpc
@@ -25,7 +28,7 @@ from app.workers import vuln as vuln_tasks
 log = logging.getLogger(__name__)
 
 
-def _peer_host_id(context: grpc.aio.ServicerContext) -> uuid.UUID | None:
+def _peer_host_id(context: grpc.aio.ServicerContext[Any, Any]) -> uuid.UUID | None:
     """Extrai o CN (host_id) do cert que o cliente apresentou no handshake mTLS.
 
     Retorna None se nao houver cert (mTLS desligado em testes).
@@ -35,7 +38,7 @@ def _peer_host_id(context: grpc.aio.ServicerContext) -> uuid.UUID | None:
     if not cn_list:
         return None
     try:
-        return uuid.UUID(cn_list[0].decode())
+        return uuid.UUID(next(iter(cn_list)).decode())
     except (ValueError, AttributeError):
         return None
 
@@ -110,7 +113,7 @@ def _action_to_command(action: Action) -> agent_pb2.Command:
 
 
 async def _apply_command_results(
-    db, host_id: uuid.UUID, results: list[agent_pb2.CommandResult]
+    db: AsyncSession, host_id: uuid.UUID, results: Sequence[agent_pb2.CommandResult]
 ) -> None:
     """Marca actions como executed/failed conforme o agente reportou."""
     if not results:
@@ -141,7 +144,7 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
     async def Heartbeat(  # noqa: N802 (nome vem do proto)
         self,
         request: agent_pb2.HeartbeatRequest,
-        context: grpc.aio.ServicerContext,
+        context: grpc.aio.ServicerContext[Any, Any],
     ) -> agent_pb2.HeartbeatResponse:
         peer_id = _peer_host_id(context)
         request_id = uuid.UUID(request.host_id)
@@ -242,7 +245,7 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
     async def Enroll(  # noqa: N802
         self,
         request: agent_pb2.EnrollRequest,
-        context: grpc.aio.ServicerContext,
+        context: grpc.aio.ServicerContext[Any, Any],
     ) -> agent_pb2.EnrollResponse:
         # Enrollment usa REST (precisa ser sem mTLS — o agente ainda nao tem cert).
         # Esse handler existe so pra completar o contrato; retorna UNIMPLEMENTED.
@@ -253,9 +256,9 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
 
     async def StreamEvents(  # noqa: N802
         self,
-        request_iterator,
-        context: grpc.aio.ServicerContext,
-    ):
+        request_iterator: AsyncIterator[agent_pb2.Event],
+        context: grpc.aio.ServicerContext[Any, Any],
+    ) -> AsyncIterator[agent_pb2.EventAck]:
         peer_id = _peer_host_id(context)
         if peer_id is None:
             await context.abort(grpc.StatusCode.UNAUTHENTICATED, "mTLS obrigatorio")
@@ -323,7 +326,7 @@ class AgentServicer(agent_pb2_grpc.AgentServiceServicer):
     async def SubmitInventory(  # noqa: N802
         self,
         request: agent_pb2.InventoryReport,
-        context: grpc.aio.ServicerContext,
+        context: grpc.aio.ServicerContext[Any, Any],
     ) -> agent_pb2.InventoryAck:
         peer_id = _peer_host_id(context)
         request_id = uuid.UUID(request.host_id)

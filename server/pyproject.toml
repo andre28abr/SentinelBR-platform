@@ -39,6 +39,9 @@ dev = [
     "ruff>=0.8.0",
     "mypy>=1.13.0",
     "grpcio-tools>=1.80.0",
+    "types-protobuf>=7.35.1.20260906",
+    "grpc-stubs>=1.53.0.6",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [tool.ruff]
@@ -62,6 +65,23 @@ ignore = ["S101"]  # asserts em testes
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
+# Stubs gerados pelo protoc (make proto) — não se edita à mão, não se tipa à mão.
+exclude = ["^app/grpc_server/pb/"]
+
+[[tool.mypy.overrides]]
+# Stubs gerados pelo protoc: usamos os tipos, mas não reportamos erros neles.
+module = ["app.grpc_server.pb.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# Celery não publica tipos: @celery_app.task é um decorator sem anotação.
+module = ["app.workers.*"]
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# Bibliotecas que não publicam tipos (sem stubs no PyPI).
+module = ["feedparser", "yara", "cvss", "celery", "celery.*", "reportlab", "reportlab.*", "kombu", "kombu.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

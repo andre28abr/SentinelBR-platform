@@ -5,7 +5,8 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.models import Alert, Host
@@ -15,12 +16,12 @@ from app.services import audit
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
 
-def _alerts_in_org(org_id: uuid.UUID):
+def _alerts_in_org(org_id: uuid.UUID) -> Select[tuple[Alert]]:
     """Subquery util — alert.host pertencendo a essa org."""
     return select(Alert).join(Host, Alert.host_id == Host.id).where(Host.org_id == org_id)
 
 
-async def _alert_in_org_or_404(db, alert_id: uuid.UUID, org_id: uuid.UUID) -> Alert:
+async def _alert_in_org_or_404(db: AsyncSession, alert_id: uuid.UUID, org_id: uuid.UUID) -> Alert:
     alert = await db.get(Alert, alert_id)
     if alert is None:
         raise HTTPException(status_code=404, detail="alerta nao encontrado")

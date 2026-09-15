@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from sqlalchemy import select
 
@@ -19,7 +20,7 @@ from app.workers.celery_app import celery_app
 log = logging.getLogger(__name__)
 
 
-async def _schedule_tool_async(action_type: str, require_field: str) -> dict:
+async def _schedule_tool_async(action_type: str, require_field: str) -> dict[str, Any]:
     """Cria 1 Action(action_type) por host ATIVO que tenha require_field=True.
 
     Idempotente: pula se ja existe Action do mesmo type pending/sent pro host.
@@ -73,7 +74,7 @@ async def _schedule_tool_async(action_type: str, require_field: str) -> dict:
 
 
 @celery_app.task(name="app.workers.tools_schedule.schedule_rkhunter")
-def schedule_rkhunter() -> dict:
+def schedule_rkhunter() -> dict[str, Any]:
     try:
         return asyncio.run(_schedule_tool_async("run_rkhunter_scan", "rkhunter_installed"))
     except Exception as e:  # noqa: BLE001
@@ -82,7 +83,7 @@ def schedule_rkhunter() -> dict:
 
 
 @celery_app.task(name="app.workers.tools_schedule.schedule_lynis")
-def schedule_lynis() -> dict:
+def schedule_lynis() -> dict[str, Any]:
     try:
         return asyncio.run(_schedule_tool_async("run_lynis_audit", "lynis_installed"))
     except Exception as e:  # noqa: BLE001
@@ -91,7 +92,7 @@ def schedule_lynis() -> dict:
 
 
 @celery_app.task(name="app.workers.tools_schedule.schedule_chkrootkit")
-def schedule_chkrootkit() -> dict:
+def schedule_chkrootkit() -> dict[str, Any]:
     try:
         return asyncio.run(_schedule_tool_async("run_chkrootkit_scan", "chkrootkit_installed"))
     except Exception as e:  # noqa: BLE001
@@ -100,7 +101,7 @@ def schedule_chkrootkit() -> dict:
 
 
 @celery_app.task(name="app.workers.tools_schedule.schedule_aide")
-def schedule_aide() -> dict:
+def schedule_aide() -> dict[str, Any]:
     try:
         return asyncio.run(_schedule_tool_async("run_aide_check", "aide_installed"))
     except Exception as e:  # noqa: BLE001

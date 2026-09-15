@@ -7,6 +7,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AdminUser, CurrentUser, DbSession, OperatorUser
 from app.models import Action, Host
@@ -16,7 +17,9 @@ from app.services import audit
 router = APIRouter(prefix="/api/v1", tags=["actions"])
 
 
-async def _action_in_org_or_404(db, action_id: uuid.UUID, org_id: uuid.UUID) -> Action:
+async def _action_in_org_or_404(
+    db: AsyncSession, action_id: uuid.UUID, org_id: uuid.UUID
+) -> Action:
     action = await db.get(Action, action_id)
     if action is None:
         raise HTTPException(status_code=404, detail="acao nao encontrada")

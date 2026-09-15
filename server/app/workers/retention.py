@@ -28,7 +28,7 @@ async def _cleanup() -> int:
 
     async with SessionLocal() as db:
         result = await db.execute(delete(AuditLog).where(AuditLog.created_at < cutoff))
-        deleted = result.rowcount or 0
+        deleted = int(getattr(result, "rowcount", 0) or 0)
         await db.commit()
 
     log.info("retention: %d audit_logs apagados (>%dd)", deleted, days)

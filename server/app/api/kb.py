@@ -5,6 +5,8 @@ Tudo read-only e publico para usuario autenticado (nao tem dado sensivel).
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app.api.deps import CurrentUser
@@ -14,12 +16,12 @@ router = APIRouter(prefix="/api/v1/kb", tags=["kb"])
 
 
 @router.get("/techniques")
-async def list_techniques(_: CurrentUser) -> list[dict]:
+async def list_techniques(_: CurrentUser) -> list[dict[str, Any]]:
     return kb.list_techniques()
 
 
 @router.get("/techniques/{tid}")
-async def get_technique(tid: str, _: CurrentUser) -> dict:
+async def get_technique(tid: str, _: CurrentUser) -> dict[str, Any]:
     t = kb.get_technique(tid)
     if t is None:
         raise HTTPException(status_code=404, detail="tecnica nao encontrada")
@@ -27,12 +29,12 @@ async def get_technique(tid: str, _: CurrentUser) -> dict:
 
 
 @router.get("/hunting")
-async def list_hunting_queries(_: CurrentUser) -> list[dict]:
+async def list_hunting_queries(_: CurrentUser) -> list[dict[str, Any]]:
     return kb.list_hunting_queries()
 
 
 @router.get("/playbooks")
-async def list_playbooks(_: CurrentUser) -> list[dict]:
+async def list_playbooks(_: CurrentUser) -> list[dict[str, Any]]:
     return kb.list_playbooks()
 
 
@@ -48,7 +50,7 @@ async def explain(
     event_source: str | None = Query(
         default=None, description="event.source (sshd, yara, selinux, apparmor)",
     ),
-) -> dict:
+) -> dict[str, Any]:
     """Retorna explicacao leiga pra um rule_id, action_type ou event_source.
     UI usa pra popover ⓘ / link "ver"."""
     if rule_id:

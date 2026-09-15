@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AdminUser, CurrentUser, DbSession
 from app.config import get_settings
@@ -13,7 +14,7 @@ from app.services import audit, enrollment
 router = APIRouter(prefix="/api/v1/hosts", tags=["hosts"])
 
 
-async def _host_in_org_or_404(db, host_id: uuid.UUID, org_id: uuid.UUID) -> Host:
+async def _host_in_org_or_404(db: AsyncSession, host_id: uuid.UUID, org_id: uuid.UUID) -> Host:
     """Carrega host se pertencer a org do user, senao 404 (nao vaza existencia)."""
     host = await db.get(Host, host_id)
     if host is None or host.org_id != org_id:

@@ -16,13 +16,16 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from collections.abc import MutableMapping
 from contextvars import ContextVar
+from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
 from prometheus_fastapi_instrumentator import Instrumentator
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
+from structlog.typing import Processor
 
 from app.config import get_settings
 
@@ -39,7 +42,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     """Adiciona X-Request-ID a cada request — usa o do client se valido,
     senao gera UUID novo. Coloca no contextvar pra logs estruturados."""
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         client_rid = request.headers.get("X-Request-ID")
         if client_rid and _REQUEST_ID_PATTERN.match(client_rid):
             rid = client_rid
@@ -51,7 +54,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def _add_request_id(_, __, event_dict: dict) -> dict:
+def _add_request_id(
+    _: Any, __: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Processor structlog que injeta request_id em todos os events."""
     event_dict["request_id"] = request_id_ctx.get()
     return event_dict
@@ -66,7 +71,7 @@ def setup_logging() -> None:
     settings = get_settings()
     is_dev = settings.debug
 
-    shared_processors = [
+    shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         _add_request_id,
         structlog.processors.add_log_level,
@@ -74,6 +79,7 @@ def setup_logging() -> None:
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
     ]
+    renderer: Processor
     if is_dev:
         renderer = structlog.dev.ConsoleRenderer()
     else:

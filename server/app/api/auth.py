@@ -4,6 +4,7 @@ import uuid
 import jwt
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DbSession
 from app.config import get_settings
@@ -134,7 +135,7 @@ async def login(
     )
 
 
-async def _emit_refresh(db, user_id: uuid.UUID) -> tuple[str, str]:
+async def _emit_refresh(db: AsyncSession, user_id: uuid.UUID) -> tuple[str, str]:
     """Emite refresh token novo + persiste jti na tabela. Retorna (token, jti)."""
     settings = get_settings()
     jti = new_jti()
@@ -144,7 +145,7 @@ async def _emit_refresh(db, user_id: uuid.UUID) -> tuple[str, str]:
     return token, jti
 
 
-async def _revoke_jti(db, jti: str) -> None:
+async def _revoke_jti(db: AsyncSession, jti: str) -> None:
     """Marca jti como revoked. No-op se jti nao existe (token velho pre-rotation)."""
     row = await db.get(RefreshTokenJti, jti)
     if row is not None and row.revoked_at is None:

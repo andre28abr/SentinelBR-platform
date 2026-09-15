@@ -9,6 +9,8 @@ Em prod ambos rodam como container/service separado. Broker = Redis (ADR-006).
 
 from __future__ import annotations
 
+from typing import Any
+
 from celery import Celery
 from celery.schedules import schedule
 
@@ -30,7 +32,7 @@ celery_app = Celery(
 )
 
 
-def _maybe_schedule(name: str, task: str, interval: int) -> dict | None:
+def _maybe_schedule(name: str, task: str, interval: int) -> dict[str, Any] | None:
     """Retorna entry pro beat_schedule se interval > 0, senao None (desativa)."""
     if interval <= 0:
         return None

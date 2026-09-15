@@ -8,9 +8,10 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import DbSession, OperatorUser
-from app.models import Action
+from app.models import Action, User
 from app.schemas.action import ActionResponse
 from app.services.actions import create_pending_action, get_host_in_org_or_404
 
@@ -41,8 +42,8 @@ class Fail2banActionRequest(BaseModel):
 
 
 async def _trigger_fail2ban(
-    db, host_id: uuid.UUID, action_type: str,
-    payload: Fail2banActionRequest, request: Request, current,
+    db: AsyncSession, host_id: uuid.UUID, action_type: str,
+    payload: Fail2banActionRequest, request: Request, current: User,
 ) -> Action:
     host = await get_host_in_org_or_404(db, host_id, current.org_id)
     if not host.fail2ban_installed:

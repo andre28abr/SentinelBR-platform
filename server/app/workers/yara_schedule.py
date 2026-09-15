@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from sqlalchemy import select
 
@@ -25,7 +26,7 @@ def _parse_paths(raw: str) -> list[str]:
     return [p.strip() for p in raw.split(",") if p.strip()]
 
 
-async def _schedule_async() -> dict:
+async def _schedule_async() -> dict[str, Any]:
     settings = get_settings()
     paths = _parse_paths(settings.yara_scheduled_paths)
     if not paths:
@@ -75,7 +76,7 @@ async def _schedule_async() -> dict:
 
 
 @celery_app.task(name="app.workers.yara_schedule.schedule_yara_scans")
-def schedule_yara_scans() -> dict:
+def schedule_yara_scans() -> dict[str, Any]:
     try:
         return asyncio.run(_schedule_async())
     except Exception as e:  # noqa: BLE001
