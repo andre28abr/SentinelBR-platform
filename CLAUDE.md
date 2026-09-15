@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> **Antes de decidir qualquer coisa, leia `~/Documents/Dev/raiz/`** (PERFIL.md e o arquivo do assunto): é como o
+> André trabalha. A decisão dele na conversa prevalece sobre qualquer documento; depois, atualize o documento.
+
 Orientações para o Claude Code trabalhar neste repositório. Leia antes de agir.
 Referência completa: [README.md](README.md) (visão geral, 580 linhas), [docs/](docs/README.md) (18 documentos, também
 renderizados dentro do app em `/docs`), [server/README.md](server/README.md), [agent/README.md](agent/README.md),
