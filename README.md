@@ -65,7 +65,8 @@ Todos os projetos, com o porquê de cada um, no perfil [github.com/andre28abr](h
 15. [Métricas do código](#métricas-do-código)
 16. [Roadmap](#roadmap)
 17. [Documentação interna](#documentação-interna)
-18. [Licença](#licença)
+18. [Contribuições](#contribuições)
+19. [Licença](#licença)
 
 ---
 
@@ -591,6 +592,12 @@ Tudo em `docs/` (também renderizado in-app em `/docs` depois de logar):
 | 16 | [Antivírus / malware](docs/16-antivirus-malware.md) |
 | 17 | [Threat knowledge base](docs/17-threat-knowledge-base.md) |
 | 18 | [Demo Mode (lab)](docs/18-demo-mode.md) |
+
+---
+
+## Contribuições
+
+Obrigado pelo interesse! Este é um projeto pessoal, mantido por uma pessoa só, e por isso não consigo revisar nem acompanhar contribuições de fora. Pedidos de alteração (pull requests) serão fechados sem análise, sem nenhuma desconsideração por quem enviou. Se quiser adaptar o projeto às suas necessidades, fique à vontade para fazer um fork, dentro dos termos da licença.
 
 ---
 
