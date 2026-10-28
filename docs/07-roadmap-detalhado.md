@@ -102,9 +102,9 @@ LINKEDIN     post mensal         post mensal       post mensal     posts contín
 - [ ] Adicionar README inicial (overview do projeto)
 - [ ] Adicionar LICENSE (sugestão: AGPL-3.0 ou MIT)
 - [ ] Adicionar `.gitignore` apropriado (Python + Node + Go)
-- [ ] Adicionar `CONTRIBUTING.md`
-- [ ] Adicionar `CODE_OF_CONDUCT.md`
-- [ ] Adicionar templates de Issue e PR
+- [ ] ~~Adicionar `CONTRIBUTING.md`~~ (fora: o projeto não aceita contribuições, 2026-10-28)
+- [ ] ~~Adicionar `CODE_OF_CONDUCT.md`~~ (fora: o projeto não aceita contribuições, 2026-10-28)
+- [ ] ~~Adicionar templates de Issue e PR~~ (fora: o projeto não aceita contribuições, 2026-10-28)
 - [ ] Configurar branch protection no `main`
 - [ ] Configurar secrets do GitHub (DOCKER_TOKEN, etc.)
 - [ ] Setup de monorepo:
@@ -163,7 +163,7 @@ LINKEDIN     post mensal         post mensal       post mensal     posts contín
 - [ ] Script `scripts/dev-down.sh`: para tudo
 - [ ] Script `scripts/dev-reset.sh`: limpa volumes
 - [ ] `Makefile` com targets úteis (`make up`, `make test`, `make lint`)
-- [ ] Documentar setup local em `CONTRIBUTING.md`
+- [ ] Documentar setup local no README
 - [ ] Devcontainer configurado (VS Code)
 
 **Critérios de pronto:**
